@@ -1,0 +1,10 @@
+# general
+_*
+
+# docs
+docs/*
+!docs/*.pdf
+!docs/*.tex
+!docs/*.bib
+!docs/*.png
+!docs/.latexmkrc

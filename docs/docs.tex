@@ -1,0 +1,279 @@
+\documentclass[a4paper, 11pt, twoside]{report}
+
+% Language and Encoding
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+
+% Fonts
+\usepackage{microtype} % Improves text spacing
+\usepackage{fontspec}
+\setmainfont[Scale=0.95]{Helvetica}
+\setmonofont[Scale=0.9]{IBM Plex Mono}
+\newfontfamily\titlefont{Times New Roman}
+
+% Page Layout & Margins
+\usepackage[
+    a4paper,
+    top=3.0cm,
+    bottom=3.0cm,
+    inner=2.5cm,
+    outer=2.5cm,
+    bindingoffset=1cm, % Extra 1cm added purely for the binding side
+    headheight=15pt
+]{geometry}
+
+
+% Headers and Footers
+\setlength{\headheight}{15pt} % Fix warning about header height
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}                    % Clear all defaults
+\newif\ifshowlogo
+\showlogotrue
+\newcommand{\blankpage}{
+    \clearpage
+    \thispagestyle{empty}     % No headers/footers
+    \showlogofalse            % No Logo
+    \hbox{}                   % Invisible content
+    \newpage
+    \showlogotrue             % Resume Logo
+}
+
+% Line thickness
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+
+% Style for Chapter pages (plain style usually suppresses headers, we override it)
+\fancyhead[LO]{\includegraphics[height=0.3cm]{header_small_logo.png}}      % Left on Odd
+\fancyhead[RO, LE]{\thepage}                                               % Right on Odd
+\fancyhead[RE]{\nouppercase{\leftmark}}
+\fancyfoot[LO, RE]{\footnotesize \textit{Valutazione di WebGPU per applicazioni di Realtà Virtuale tramite integrazione con OpenXR/OpenVR}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancypagestyle{plain}{
+    \fancyhf{}                                                             % Clear defaults
+    \fancyhead[LO]{\includegraphics[height=0.3cm]{header_small_logo.png}} 
+    \fancyhead[RO, LE]{\thepage}
+    \fancyhead[RE]{\nouppercase{\leftmark}} 
+    \fancyfoot[LO, RE]{\footnotesize \textit{Valutazione di WebGPU per applicazioni di Realtà Virtuale tramite integrazione con OpenXR/OpenVR}}
+    \renewcommand{\headrulewidth}{0.4pt}
+    \renewcommand{\footrulewidth}{0.4pt}
+}
+
+% Chapter/Section Titles Styling
+\usepackage{titlesec}
+\usepackage{color}
+
+% Chapter Format
+\titleformat{\chapter}[display]
+{\normalfont\huge\bfseries}      % Format
+{\chaptertitlename\ \thechapter} % Label (e.g., Capitolo 1)
+{20pt}                           % Separation
+{\Huge}                          % Title size
+
+% Section Format
+\titleformat{\section}
+{\normalfont\Large\bfseries}
+{\thesection}
+{1em}
+{}
+
+% Graphics & Tables
+\usepackage{graphicx}
+\usepackage[most]{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+
+% Code Snippets
+\usepackage{minted}
+\usepackage{xcolor}
+\usemintedstyle{xcode}
+\setminted{
+bgcolor=lightgray!20,
+framesep=2mm,
+xleftmargin=10pt,
+fontsize=\small,
+}
+
+% Hyperlinks
+\usepackage[hidelinks]{hyperref}
+
+% Absolute Positioning Package
+\usepackage{eso-pic}
+\AddToShipoutPictureBG{%
+   \ifshowlogo
+   \ifodd\value{page}%
+     \AtPageLowerLeft{%
+       \put(\LenToUnit{\dimexpr\paperwidth-1.5cm\relax}, \LenToUnit{2cm}){%
+          \includegraphics[height=5cm, keepaspectratio]{supsistudent_logo.png}%
+       }%
+     }%
+   \else
+     \AtPageLowerLeft{%
+       \put(\LenToUnit{1.0cm}, \LenToUnit{2cm}){%
+          \includegraphics[height=5cm, keepaspectratio]{supsistudent_logo.png}%
+       }%
+     }%
+   \fi
+   \fi
+}
+
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+% Bibliography
+\usepackage{csquotes}
+\usepackage[backend=biber, style=numeric, sorting=none]{biblatex}
+\addbibresource{bibliography.bib}
+
+% Glossary
+\usepackage[toc]{glossaries}
+\makeglossaries
+\loadglsentries{glossary.tex}
+
+% PDF Metadata
+\hypersetup{
+    pdftitle={Progetto di Diploma},
+    pdfauthor={Mazza Luca},
+    pdfsubject={Valutazione di WebGPU per applicazioni di Realtà Virtuale tramite integrazione con OpenXR/OpenVR},
+    pdfkeywords={WebGPU, OpenXR, OpenVR, C++, VR, AR, XR},
+    pdfproducer={XeLaTeX},
+    pdfcreator={XeLaTeX with hyperref}
+}
+
+\begin{document}
+
+% Custom Title Page 
+\begin{titlepage}
+\pagenumbering{alph}
+\newgeometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+
+% Top Header Region
+\noindent
+\includegraphics[height=2.5cm, keepaspectratio]{header_logo.png}
+\hfill
+
+\vspace{0.1cm}
+
+% Title Region
+\begin{flushleft}
+\titlefont 
+    {\Huge Valutazione di WebGPU per applicazioni di Realtà Virtuale tramite integrazione con OpenXR/OpenVR} \\[0.8cm]
+\end{flushleft}
+\vspace{1cm}
+
+\hrule height 1pt
+\vspace{8pt}
+
+\newcommand{\field}[2]{%
+    \noindent{\footnotesize #1}\\[8pt] % Label (Small)
+    {\Large \textbf{#2}}\par           % Content (Large & Bold)
+}
+
+\noindent
+\begin{minipage}[t]{0.48\textwidth} 
+    \vspace{0pt} % Ensures alignment at the top
+    \field{Studente/i}{Mazza Luca}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+    \vspace{0pt}
+    \field{Relatore}{Peternier Achille}
+    \vspace{35pt}\hrule height 1pt\vspace{8pt} % Line separator
+    \field{Correlatore}{Paoliello Marco}
+    \vspace{35pt}\hrule height 1pt\vspace{8pt} % Line separator
+    \field{Committente}{Peternier Achille}
+\end{minipage}
+
+\vspace{40pt}
+
+\hrule height 1pt
+\vspace{8pt}
+
+\noindent
+\begin{minipage}[t]{0.525\textwidth}
+    \vspace{0pt}
+    \field{Corso di laurea}{Ingegneria informatica \\ (Informatica TP)}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.6\textwidth}
+    \vspace{0pt}
+    \field{Modulo}{C11287}
+\end{minipage}
+
+\vspace{35pt}
+\hrule height 1pt % Thicker main divider line
+\vspace{8pt}
+
+\noindent
+\field{Anno}{2025 / 2026}
+\vspace{5cm}                          % Space at the very bottom
+\hrule height 1pt width 0.5\textwidth % Thicker main divider line
+\vspace{8pt}
+\noindent
+\begin{minipage}[t]{\textwidth}
+    \vspace{0pt}
+    \field{Data}{\today}
+\end{minipage}
+\end{titlepage}
+\restoregeometry
+
+\blankpage
+
+% Front Matter
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+
+% List of Figures/Tables (Optional)
+\listoffigures
+\blankpage
+\listoftables
+\newpage
+
+\blankpage
+
+\pagenumbering{arabic}
+\chapter{Abstract}
+
+\vspace{0.5cm}
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.5cm}
+
+\blankpage
+
+\chapter{Introduzione}
+
+\gls{Example}\cite{example}
+
+\section{Pianificazione}
+
+\chapter{Stato dell'arte}
+
+\chapter{Design e implementazione}
+
+\chapter{Test e validazione}
+
+\section{Risultati}
+
+\chapter{Risultati}
+
+\section{Manuale d'uso}
+
+\chapter{Conclusioni}
+
+\section{Sviluppi futuri}
+
+\blankpage
+\pagenumbering{Roman}
+\printglossary[title=Glossario, toctitle=Glossario]
+
+\blankpage
+\printbibliography[heading=bibintoc, title=Sitografia]
+
+\end{document}
+
