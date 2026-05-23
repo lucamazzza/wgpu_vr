@@ -145,6 +145,18 @@ fontsize=\small,
     pdfcreator={XeLaTeX with hyperref}
 }
 
+\newenvironment{dedication}
+{%\clearpage
+  \thispagestyle{empty}
+  \vspace*{\stretch{2}}
+  \itshape
+  \raggedright
+}
+{\par
+ \vspace{\stretch{3}}
+ \clearpage
+}
+
 \begin{document}
 
 % Custom Title Page 
@@ -221,6 +233,15 @@ fontsize=\small,
 \end{minipage}
 \end{titlepage}
 \restoregeometry
+
+\blankpage
+
+\showlogofalse
+\begin{dedication}
+    Vorrei qui ringraziare
+    \textnormal{Luca}\newline
+    per l'incredibile impegno nello sviluppo di questa tesi
+\end{dedication}
 
 \blankpage
 
