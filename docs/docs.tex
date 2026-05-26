@@ -269,7 +269,45 @@ fontsize=\small,
 
 \chapter{Introduzione}
 
-\gls{Example}\cite{example}
+Negli ultimi anni, l'evoluzione delle API grafiche ha portato ad un progressivo allontanamento dagli standard
+tradizionali, come OpenGL\footnote{\url{https://opengl.org}}, in favore di soluzioni più moderne, che forniscono più
+controllo direttamente sull'hardware delle unità grafiche dei calcolatori.
+In questo panorama, WebGPU\footnote{\url{https://webgpu.org}} si è imposta non solo come nuova generazione di API
+grafiche per il Web, ma anche come una solida alternativa per contesti nativi, grazie ai kit di sviluppo che la
+rendono compatibile con diversi linguaggi a basso livello, come \texttt{C++} e \texttt{Rust}.
+Un progetto precedentemente sviluppato ha già analizzato e dimostrato l'efficacia della transizione da OpenGL a WebGPU
+per corsi introduttivi alla computer grafica.
+
+Lo scopo del presente progetto è di estendere tale studio di fattibilità in un settore con ancora maggiori esigenze,
+ovvero il dominio della \textit{Realtà Virtuale} (VR).
+L'obbiettivo principale è la valutazione dell'impiego di WebGPU in un ambiente nativo \texttt{C/C++}, e che questo possa
+rappresentare una valida alternativa ad OpenGL per lo sviluppo di applicazioni VR, investigando la complessità e
+l'efficacia della sua integrazione con framework standard quali \gls{OpenXR}\footnote{\url{https://khronos.org/openxr/}}
+e \gls{OpenVR}\footnote{\url{https://github.com/ValveSoftware/openvr}}.
+
+Come per quanto riguarda i progetti precedentemente sviluppati, per valutare correttamente questa tecnologia è
+fondamentale tener sempre presente il contesto accademico in cui si andrà ad operare. Questo lavoro si rivolge in primis
+al modulo opzionale \texttt{M-I6331Z - Realtà Virtuale} della SUPSI, che si basa sulle
+conoscenze acquisite nel corso obbligatorio \texttt{M-I5203 - Grafica}. Lo scopo di tale corso è di insegnare allo
+studente lo sviluppo di un'applicazione interattiva in C++, interfacciandosi direttamente con le API di basso livello,
+senza affidarsi a game engine preconfezionati.
+
+In questo scenario, la semplicità d'utilizzo è cruciale nel determinare la fattibilità; una soluzione troppo complessa
+rischierebbe di spostare inavvertitamente il focus del corso. Gli studenti e il docente si ritroverebbero a dedicare
+troppo tempo a districarsi tra le difficoltà di implementazione dell'API grafica, sottraendolo all'apprendimento
+dei concetti fondamentali della Realtà Virtuale. Tuttavia, lo sviluppo VR impone requisiti stringenti in termini di
+latenza, prestazioni e gestione diretta dell'hardware, elementi dove le API moderne come WebGPU eccellono, grazie al
+loro paradigma basato su pipeline esplicite.
+
+Durante il progetto verrà pertanto sviluppato un prototipo funzionante che utilizzi WebGPU come backend grafico per il
+rendering di una scena VR stereoscopica. Verrà creato un layer di integrazione tra WebGPU e le API VR, affrontando e
+risolvendo le sfide tecniche legate all'acquisizione delle pose dei dispositivi, alla gestione delle swapchains e alla
+rigorosa sincronizzazione dei frame richiesta dal runtime, come ad esempio SteamVR.
+
+L'esito di questa implementazione permetterà infine di confrontare l'approccio WebGPU con le soluzioni tradizionali,
+misurando in modo oggettivo il livello di effort richiesto per lo sviluppo e le performance ottenute.
+I risultati raccolti forniranno delle linee guida concrete per determinare l'effettiva fattibilità e le
+modalità ottimali per l'adozione di WebGPU in ambito didattico e applicativo nel contesto della Realtà Virtuale.
 
 \section{Pianificazione}
 
