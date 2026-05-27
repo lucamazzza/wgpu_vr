@@ -198,7 +198,7 @@ fontsize=\small,
     \vspace{35pt}\hrule height 1pt\vspace{8pt} % Line separator
     \field{Correlatore}{Paoliello Marco}
     \vspace{35pt}\hrule height 1pt\vspace{8pt} % Line separator
-    \field{Committente}{Peternier Achille}
+    \field{Committente}{-}
 \end{minipage}
 
 \vspace{40pt}
@@ -270,20 +270,21 @@ fontsize=\small,
 \chapter{Introduzione}
 
 Negli ultimi anni, l'evoluzione delle API grafiche ha portato ad un progressivo allontanamento dagli standard
-tradizionali, come OpenGL\footnote{\url{https://opengl.org}}, in favore di soluzioni più moderne, che forniscono più
-controllo direttamente sull'hardware delle unità grafiche dei calcolatori.
-In questo panorama, WebGPU\footnote{\url{https://webgpu.org}} si è imposta non solo come nuova generazione di API
-grafiche per il Web, ma anche come una solida alternativa per contesti nativi, grazie ai kit di sviluppo che la
+tradizionali, come \texttt{OpenGL}\footnote{\url{https://opengl.org}}, in favore di soluzioni più moderne, che 
+forniscono più controllo direttamente sull'hardware delle unità grafiche dei calcolatori.
+In questo panorama, \texttt{WebGPU}\footnote{\url{https://webgpu.org}} si è imposta non solo come nuova generazione di
+API grafiche per il Web, ma anche come una solida alternativa per contesti nativi, grazie ai kit di sviluppo che la
 rendono compatibile con diversi linguaggi a basso livello, come \texttt{C++} e \texttt{Rust}.
-Un progetto precedentemente sviluppato ha già analizzato e dimostrato l'efficacia della transizione da OpenGL a WebGPU
-per corsi introduttivi alla computer grafica.
+Un progetto precedentemente sviluppato ha già analizzato e dimostrato l'efficacia della transizione da \texttt{OpenGL} a
+\texttt{WebGPU} per corsi introduttivi alla computer grafica.
 
 Lo scopo del presente progetto è di estendere tale studio di fattibilità in un settore con ancora maggiori esigenze,
 ovvero il dominio della \textit{Realtà Virtuale} (VR).
-L'obbiettivo principale è la valutazione dell'impiego di WebGPU in un ambiente nativo \texttt{C/C++}, e che questo possa
-rappresentare una valida alternativa ad OpenGL per lo sviluppo di applicazioni VR, investigando la complessità e
-l'efficacia della sua integrazione con framework standard quali \gls{OpenXR}\footnote{\url{https://khronos.org/openxr/}}
-e \gls{OpenVR}\footnote{\url{https://github.com/ValveSoftware/openvr}}.
+L'obbiettivo principale è la valutazione dell'impiego di \texttt{WebGPU} in un ambiente nativo \texttt{C/C++}, e che
+questo possa rappresentare una valida alternativa ad \texttt{OpenGL} per lo sviluppo di applicazioni VR, investigando la
+complessità e l'efficacia della sua integrazione con framework standard quali \texttt{\gls{OpenXR}}
+\footnote{\url{https://khronos.org/openxr}} e \texttt{\gls{OpenVR}}
+\footnote{\url{https://github.com/ValveSoftware/openvr}}.
 
 Come per quanto riguarda i progetti precedentemente sviluppati, per valutare correttamente questa tecnologia è
 fondamentale tener sempre presente il contesto accademico in cui si andrà ad operare. Questo lavoro si rivolge in primis
@@ -296,20 +297,79 @@ In questo scenario, la semplicità d'utilizzo è cruciale nel determinare la fat
 rischierebbe di spostare inavvertitamente il focus del corso. Gli studenti e il docente si ritroverebbero a dedicare
 troppo tempo a districarsi tra le difficoltà di implementazione dell'API grafica, sottraendolo all'apprendimento
 dei concetti fondamentali della Realtà Virtuale. Tuttavia, lo sviluppo VR impone requisiti stringenti in termini di
-latenza, prestazioni e gestione diretta dell'hardware, elementi dove le API moderne come WebGPU eccellono, grazie al
-loro paradigma basato su pipeline esplicite.
+latenza, prestazioni e gestione diretta dell'hardware, elementi dove le API moderne come \texttt{WebGPU} eccellono,
+grazie al loro paradigma basato su pipeline esplicite.
 
-Durante il progetto verrà pertanto sviluppato un prototipo funzionante che utilizzi WebGPU come backend grafico per il
-rendering di una scena VR stereoscopica. Verrà creato un layer di integrazione tra WebGPU e le API VR, affrontando e
-risolvendo le sfide tecniche legate all'acquisizione delle pose dei dispositivi, alla gestione delle swapchains e alla
-rigorosa sincronizzazione dei frame richiesta dal runtime, come ad esempio SteamVR.
+Durante il progetto verrà pertanto sviluppato un prototipo funzionante che utilizzi \texttt{WebGPU} come backend grafico
+per il rendering di una scena VR stereoscopica. Verrà creato un layer di integrazione tra WebGPU e le API VR,
+affrontando e risolvendo le sfide tecniche legate all'acquisizione delle pose dei dispositivi, alla gestione delle
+swapchains e alla rigorosa sincronizzazione dei frame richiesta dal runtime, come ad esempio \texttt{SteamVR}.
 
-L'esito di questa implementazione permetterà infine di confrontare l'approccio WebGPU con le soluzioni tradizionali,
-misurando in modo oggettivo il livello di effort richiesto per lo sviluppo e le performance ottenute.
+L'esito di questa implementazione permetterà infine di confrontare l'approccio \texttt{WebGPU} con le soluzioni
+tradizionali, misurando in modo oggettivo il livello di effort richiesto per lo sviluppo e le performance ottenute.
 I risultati raccolti forniranno delle linee guida concrete per determinare l'effettiva fattibilità e le
-modalità ottimali per l'adozione di WebGPU in ambito didattico e applicativo nel contesto della Realtà Virtuale.
+modalità ottimali per l'adozione di \texttt{WebGPU} in ambito didattico e applicativo nel contesto della Realtà
+Virtuale.
 
 \section{Pianificazione}
+
+Di seguito sono descritte le differenti fasi atte allo sviluppo del progetto. In quanto la natura del progetto sia
+sperimentale, ed infine l'obbiettivo sia quello di verificare la fattibilità di utilizzo, il piano di lavoro non eccede
+nei dettagli o nei vincoli ma risulta completo, garantendo la flessibilità necessaria e l'immediata risposta ad
+eventuali problemi o deviazioni dai mezzi discussi inizialmente.
+
+\begin{enumerate}
+    \item \textbf{Analisi \texttt{WebGPU}}: Analizzare l'approccio necessario per lo sviluppo di un'applicazione grafica
+        facente uso dell'API di \texttt{WebGPU}.
+    \item \textbf{Analisi \texttt{OpenXR}}: Analizzare l'approccio utilizzato nei progetti precedenti (specialmente per
+        quanto riguarda \textit{\texttt{XRBridge}}\footnote{\url{https://github.com/JollyCookie2000/xr-bridge}}) per lo
+        sviluppo di un'applicazione grafica che faccia utilizzo di \texttt{OpenXR} per fornire funzionalità per la
+        realtà virtuale.
+    \item \textbf{Demo \texttt{WebGPU} indipendente}: Derivante dall'analisi riguardante l'API di \texttt{WebGPU},
+        sviluppare una demo che possa rappresentare un punto di partenza per lo sviluppo della demo finale. Questa
+        deve concentrarsi sulle funzionalità dell'API \texttt{WebGPU}. Questa demo deve rimanere semplice e ridurre la
+        complessità di integrazione di ulteriori funzionalità, specialmente quelle riguardanti la realtà virtuale.
+    \item \textbf{Demo \texttt{OpenXR} indipendente}: Derivante dall'analisi riguardante \texttt{OpenXR}, sviluppare una
+        demo che possa rappresentare un punto di partenza per lo sviluppo della demo finale. Questa deve concentrarsi 
+        sulle funzionalità di realtà virtuale. Questa demo deve essere imperativamente concentrata sui requisiti del
+        corso di realtà virtuale e concentrarsi ad adattare unicamente ciò che è necessario per il corso.
+        Ulteriormente, questa deve essere integrabile nell'ambiente WebGPU, deve quindi avere un approccio modulare,
+        il quale permetterà di rimuovere le funzionalità \texttt{OpenGL} e sostituirle con quelle di \texttt{WebGPU}.
+    \item \textbf{Swapchain condivisa}: Sviluppare una swapchain, condivisa tra \texttt{WebGPU} e \texttt{OpenXR}, che
+        permetta di condividere le texture da mostrare tramite gli occhi dell'headset, tra l'API \texttt{WebGPU} e
+        quella di \texttt{OpenXR}. Ciò si riduce nella produzione di una libreria bridge, che utilizzi uno dei "minimi
+        comun denominatori\footnote{WebGPU si interfaccia direttamente con l'API di sistema per la rappresentazione
+        nativa di immagini grafiche.}" tra le due tecnologie, in questo caso una tra \texttt{\gls{Vulkan}},
+        \texttt{\gls{DirectX}} o \texttt{\gls{Metal}}.
+    \item \textbf{Sincronizzazione \& Rendering Stereoscopico}: Integrare la sincronizzazione del loop di
+        rendering di \texttt{WebGPU} con i tempi dettati da \texttt{OpenXR}.
+        Deve essere inoltre modificata la pipeline di \texttt{WebGPU} per renderizzare la scena due volte, basandosi
+        sulle matrici di \textit{projection} e \texttt{view} fornite da \texttt{OpenXR} per occhio sinistro e destro.
+    \item \textbf{Demo unificata}: Produrre una demo che unisca tutte le funzionalità richieste dal corso di Realtà
+        Virtuale, utilizzando l'architettura prodotta nelle fasi precedenti. Questa deve dimostrare in maniera semplice
+        e efficace i risultati ottenibili dalla combinazione di \texttt{WebGPU} e \texttt{OpenXR}.
+    \item \textbf{Benchmarking}: Misurare il \gls{framerate} e la latenza della demo, utilizzando appropriati strumenti
+        di misurazione.
+    \item \textbf{Valutazione \textit{effort}}: Confrontare la pipeline prodotta con quelle utilizzate negli anni
+        passati del corso; valutare le principali differenze e le difficoltà di comprensione, la verbosità e
+        l'osticita di debug.
+    \item \textbf{Linee guida conclusive}: Produrre una guida finale che mostri brevemente le conclusioni tratte durante
+        lo sviluppo e che guidi l'eventuale integrazione della pipeline nel corso.
+\end{enumerate}
+
+Questo rapporto è stato scritto durante tutta la durata del progetto, parallelamente a tutte le fasi descritte sopra.
+
+\section{Requisiti}
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lp{11cm}l@{}}
+\toprule
+\textbf{ID}   & \textbf{Descrizione}                                                          & \textbf{Note}   \\ \midrule
+\texttt{R-01} &                                                                               &                 \\
+\bottomrule
+\end{tabular}
+\caption{Requisiti del progetto}
+\end{table}
 
 \chapter{Stato dell'arte}
 
