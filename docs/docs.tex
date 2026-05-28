@@ -364,8 +364,17 @@ Questo rapporto è stato scritto durante tutta la durata del progetto, parallela
 \centering
 \begin{tabular}{@{}lp{11cm}l@{}}
 \toprule
-\textbf{ID}   & \textbf{Descrizione}                                                          & \textbf{Note}   \\ \midrule
-\texttt{R-01} &                                                                               &                 \\
+\textbf{ID}   & \textbf{Descrizione}                                                                    & \textbf{Note}           \\ \midrule
+\texttt{R-00} & Deve presentare un backend \texttt{WebGPU}, con \texttt{wgpu\_native}, in \texttt{C++}  & Supporta <\texttt{C++20}\\
+\texttt{R-01} & Deve presentare l'integrazione di \texttt{OpenXR} per gestire funzionalità VR           & -                       \\
+\texttt{R-02} & Deve acquisire i dati di tracciamento dell'\gls{HMD}                                    & -                       \\
+\texttt{R-03} & Deve gestire allocazione texture e submission duale con swapchains                      & -                       \\
+\texttt{R-04} & Deve gestire la sincronizzazione con il framerate runtime VR                            & -                       \\
+\texttt{R-05} & Deve presentare una demo completa di scena 3D, che utilizzi \texttt{WebGPU}             & -                       \\
+\texttt{R-06} & Deve essere compatibile con Windows e Linux                                             & -                       \\
+\texttt{R-07} & Deve includere analisi complessità, comparata a soluzione \texttt{OpenGL}               & -                       \\
+\texttt{R-08} & Deve includere un'analisi della performance (benchmark)                                 & -                       \\
+\texttt{R-09} & Deve includere un verdetto finale e guida all'utilizzo                                  & -                       \\
 \bottomrule
 \end{tabular}
 \caption{Requisiti del progetto}
