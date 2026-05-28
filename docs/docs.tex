@@ -198,7 +198,7 @@ fontsize=\small,
     \vspace{35pt}\hrule height 1pt\vspace{8pt} % Line separator
     \field{Correlatore}{Paoliello Marco}
     \vspace{35pt}\hrule height 1pt\vspace{8pt} % Line separator
-    \field{Committente}{-}
+    \field{Committente}{Peternier Achille}
 \end{minipage}
 
 \vspace{40pt}
@@ -239,8 +239,7 @@ fontsize=\small,
 \showlogofalse
 \begin{dedication}
     Vorrei qui ringraziare
-    \textnormal{Luca}\newline
-    per l'incredibile impegno nello sviluppo di questa tesi
+    \textnormal{}\newline
 \end{dedication}
 
 \blankpage
@@ -311,6 +310,16 @@ I risultati raccolti forniranno delle linee guida concrete per determinare l'eff
 modalità ottimali per l'adozione di \texttt{WebGPU} in ambito didattico e applicativo nel contesto della Realtà
 Virtuale.
 
+Con questo documento non si intende però produrre una guida dettagliata per quanto riguarda l'API di \texttt{WebGPU},
+e nemmeno all'utilizzo di \texttt{OpenXR} o alle funzionalità VR, bensì saranno espliciti solamente i concetti
+essenziali alla comprensione di questo lavoro. Se si desidera apprendere i concetti riguardanti entrambe le API
+menzionate si può fare riferimento alla guida per i fondamentali di \texttt{WebGPU}\cite{webgpufundamentals} e a quella
+di \texttt{OpenXR}\cite{openxrtutorial}.
+
+È anche da notare che questo documento non ha lo scopo di rendere noto ogni singolo dettaglio di codice sviluppato,
+bensì di accompagnare alla comprensione del problema, dei passi intrapresi per cercare di risolverlo e, se finalmente
+è fattibile sostituire l'approccio tradizionale con \texttt{WebGPU}.
+
 \section{Pianificazione}
 
 Di seguito sono descritte le differenti fasi atte allo sviluppo del progetto. In quanto la natura del progetto sia
@@ -362,22 +371,22 @@ Questo rapporto è stato scritto durante tutta la durata del progetto, parallela
 \section{Requisiti}
 \begin{table}[h]
 \centering
-\begin{tabular}{@{}lp{11cm}l@{}}
+\caption{Requisiti del progetto}
+\begin{tabular}{@{}lp{12cm}l@{}}
 \toprule
-\textbf{ID}   & \textbf{Descrizione}                                                                    & \textbf{Note}           \\ \midrule
-\texttt{R-00} & Deve presentare un backend \texttt{WebGPU}, con \texttt{wgpu\_native}, in \texttt{C++}  & Supporta <\texttt{C++20}\\
-\texttt{R-01} & Deve presentare l'integrazione di \texttt{OpenXR} per gestire funzionalità VR           & -                       \\
-\texttt{R-02} & Deve acquisire i dati di tracciamento dell'\gls{HMD}                                    & -                       \\
-\texttt{R-03} & Deve gestire allocazione texture e submission duale con swapchains                      & -                       \\
-\texttt{R-04} & Deve gestire la sincronizzazione con il framerate runtime VR                            & -                       \\
-\texttt{R-05} & Deve presentare una demo completa di scena 3D, che utilizzi \texttt{WebGPU}             & -                       \\
-\texttt{R-06} & Deve essere compatibile con Windows e Linux                                             & -                       \\
-\texttt{R-07} & Deve includere analisi complessità, comparata a soluzione \texttt{OpenGL}               & -                       \\
-\texttt{R-08} & Deve includere un'analisi della performance (benchmark)                                 & -                       \\
-\texttt{R-09} & Deve includere un verdetto finale e guida all'utilizzo                                  & -                       \\
+\textbf{ID}   & \textbf{Descrizione}                                                                    & \textbf{Note}    \\ \midrule
+\texttt{R-00} & Deve presentare un backend \texttt{WebGPU}, con \texttt{wgpu\_native}, in \texttt{C++}  & < \texttt{C++20} \\
+\texttt{R-01} & Deve presentare l'integrazione di \texttt{OpenXR} per gestire funzionalità VR/XR        & -                \\
+\texttt{R-02} & Deve acquisire i dati di tracciamento dell'\gls{HMD}                                    & -                \\
+\texttt{R-03} & Deve gestire allocazione texture e submission duale con swapchains                      & -                \\
+\texttt{R-04} & Deve gestire la sincronizzazione con il framerate runtime VR                            & -                \\
+\texttt{R-05} & Deve presentare una demo completa di scena 3D, che utilizzi \texttt{WebGPU}             & -                \\
+\texttt{R-06} & Deve essere compatibile con Windows e Linux                                             & -                \\
+\texttt{R-07} & Deve includere analisi complessità, comparata alla soluzione \texttt{OpenGL}            & -                \\
+\texttt{R-08} & Deve includere un'analisi della performance (benchmark)                                 & -                \\
+\texttt{R-09} & Deve includere un verdetto finale e guida all'utilizzo                                  & -                \\
 \bottomrule
 \end{tabular}
-\caption{Requisiti del progetto}
 \end{table}
 
 \chapter{Stato dell'arte}
