@@ -1,0 +1,9 @@
+[submodule "src/external/glm"]
+	path = src/external/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "src/external/glfw"]
+	path = src/external/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "src/external/openxr"]
+	path = src/external/openxr
+	url = https://github.com/KhronosGroup/OpenXR-SDK.git
