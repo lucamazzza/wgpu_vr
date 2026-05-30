@@ -391,6 +391,60 @@ Questo rapporto è stato scritto durante tutta la durata del progetto, parallela
 
 \chapter{Stato dell'arte}
 
+Negli ultimi dieci anni, l'ecosistema dello sviluppo di applicazioni grafiche interattive ha visto intercorrere una
+trasformazione radicale. L'industria si è pian piano allontanata dai paradigmi tradizionali, basati su macchine a stati
+globali, per abbracciare interfacce di programmazione dal carattere esplicito, progettate per rispecchiare fedelmente
+l'architettura delle GPU multi-core. Ciò ha portato le API, contrariamente al trend seguito dalla maggior parte
+dell'ingegneria del software che si muove verso API di alto livello e astrazioni più vicine allo sviluppatore, a
+scendere sempre più di livello, avvicinandosi alla programmazione diretta dell'hardware grafico.
+
+Parallelamente, il settore della Realtà Virtuale e Aumentata, comunemente raggruppato sotto il termine \textit{Spatial
+computing} o \texttt{XR}, è maturato, passando da prototipi frammentari guidati da singoli vendor a standard aperti e
+unificati.
+Soprattutto per questo settore, il mercato ha avuto un moderato picco durante il periodo tra il 2020 ed il 2021, il
+quale ha poi visto un rapido declino, dovuto a diversi fattori, ma principalmente a scelte e underperformance dei
+produttori; specialmente lo spostamento dei settori di ricerca e sviluppo dei maggiori esponenti, come Microsoft e Meta,
+nel settore dell'Intelligenza Artificiale, in maniera affrettata (e poco considerata, visti i risultati ad oggi) ha
+posto fine all'evoluzione dei prodotti commerciali.
+Anche se il rilascio di un nuovo prodotto Apple nel settore, il prezzo imposto dalla casa di Cupertino non ha aiutato
+il mercato a rendere la tecnologia attrattiva.
+
+Questo capitolo analizza le tecnologie attualmente impiegate in ambito didattico e industriale, evidenziando la
+crescente trasformazione dell'ecosistema grafico, le limitazioni e "l'invecchiamento" degli approcci tradizionali e
+la transizione architetturale verso nuovi standard aperti, come \texttt{OpenXR} e \texttt{WebGPU}
+
+\newpage
+
+\section{Standard didattico - \texttt{OpenGL} \& \texttt{OpenVR}}
+
+Nel contesto accademico e della formazione in computer grafica, il corso di Realtà Virtuale ha fatto affidamento
+sull'utilizzo di \texttt{OpenGL} per il rendering e \texttt{OpenVR} per l'interfacciamento con gli HMD.
+
+\textbf{\texttt{OpenGL}}, introdotto nel 1992, è un'API implicita basata su una macchina a stati finiti. Il suo successo
+decennale, specialmente nell'ambito accademico, deriva dalla curva di apprendimento che risulta relativamente dolce;
+l'astrazione di alto livello utilizzata dagli sviluppatori risulta semplice, in quanto nasconde al programmatore la
+complessa gestione della memoria video, la sincronizzazione dei thread e la sottomissione dei comandi alla GPU.
+Tuttavia, questa astrazione ha un costo architetturale severo: i driver di \texttt{OpenGL} devono eseguire una massiccia
+mole di euristiche in background per tradurre le chiamate high level in istruzioni comprensibili per la scheda grafica,
+causando un notevole driver overhead e un'imprevedibilità delle prestazioni, soprattutto del frame stuttering, difetti
+critici nell'ambito della realtà virtuale, dove la latenza \textit{motion-to-photon} deve rimanere strettamente
+inferiore ai 20 millisecondi.
+
+\textbf{\texttt{OpenVR}}, sviluppato da Valve come SDK per la piattaforma \texttt{SteamVR}, è stata la prima API di
+successo commerciale a standardizzare l'accesso a device dedicati alla realtà virtuale \textit{PC-VR}.
+Nata in un periodo di forte sperimentazione, questa tecnologia è intrinsecamente legata all'ecosistema di Valve,
+soprattutto con i visori di produzione HTC, per i quali le due aziende hanno collaborato nella produzione.
+Si basa su un modello nel quale l'hardware sta al centro dell'attenzione; infatti il runtime costringe l'hardware
+concorrente a tradurre i propri dati per renderli compatibili con il formato di un HTC Vive, per esempio.
+Questa soluzione costringerebbe il programmatore a rilasciare una nuova patch ogni volta che un nuovo controller,
+visore o elemento periferico per il sistema VR viene rilasciato.
+Pur offrendo un'integrazione diretta e robusta con \texttt{OpenGL}, al momento si tratta di una tecnologia legacy,
+non più allineata con la traiettoria dell'industria moderna.
+
+\section{Frammentazione - \texttt{Vulkan}, \texttt{DirectX12} \& \texttt{Metal}}
+
+\section{Comparativa - \texttt{OpenVR} \& \texttt{OpenXR}}
+
 \chapter{Design e implementazione}
 
 \chapter{Test e validazione}
