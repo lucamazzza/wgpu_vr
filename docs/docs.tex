@@ -411,7 +411,7 @@ il mercato a rendere la tecnologia attrattiva.
 
 Questo capitolo analizza le tecnologie attualmente impiegate in ambito didattico e industriale, evidenziando la
 crescente trasformazione dell'ecosistema grafico, le limitazioni e "l'invecchiamento" degli approcci tradizionali e
-la transizione architetturale verso nuovi standard aperti, come \texttt{OpenXR} e \texttt{WebGPU}
+la transizione architetturale verso nuovi standard aperti, come \texttt{\gls{OpenXR}} e \texttt{WebGPU}.
 
 \newpage
 
@@ -441,7 +441,35 @@ visore o elemento periferico per il sistema VR viene rilasciato.
 Pur offrendo un'integrazione diretta e robusta con \texttt{OpenGL}, al momento si tratta di una tecnologia legacy,
 non più allineata con la traiettoria dell'industria moderna.
 
-\section{Frammentazione - \texttt{Vulkan}, \texttt{DirectX12} \& \texttt{Metal}}
+\section{Frammentazione - \texttt{Vulkan}, \texttt{DirectX} \& \texttt{Metal}}
+
+Il limite fisiologico di \texttt{OpenGL} ha portato alla nascita di una nuova generazione di API grafiche di basso
+livello; il successore naturale è \textbf{\texttt{\gls{Vulkan}}}, sviluppato dallo stesso Khronos Group,
+\textbf{\texttt{\gls{DirectX}}}, sviluppato da Microsoft con l'obbiettivo di spingere il Gaming su PC, e 
+\textbf{\texttt{\gls{Metal}}}, di produzione Apple, per tutte le piattaforme correntemente sul mercato (iOS, macOS,
+tvOS, ecc...). Sebbene queste API garantiscano prestazioni eccezionali eliminando l'overhead dei driver e permettendo il
+multithreading nativo, hanno frammentato drasticamente il mercato, rendendo lo sviluppo multipiattaforma un'impresa
+titanica.
+
+Vi sono due fattori critici che rendono queste API problematiche per la didattica:
+\begin{enumerate}
+    \item \gls{Vulkan} richiede un approccio esplicito alla gestione delle risorse. Il developer deve allocare
+        manualmente la memoria, gestire i descriptor set, configurare le pipeline memory barrier e orchestrare le code
+        di comandi. Realizzare il rendering di un singolo triangolo colorato utilizzando Vulkan richiede la stesura di
+        1000-1500 righe di codice, che a confronto delle 50-100 di OpenGL risultano eccessive per un corso di dieci
+        settimane. Inoltre, un corso accademico focalizzato sulla realtà virtuale, dove gli argomenti principali
+        dovrebbero essere la stereoscopia, l'interazione spaziale e la cinematica, forzare gli studenti ad apprendere
+        quest'API significherebbe consumare l'intero semestre solo per inizializzare l'ambiente grafico.
+    \item Apple ha ufficialmente deprecato \texttt{OpenGL} sui propri sistemi operativi, per poi rimuovere completamente
+        il supporto nativo a tutte quelle tecnologie non-proprietarie che compongono lo standard \textit{de-facto}
+        dell'industria. Attualmente infatti, l'unica API grafica nativa supportata dall'hardware \texttt{Apple Silicon}
+        e dai sistemi operativi moderni della casa californiana, è \textbf{\texttt{\gls{Metal}}}. Apple ha rifiutato di
+        adottare \texttt{Vulkan}, costringendo gli sviluppatori ad affidarsi a complessi layer di traduzione, come
+        \textit{\texttt{MoltenVK}}, per ottenere una parvenza di compatibilità.
+        Questa tendenza a murare il proprio giardino distrugge il paradigma \textit{Write once, Compile everywhere},
+        rendendo impossibile fornire un ambiente di sviluppo nativo e condiviso tra chi sceglie di utilizzare Windows,
+        Linux o macOS.
+\end{enumerate}
 
 \section{Comparativa - \texttt{OpenVR} \& \texttt{OpenXR}}
 
