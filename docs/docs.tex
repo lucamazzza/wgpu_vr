@@ -474,9 +474,10 @@ Vi sono due fattori critici che rendono queste API problematiche per la didattic
 \section{Comparativa - \texttt{OpenVR} \& \texttt{OpenXR}}
 
 La medesima frammentazione vissuta nel mercato delle API si è ripercossa su quello dell'hardware VR. Per risolvere
-questo problema, il \textit{Khronos Group} ha rilasciato \texttt{OpenXR}, l'attuale standard industriale open-source
-per lo spatial computing, adottato universalmente da tutti i principali produttori, inclusa Valve stessa, che ha
-attivamente incoraggiato l'abbandono di \texttt{OpenVR}.
+questo problema, il \textit{Khronos Group}\footnote{\url{https://khronos.org}} ha rilasciato \texttt{OpenXR}, l'attuale
+standard industriale open-source per lo spatial computing, adottato universalmente da tutti i principali produttori,
+inclusa Valve stessa, che ha attivamente incoraggiato l'abbandono di \texttt{OpenVR}
+\footnote{\url{https://windowscentral.com/steamvr-gets-open-source-upgrade-valve-transitions-openxr-api}}.
 
 Le differenze architetturali tra le due API sono profonde e rappresentano una rivoluzione concettuale nel modo in cui
 vengono concepite le applicazioni immersive. Di seguito le principali divergenze
@@ -490,8 +491,9 @@ vengono concepite le applicazioni immersive. Di seguito le principali divergenze
         profili di interazione. Ciò rende le applicazioni scritte oggi con hardware che verrà rilasciato anche nel
         lontano futuro, senza necessità di modifiche o patching.
     \item \textbf{Gestione Spazi/Tracking}: \texttt{OpenVR} restituisce le matrici di posizionamento (\textit{Poses})
-        basate su un sistema di coordinate cablato. \texttt{OpenXR} invece introduce il concetto id \texttt{XrSpace},
-        dove ogni elemento, che si tratti del visore, del controller o della zona di gioco, è codificato come "Spazio".
+        basate su un sistema di coordinate cablato. \texttt{OpenXR} invece introduce il concetto id
+        \texttt{XrSpace}\footnote{\url{https://registry.khronos.org/OpenXR/specs/1.1/man/html/XrSpace.html}}, dove ogni
+        elemento, che si tratti del visore, del controller o della zona di gioco, è codificato come "Spazio".
         Al suo interno, la posizione di un oggetto viene calcolata interrogando il runtime, chiedendogli di localizzare
         uno spazio rispetto ad un altro, provvedendo a fornire anche stime sulle velocità lineari e angolari basate su
         complessi algoritmi di predizione, oltre che la posizione degli oggetti.
@@ -502,6 +504,28 @@ vengono concepite le applicazioni immersive. Di seguito le principali divergenze
         Binding esplicito, richiedendo al runtime i puntatori di memoria per poi disegnarci sopra. L'inversione del
         controllo rende estremamente complessa l'integrazione di API grafiche non ufficialmente supportate.
 \end{itemize}
+
+\newpage
+
+\section{L'emergere di \texttt{WebGPU}}
+
+Per colmare il vuoto lasciato dalla deprecazione di \texttt{OpenGL} e dalla complessità proibitiva di \texttt{Vulkan},
+il \textit{World Wide Web Consortium} (W3C) ha sviluppato \texttt{WebGPU}. Nata originariamente per succedere a
+\texttt{WebGL}, per i browser web, questa tecnologia è progettata con lo scopo di esporre le capacità delle API moderne
+garantendo sicurezza, portabilità ed un livello di astrazione ergonomico per lo sviluppatore.
+
+La vera rivoluzione per l'ambiente desktop, ed il fulcro tecnologico di questo progetto, è il porting nativo di questa
+API tramite implementazioni \texttt{C/C++}, come \textbf{\texttt{wgpu-native}} e \textbf{\texttt{Dawn}}, sviluppate
+rispettivamente da Mozilla, in \texttt{Rust} e da Google in \texttt{C++}.
+Queste librerie operano come \textit{Render Hardware Interface} (RHI) universale; lo sviluppatore scrive il codice
+relativo alla propria applicazione grafica, utilizzando l'API \texttt{WebGPU} standard e scrive gli shader nel
+linguaggio \texttt{WGSL} (WebGPU Shading Language). Il backend esegue poi automaticamente la traduzione
+\textit{just-in-time} e invia i comandi all'API nativa del sistema operativo, quindi \texttt{Vulkan/DirectX} per quanto
+riguarda Windows, \texttt{Vulkan} per quanto riguarda Linux ed infine \texttt{Metal} per macOS.
+
+\texttt{WebGPU} nativo risolve quindi simultaneamente due problemi fondamentali: riduce il boilerplate necessario per
+controllare l'hardware grafico, sempre utilizzando le API grafiche più moderne, performanti, efficienti e ottimizzate,
+e garantisce una compatibilità cross-platform assoluta, aggirando le restrizioni e l'isolazionismo di Apple.
 
 \chapter{Design e implementazione}
 
