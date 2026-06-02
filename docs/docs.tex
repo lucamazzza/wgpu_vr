@@ -420,22 +420,25 @@ la transizione architetturale verso nuovi standard aperti, come \texttt{\gls{Ope
 Nel contesto accademico e della formazione in computer grafica, il corso di Realtà Virtuale ha fatto affidamento
 sull'utilizzo di \texttt{OpenGL} per il rendering e \texttt{OpenVR} per l'interfacciamento con gli HMD.
 
-\textbf{\texttt{OpenGL}}, introdotto nel 1992, è un'API implicita basata su una macchina a stati finiti. Il suo successo
-decennale, specialmente nell'ambito accademico, deriva dalla curva di apprendimento che risulta relativamente dolce;
-l'astrazione di alto livello utilizzata dagli sviluppatori risulta semplice, in quanto nasconde al programmatore la
-complessa gestione della memoria video, la sincronizzazione dei thread e la sottomissione dei comandi alla GPU.
+\textbf{\texttt{OpenGL}}\footnote{\url{https://opengl.org}}, introdotto nel 1992, è un'API implicita basata su una
+macchina a stati finiti. Il suo successo decennale, specialmente nell'ambito accademico, deriva dalla curva di
+apprendimento che risulta relativamente dolce; l'astrazione di alto livello utilizzata dagli sviluppatori risulta
+semplice, in quanto nasconde al programmatore la complessa gestione della memoria video, la sincronizzazione dei thread
+e la sottomissione dei comandi alla GPU.
 Tuttavia, questa astrazione ha un costo architetturale severo: i driver di \texttt{OpenGL} devono eseguire una massiccia
 mole di euristiche in background per tradurre le chiamate high level in istruzioni comprensibili per la scheda grafica,
 causando un notevole driver overhead e un'imprevedibilità delle prestazioni, soprattutto del frame stuttering, difetti
 critici nell'ambito della realtà virtuale, dove la latenza \textit{motion-to-photon} deve rimanere strettamente
 inferiore ai 20 millisecondi.
 
-\textbf{\texttt{OpenVR}}, sviluppato da Valve come SDK per la piattaforma \texttt{SteamVR}, è stata la prima API di
-successo commerciale a standardizzare l'accesso a device dedicati alla realtà virtuale \textit{PC-VR}.
+\textbf{\texttt{OpenVR}}\footnote{\url{https://github.com/ValveSoftware/openvr}}, sviluppato da Valve come SDK per la
+piattaforma \texttt{SteamVR}, è stata la prima API di successo commerciale a standardizzare l'accesso a device dedicati
+alla realtà virtuale \textit{PC-VR}.
 Nata in un periodo di forte sperimentazione, questa tecnologia è intrinsecamente legata all'ecosistema di Valve,
 soprattutto con i visori di produzione HTC, per i quali le due aziende hanno collaborato nella produzione.
 Si basa su un modello nel quale l'hardware sta al centro dell'attenzione; infatti il runtime costringe l'hardware
-concorrente a tradurre i propri dati per renderli compatibili con il formato di un HTC Vive, per esempio.
+concorrente a tradurre i propri dati per renderli compatibili con il formato di un HTC
+Vive\footnote{\url{https://vive.com}}, per esempio.
 Questa soluzione costringerebbe il programmatore a rilasciare una nuova patch ogni volta che un nuovo controller,
 visore o elemento periferico per il sistema VR viene rilasciato.
 Pur offrendo un'integrazione diretta e robusta con \texttt{OpenGL}, al momento si tratta di una tecnologia legacy,
@@ -527,6 +530,30 @@ riguarda Windows, \texttt{Vulkan} per quanto riguarda Linux ed infine \texttt{Me
 controllare l'hardware grafico, sempre utilizzando le API grafiche più moderne, performanti, efficienti e ottimizzate,
 e garantisce una compatibilità cross-platform assoluta, aggirando le restrizioni e l'isolazionismo di Apple.
 
+\section{Conclusione}
+
+L'industria dello spatial computing è ormai stabilmente posizionata su \texttt{OpenXR}, per la logica \texttt{XR}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{oxr.png}
+\caption{OpenXR vs OpenVR (Khronos Group)}
+\end{figure}
+
+Sul fronte grafico, mentre i motori commerciali (Unity, Unreal) o quelli proprietari, gestiscono le complesse API
+grafiche internamente, per lo sviluppo nativo ed educativo, \texttt{WebGPU} si sta affermando come soluzione più
+promettente.
+
+Tuttavia, esiste attualmente un vuoto tecnologico per quanto riguarda l'API del \texttt{W3C} e \texttt{OpenXR}; tra
+le due tecnologie non esiste alcun Graphic Binding ufficiale da parte di Khronos. Quest'ultimo infatti definisce
+binding per \texttt{OpenGL}, \texttt{Vulkan}, \texttt{Direct3D} e \texttt{Metal}, ma non per \texttt{WebGPU}, essendo
+quest'ultima un'RHI e non consistente in un driver nativo.
+
+Il presente lavoro si inserisce esattamente in questo contesto; l'obbiettivo tecnico e scientifico è di dimostrare la
+fattibilità di un layer di interoperabilità che permetta di implementare nativamente con \texttt{wgpu\_native} e che
+questa implementazione possa comunicare con la complessa swapchain ed il frame-pacing di \texttt{OpenXR}.
+Ciò permetterebbe di pensionare lo stack legacy e sostituirlo con uno all'avanguardia per il corso, con completa 
+sostenibilità didattica e cross-platform per integrare i calcolatori di ogni studente.
 \chapter{Design e implementazione}
 
 \chapter{Test e validazione}
