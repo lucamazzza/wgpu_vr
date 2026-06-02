@@ -21,23 +21,32 @@ set_target_properties(wgpu_native PROPERTIES
 )
 
 if(WIN64)
+    set(WGPU_NATIVE_DLL "${CMAKE_SOURCE_DIR}/external/wgpu/lib/x64/wgpu_native.dll")
+    set(WGPU_NATIVE_IMPLIB "${CMAKE_SOURCE_DIR}/external/wgpu/lib/x64/wgpu_native.lib")
     set_target_properties(wgpu_native PROPERTIES
-        IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/external/wgpu/lib/x64/debug/wgpu_native.dll"
-        IMPORTED_IMPLIB_DEBUG "${CMAKE_SOURCE_DIR}/external/wgpu/lib/x64/debug/wgpu_native.lib"
-
-        IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/external/wgpu/lib/x64/release/wgpu_native.dll"
-        IMPORTED_IMPLIB_RELEASE "${CMAKE_SOURCE_DIR}/external/wgpu/lib/x64/debug/wgpu_native.lib"
+        IMPORTED_LOCATION "${WGPU_NATIVE_DLL}"
+        IMPORTED_IMPLIB "${WGPU_NATIVE_IMPLIB}"
+        IMPORTED_LOCATION_RELEASE "${WGPU_NATIVE_DLL}"
+        IMPORTED_IMPLIB_RELEASE "${WGPU_NATIVE_IMPLIB}"
+        IMPORTED_LOCATION_DEBUG "${WGPU_NATIVE_DLL}"
+        IMPORTED_IMPLIB_DEBUG "${WGPU_NATIVE_IMPLIB}"
     )
 elseif(APPLE)
+    set(WGPU_NATIVE_DYLIB "${CMAKE_SOURCE_DIR}/external/wgpu/lib/macos/libwgpu_native.dylib")
     set_target_properties(wgpu_native PROPERTIES
-        IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/external/wgpu/lib/macos/debug/libwgpu_native.dylib"
-        IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/external/wgpu/lib/macos/release/libwgpu_native.dylib"
+        IMPORTED_LOCATION "${WGPU_NATIVE_DYLIB}"
+        IMPORTED_LOCATION_RELEASE "${WGPU_NATIVE_DYLIB}"
+        IMPORTED_LOCATION_DEBUG "${WGPU_NATIVE_DYLIB}"
     )
 else()
+    set(WGPU_NATIVE_SO "${CMAKE_SOURCE_DIR}/external/wgpu/lib/linux/libwgpu_native.so")
     set_target_properties(wgpu_native PROPERTIES
-        IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/external/wgpu/lib/linux/debug/libwgpu_native.so"
-        IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/external/wgpu/lib/linux/release/libwgpu_native.so"
+        IMPORTED_LOCATION "${WGPU_NATIVE_SO}"
+        IMPORTED_LOCATION_RELEASE "${WGPU_NATIVE_SO}"
+        IMPORTED_LOCATION_DEBUG "${WGPU_NATIVE_SO}"
     )
 endif()
 
 add_subdirectory(main)
+add_subdirectory(openxr)
+add_subdirectory(webgpu)

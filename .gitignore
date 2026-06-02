@@ -8,3 +8,7 @@ docs/*
 !docs/*.bib
 !docs/*.png
 !docs/.latexmkrc
+
+# src
+compile_commands.json
+[B|b]uild
