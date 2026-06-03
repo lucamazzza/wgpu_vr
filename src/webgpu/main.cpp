@@ -1,3 +1,4 @@
+#include <cstring>
 #include <webgpu.h>
 #include <wgpu.h>
 #include <GLFW/glfw3.h>
@@ -7,6 +8,7 @@
     #define GLFW_EXPOSE_NATIVE_COCOA
 #elif defined(__linux__)
     #define GLFW_EXPOSE_NATIVE_X11
+    #define GLFW_EXPOSE_NATIVE_WAYLAND
 #endif
 #include <GLFW/glfw3native.h>
 
@@ -31,6 +33,22 @@ std::string LoadShader(const char *fpath) {
     return buf.str();
 }
 
+/* Retrieves the Surface from the system's window manager
+
+   This is very important, for these reasons:
+      * WebGPU does not know anything about the system per-se, because it runs on top of the system's API
+        and is designed for the web, it does not know what the surface of a window should be.
+      * This work was before done by the OpenGL system driver, now that we don't directly rely on something
+        that has the same structure in every operating system, we have to do the manual labour.
+
+   This is the real price of WebGPU true multiplatformness, given that every window manager is different
+   we have to adapt.
+
+   For now these are supported:
+      * Windows => HWND "Handle for a WiNDow"
+      * Linux   => x11 and Wayland
+      * macOS   => NSWindow with strict presence of a CAMetalLayer
+*/
 WGPUSurface GetSurfaceFromGLFW(WGPUInstance instance, GLFWwindow *window) {
     WGPUSurfaceDescriptor surfaceDesc= {};
 #if defined(_WIN32)
@@ -40,18 +58,34 @@ WGPUSurface GetSurfaceFromGLFW(WGPUInstance instance, GLFWwindow *window) {
     hwndDesc.hwnd = glfwGetWin32Window(window);
     surfaceDesc.nextInChain = (WGPUChainedStruct*)&hwndDesc;
 #elif defined (__linux__)
-    WGPUSurfaceSourceXlibWindow x11Desc = {};
-    x11Desc.chain.sType = WGPUSType_SurfaceSourceXlibWindow;
-    x11Desc.display = glfwGetX11Display();
-    x11Desc.window = glfwGetX11Window(window);
-    surfaceDesc.nextInChain = (WGPUChainedStruct*)&x11Desc;
+    char *envSession = std::getenv("XDG_SESSION_TYPE");
+    std::string windowingSystem = envSession ? envSession : "x11";
+    if (windowingSystem == "x11") {
+        WGPUSurfaceSourceXlibWindow x11Desc = {};
+        x11Desc.chain.sType = WGPUSType_SurfaceSourceXlibWindow;
+        x11Desc.display = glfwGetX11Display();
+        x11Desc.window = glfwGetX11Window(window);
+        surfaceDesc.nextInChain = (WGPUChainedStruct*)&x11Desc;
+    } else if (windowingSystem == "wayland") {
+        WGPUSurfaceSourceWaylandSurface waylandDesc = {};
+        waylandDesc.chain.sType = WGPUSType_SurfaceSourceWaylandSurface;
+        waylandDesc.display = glfwGetWaylandDisplay();
+        waylandDesc.surface = glfwGetWaylandWindow(window);
+        surfaceDesc.nextInChain = (WGPUChainedStruct*)&waylandDesc;
+    }
 #elif defined (__APPLE__)
+    // The following lines use ObjectiveC to ensure the presence of a Metal Layer in the NSWindow
+    // glfwGetCocoaWindow is not sufficient, as it does not ensure that.
+
+    // objc
     id nsWindow = glfwGetCocoaWindow(window);
     id nsView = ((id(*)(id, SEL))objc_msgSend)(nsWindow, sel_registerName("contentView"));
     id caMetalLayerClass = (id)objc_getClass("CAMetalLayer");
     id metalLayer = ((id(*)(id, SEL))objc_msgSend)(caMetalLayerClass, sel_registerName("layer"));
     ((void(*)(id, SEL, bool))objc_msgSend)(nsView, sel_registerName("setWantsLayer:"), true);
     ((void(*)(id, SEL, id))objc_msgSend)(nsView, sel_registerName("setLayer:"), metalLayer);
+    // end objc
+
     WGPUSurfaceSourceMetalLayer metalDesc = {};
     metalDesc.chain.sType = WGPUSType_SurfaceSourceMetalLayer;
     metalDesc.layer = metalLayer;
@@ -77,7 +111,8 @@ int main() {
     WGPUAdapter adapter = nullptr;
     WGPURequestAdapterCallbackInfo adapterCbInfo = {};
     adapterCbInfo.nextInChain = nullptr;
-    adapterCbInfo.callback = [](WGPURequestAdapterStatus status, WGPUAdapter res, WGPUStringView msg, void *userdata1, void *userdata2) {
+    adapterCbInfo.callback =
+    [](WGPURequestAdapterStatus status, WGPUAdapter res, WGPUStringView msg, void *userdata1, void *userdata2) {
         if (status == WGPURequestAdapterStatus_Success) {
             *(WGPUAdapter*)userdata1 = res;
         } else {
@@ -93,7 +128,8 @@ int main() {
     WGPUDevice device = nullptr;
     WGPURequestDeviceCallbackInfo deviceCbInfo = {};
     deviceCbInfo.nextInChain = nullptr;
-    deviceCbInfo.callback = [](WGPURequestDeviceStatus status, WGPUDevice res, WGPUStringView msg, void *userdata1, void *userdata2) {
+    deviceCbInfo.callback =
+    [](WGPURequestDeviceStatus status, WGPUDevice res, WGPUStringView msg, void *userdata1, void *userdata2) {
         if (status == WGPURequestDeviceStatus_Success) {
             *(WGPUDevice*)userdata1 = res;
         } else {
