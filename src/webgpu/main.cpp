@@ -73,7 +73,7 @@ WGPUSurface GetSurfaceFromGLFW(WGPUInstance instance, GLFWwindow *window) {
         waylandDesc.surface = glfwGetWaylandWindow(window);
         surfaceDesc.nextInChain = (WGPUChainedStruct*)&waylandDesc;
     }
-#elif defined (__APPLE__)
+#elif defined(__APPLE__)
     // The following lines use ObjectiveC to ensure the presence of a Metal Layer in the NSWindow
     // glfwGetCocoaWindow is not sufficient, as it does not ensure that.
 
