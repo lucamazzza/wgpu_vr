@@ -1,7 +1,13 @@
-#include <cstring>
+#include "shader.h"
+#include "buffer.h"
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <webgpu.h>
 #include <wgpu.h>
 #include <GLFW/glfw3.h>
+
 #if defined(_WIN32)
     #define GLFW_EXPOSE_NATIVE_WIN32
 #elif defined(__APPLE__)
@@ -17,21 +23,35 @@
     #include <objc/runtime.h>
 #endif
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include <iostream>
-#include <fstream>
-#include <sstream>
 #include <string>
 
-std::string LoadShader(const char *fpath) {
-    std::ifstream file(fpath);
-    if (!file.is_open()) {
-        std::cerr << "Error: cannot open file " << fpath << std::endl;
-        exit(-1);
-    }
-    std::stringstream buf;
-    buf << file.rdbuf();
-    return buf.str();
-}
+struct Vertex {
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 uvs;
+};
+
+struct MatricesUniforms {
+    glm::mat4 projection;
+    glm::mat4 modelview;
+    glm::mat4 normal;
+};
+
+struct LightMaterialUniforms {
+    glm::vec4 lightPosition;
+    glm::vec4 lightAmbient;
+    glm::vec4 lightDiffuse;
+    glm::vec4 lightSpecular;
+    glm::vec4 matAmbient;
+    glm::vec4 matDiffuse;
+    glm::vec4 matSpecular;
+    float matShininess;
+    float padding[3];
+};
 
 /* Retrieves the Surface from the system's window manager
 
@@ -109,15 +129,16 @@ int main() {
     WGPURequestAdapterOptions adapterOpts = {};
     adapterOpts.compatibleSurface = surface;
     WGPUAdapter adapter = nullptr;
-    WGPURequestAdapterCallbackInfo adapterCbInfo = {};
-    adapterCbInfo.nextInChain = nullptr;
-    adapterCbInfo.callback =
-    [](WGPURequestAdapterStatus status, WGPUAdapter res, WGPUStringView msg, void *userdata1, void *userdata2) {
-        if (status == WGPURequestAdapterStatus_Success) {
-            *(WGPUAdapter*)userdata1 = res;
-        } else {
-            std::string errMsg(msg.data, msg.length);
-            std::cerr << "Adapter Error: " << errMsg << std::endl;
+    WGPURequestAdapterCallbackInfo adapterCbInfo = {
+        .nextInChain = nullptr,
+        .callback =
+        [](WGPURequestAdapterStatus status, WGPUAdapter res, WGPUStringView msg, void *userdata1, void *userdata2) {
+            if (status == WGPURequestAdapterStatus_Success) {
+                *(WGPUAdapter*)userdata1 = res;
+            } else {
+                std::string errMsg(msg.data, msg.length);
+                std::cerr << "Adapter Error: " << errMsg << std::endl;
+            }
         }
     };
     adapterCbInfo.userdata1 = &adapter;
@@ -126,142 +147,270 @@ int main() {
     // Device Request (Logical Interface)
     WGPUDeviceDescriptor deviceDesc = {};
     WGPUDevice device = nullptr;
-    WGPURequestDeviceCallbackInfo deviceCbInfo = {};
-    deviceCbInfo.nextInChain = nullptr;
-    deviceCbInfo.callback =
-    [](WGPURequestDeviceStatus status, WGPUDevice res, WGPUStringView msg, void *userdata1, void *userdata2) {
-        if (status == WGPURequestDeviceStatus_Success) {
-            *(WGPUDevice*)userdata1 = res;
-        } else {
-            std::string errMsg(msg.data, msg.length);
-            std::cerr << "Device Error: " << errMsg << std::endl;
+    WGPURequestDeviceCallbackInfo deviceCbInfo = {
+        .nextInChain = nullptr,
+        .callback = [](WGPURequestDeviceStatus status, WGPUDevice res, WGPUStringView msg, void *userdata1, void *userdata2) {
+            if (status == WGPURequestDeviceStatus_Success) {
+                *(WGPUDevice*)userdata1 = res;
+            } else {
+                std::string errMsg(msg.data, msg.length);
+                std::cerr << "Device Error: " << errMsg << std::endl;
+            }
         }
     };
+
     deviceCbInfo.userdata1 = &device;
     wgpuAdapterRequestDevice(adapter, &deviceDesc, deviceCbInfo);
 
     WGPUQueue queue = wgpuDeviceGetQueue(device);
 
     // Surface Configuration
-    WGPUSurfaceConfiguration surfaceConfig = {};
-    surfaceConfig.device = device;
-    surfaceConfig.format = WGPUTextureFormat_BGRA8Unorm;
-    surfaceConfig.usage = WGPUTextureUsage_RenderAttachment;
-    surfaceConfig.viewFormatCount = 0;
-    surfaceConfig.viewFormats = nullptr;
-    surfaceConfig.alphaMode = WGPUCompositeAlphaMode_Auto;
-    surfaceConfig.width = 800;
-    surfaceConfig.height = 600;
-    surfaceConfig.presentMode = WGPUPresentMode_Fifo;
+    WGPUSurfaceConfiguration surfaceConfig = {
+        .device = device,
+        .format = WGPUTextureFormat_BGRA8Unorm,
+        .usage = WGPUTextureUsage_RenderAttachment,
+        .width = 800,
+        .height = 600,
+        .viewFormatCount = 0,
+        .viewFormats = nullptr,
+        .alphaMode = WGPUCompositeAlphaMode_Auto,
+        .presentMode = WGPUPresentMode_Fifo
+    };
     wgpuSurfaceConfigure(surface, &surfaceConfig);
 
-    // Load & Compile Shader
-    std::string shaderData = LoadShader("shader.wgsl");
-    WGPUShaderSourceWGSL wgslDesc = {};
-    wgslDesc.chain.sType = WGPUSType_ShaderSourceWGSL;
-    wgslDesc.code = WGPUStringView{ shaderData.data(), shaderData.length() };
-    WGPUShaderModuleDescriptor shaderDesc = {};
-    shaderDesc.nextInChain = &wgslDesc.chain;
-    shaderDesc.label = WGPUStringView("Shader", 6);
-    WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(device, &shaderDesc);
+    // Shader Loading
+    Shader shader;
+    shader.loadFromFile(device, "shader.wgsl");
 
+    // Buffer Creation
+    float size = 128.0f;
+    std::vector<Vertex> vertices = {
+        {{-size, 0.0f, -size}, {0.0f, 1.0f, 0.0f}, {0.0f,  0.0f }},
+        {{-size, 0.0f,  size}, {0.0f, 1.0f, 0.0f}, {0.0f,  50.0f}},
+        {{ size, 0.0f, -size}, {0.0f, 1.0f, 0.0f}, {50.0f, 0.0f }},
+        {{ size, 0.0f,  size}, {0.0f, 1.0f, 0.0f}, {50.0f, 50.0f}}
+    };
+    WgpuBuffer vertexBuffer;
+    vertexBuffer.create(device, queue, vertices.data(), sizeof(Vertex) * vertices.size(), WGPUBufferUsage_Vertex);
+    WgpuBuffer matricesBuffer;
+    matricesBuffer.create(device, queue, nullptr, sizeof(MatricesUniforms), WGPUBufferUsage_Uniform);
+    LightMaterialUniforms lightMat = {
+        .lightAmbient  = glm::vec4(1.0f),
+        .lightDiffuse  = glm::vec4(1.0f),
+        .lightSpecular = glm::vec4(1.0f),
+        .matAmbient    = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),
+        .matDiffuse    = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f),
+        .matSpecular   = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f),
+        .matShininess  = 128.0f
+    };
+    WgpuBuffer lightBuffer;
+    lightBuffer.create(device, queue, &lightMat, sizeof(LightMaterialUniforms), WGPUBufferUsage_Uniform);
+
+    // Texture Loading
+    int texWidth, texHeight, texChannels;
+    unsigned char* rawData = stbi_load("bricks.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    if (!rawData) {
+        std::cerr << "[ERROR] Impossible to load bricks.jpg\n";
+        return -1;
+    }
+    WGPUTextureDescriptor texDesc = {
+        .usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst,
+        .dimension = WGPUTextureDimension_2D,
+        .size = {(uint32_t)texWidth, (uint32_t)texHeight, 1},
+        .format = WGPUTextureFormat_RGBA8Unorm,
+        .mipLevelCount = 1,
+        .sampleCount = 1
+    };
+    WGPUTexture texture = wgpuDeviceCreateTexture(device, &texDesc);
     WGPURenderPipelineDescriptor pipelineDesc = {};
+    uint32_t bytesPerRow = (texWidth * 4 + 255) & ~255;
+    std::vector<uint8_t> paddedData(bytesPerRow * texHeight, 0);
+    for (int y = 0; y < texHeight; ++y) {
+        memcpy(&paddedData[y * bytesPerRow], &rawData[y * texWidth * 4], texWidth * 4);
+    }
+    stbi_image_free(rawData);
+    WGPUTexelCopyTextureInfo copyTex = {
+        .texture = texture
+    };
+    WGPUTexelCopyBufferLayout texLayout = {
+        .offset = 0,
+        .bytesPerRow = bytesPerRow,
+        .rowsPerImage = (uint32_t)texHeight
+    };
+    wgpuQueueWriteTexture(queue, &copyTex, paddedData.data(), paddedData.size(), &texLayout, &texDesc.size);
+    WGPUTextureViewDescriptor viewDesc = {
+        .format = WGPUTextureFormat_RGBA8Unorm,
+        .dimension = WGPUTextureViewDimension_2D,
+        .mipLevelCount = 1,
+        .arrayLayerCount = 1
+    };
+    WGPUTextureView textureView = wgpuTextureCreateView(texture, &viewDesc);
+    WGPUSamplerDescriptor samplerDesc = {
+        .addressModeU = WGPUAddressMode_Repeat,
+        .addressModeV = WGPUAddressMode_Repeat,
+        .magFilter = WGPUFilterMode_Linear,
+        .minFilter = WGPUFilterMode_Linear,
+        .mipmapFilter = WGPUMipmapFilterMode_Linear,
+        .maxAnisotropy = 1
+    };
+    WGPUSampler sampler = wgpuDeviceCreateSampler(device, &samplerDesc);
+    WGPUTextureDescriptor depthTexDesc = {
+        .usage = WGPUTextureUsage_RenderAttachment,
+        .dimension = WGPUTextureDimension_2D,
+        .size = {800, 600, 1},
+        .format = WGPUTextureFormat_Depth24Plus,
+        .mipLevelCount = 1,
+        .sampleCount = 1,
+    };
+    WGPUTexture depthTexture = wgpuDeviceCreateTexture(device, &depthTexDesc);
+    WGPUTextureViewDescriptor depthViewDesc = {
+        .format = WGPUTextureFormat_Depth24Plus,
+        .dimension = WGPUTextureViewDimension_2D,
+        .mipLevelCount = 1,
+        .arrayLayerCount = 1,
+        .aspect = WGPUTextureAspect_DepthOnly
+    };
+    WGPUTextureView depthTextureView = wgpuTextureCreateView(depthTexture, &depthViewDesc);
 
     // Vertex shader
-    pipelineDesc.vertex.module = shaderModule;
-    pipelineDesc.vertex.entryPoint = WGPUStringView{ "vs_main", 7 };
+    pipelineDesc.vertex.module = shader.getModule();
+    pipelineDesc.vertex.entryPoint = WGPUStringView{ "vs_main", WGPU_STRLEN };
     pipelineDesc.vertex.bufferCount = 0;
+    WGPUVertexAttribute attribs[3] = {
+        { .format = WGPUVertexFormat_Float32x3, .offset = offsetof(Vertex, position), .shaderLocation = 0 },
+        { .format = WGPUVertexFormat_Float32x3, .offset = offsetof(Vertex, normal),   .shaderLocation = 1 },
+        { .format = WGPUVertexFormat_Float32x2, .offset = offsetof(Vertex, uvs),      .shaderLocation = 2 }
+    };
+    WGPUVertexBufferLayout vertexLayout = {
+        .stepMode = WGPUVertexStepMode_Vertex,
+        .arrayStride = sizeof(Vertex),
+        .attributeCount = 3,
+        .attributes = attribs
+    };
+    pipelineDesc.vertex.bufferCount = 1;
+    pipelineDesc.vertex.buffers = &vertexLayout;
 
     // Fragment shader
-    WGPUBlendState blendState = {};
-    blendState.color.srcFactor = WGPUBlendFactor_One;
-    blendState.color.dstFactor = WGPUBlendFactor_Zero;
-    blendState.color.operation = WGPUBlendOperation_Add;
-    blendState.alpha.srcFactor = WGPUBlendFactor_One;
-    blendState.alpha.dstFactor = WGPUBlendFactor_Zero;
-    blendState.alpha.operation = WGPUBlendOperation_Add;
-
-    WGPUColorTargetState colorTarget = {};
-    colorTarget.format = WGPUTextureFormat_BGRA8Unorm;
-    colorTarget.blend = &blendState;
-    colorTarget.writeMask = WGPUColorWriteMask_All;
-
-    WGPUFragmentState fragmentState = {};
-    fragmentState.module = shaderModule;
-    fragmentState.entryPoint = WGPUStringView{ "fs_main", 7 };
-    fragmentState.targetCount = 1;
-    fragmentState.targets = &colorTarget;
+    WGPUColorTargetState colorTarget = {
+        .format = WGPUTextureFormat_BGRA8Unorm,
+        .writeMask = WGPUColorWriteMask_All
+    };
+    WGPUFragmentState fragmentState = {
+        .module = shader.getModule(),
+        .entryPoint = WGPUStringView { "fs_main", WGPU_STRLEN },
+        .targetCount = 1,
+        .targets = &colorTarget
+    };
     pipelineDesc.fragment = &fragmentState;
-
-    pipelineDesc.primitive.topology = WGPUPrimitiveTopology_TriangleList;
+    pipelineDesc.primitive.topology = WGPUPrimitiveTopology_TriangleStrip;
+    pipelineDesc.primitive.stripIndexFormat = WGPUIndexFormat_Undefined;
+    WGPUDepthStencilState depthStencil = {
+        .format = WGPUTextureFormat_Depth24Plus,
+        .depthWriteEnabled = WGPUOptionalBool_True,
+        .depthCompare = WGPUCompareFunction_Less
+    };
+    pipelineDesc.depthStencil = &depthStencil;
     pipelineDesc.multisample.count = 1;
     pipelineDesc.multisample.mask = ~0u;
-
-    WGPUPipelineLayoutDescriptor layoutDesc = {};
-    layoutDesc.nextInChain = nullptr;
-    layoutDesc.bindGroupLayoutCount = 0;
-    layoutDesc.bindGroupLayouts = nullptr;
-
-    pipelineDesc.layout = wgpuDeviceCreatePipelineLayout(device, &layoutDesc);
+    pipelineDesc.layout = nullptr;
     WGPURenderPipeline pipeline = wgpuDeviceCreateRenderPipeline(device, &pipelineDesc);
 
+    // Bind Groups
+    WGPUBindGroupEntry bg0Entries[2] = {
+        { .binding = 0, .buffer = matricesBuffer.get(), .size = sizeof(MatricesUniforms) },
+        { .binding = 1, .buffer = lightBuffer.get(), .size = sizeof(LightMaterialUniforms) }
+    };
+    WGPUBindGroupDescriptor bg0Desc = {
+        .layout = wgpuRenderPipelineGetBindGroupLayout(pipeline, 0),
+        .entryCount = 2,
+        .entries = bg0Entries
+    };
+    WGPUBindGroup bindGroup0 = wgpuDeviceCreateBindGroup(device, &bg0Desc);
+    WGPUBindGroupEntry bg1Entries[2] = {
+        { .binding = 0, .sampler = sampler },
+        { .binding = 1, .textureView = textureView }
+    };
+    WGPUBindGroupDescriptor bg1Desc = {
+        .layout = wgpuRenderPipelineGetBindGroupLayout(pipeline, 1),
+        .entryCount = 2,
+        .entries = bg1Entries
+    };
+    WGPUBindGroup bindGroup1 = wgpuDeviceCreateBindGroup(device, &bg1Desc);
+
     // Render Loop
+    float time = 0.0f;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        time += 0.016f;
+
+        MatricesUniforms matrices = {};
+        matrices.projection = glm::perspective(glm::radians(60.0f), 1024.0f / 512.0f, 0.1f, 1000.0f);
+        matrices.modelview = glm::lookAt(glm::vec3(0, 20, 80), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        matrices.normal = glm::inverseTranspose(matrices.modelview);
+        matricesBuffer.update(queue, &matrices, sizeof(MatricesUniforms));
+
+        lightMat.lightPosition = matrices.modelview * glm::vec4(sin(time)*50.0f, 20.0f, cos(time)*50.0f, 1.0f);
+        lightBuffer.update(queue, &lightMat, sizeof(LightMaterialUniforms));
 
         WGPUSurfaceTexture surfaceTexture;
         wgpuSurfaceGetCurrentTexture(surface, &surfaceTexture);
         if (surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal) {
             continue;
         }
-
-        WGPUTextureViewDescriptor viewDesc = {};
-        viewDesc.format = wgpuTextureGetFormat(surfaceTexture.texture);
-        viewDesc.dimension = WGPUTextureViewDimension_2D;
-        viewDesc.baseMipLevel = 0;
-        viewDesc.mipLevelCount = 1;
-        viewDesc.baseArrayLayer = 0;
-        viewDesc.arrayLayerCount = 1;
-        viewDesc.aspect = WGPUTextureAspect_All;
-        WGPUTextureView nextTextureView = wgpuTextureCreateView(surfaceTexture.texture, &viewDesc);
-
+        WGPUTextureViewDescriptor currentViewDesc = {
+            .format = WGPUTextureFormat_BGRA8Unorm,
+            .dimension = WGPUTextureViewDimension_2D,
+            .mipLevelCount = 1,
+            .arrayLayerCount = 1
+        };
+        WGPUTextureView nextTextureView = wgpuTextureCreateView(surfaceTexture.texture, &currentViewDesc);
         WGPUCommandEncoderDescriptor encoderDesc = {};
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, &encoderDesc);
 
-        WGPURenderPassColorAttachment colorAttachment = {};
-        colorAttachment.view = nextTextureView;
-        colorAttachment.loadOp = WGPULoadOp_Clear;
-        colorAttachment.storeOp = WGPUStoreOp_Store;
-        colorAttachment.clearValue = WGPUColor{ 0.05, 0.05, 0.05, 1.0 };
-        colorAttachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
-
-        WGPURenderPassDescriptor renderPassDesc = {};
-        renderPassDesc.colorAttachmentCount = 1;
-        renderPassDesc.colorAttachments = &colorAttachment;
+        WGPURenderPassColorAttachment colorAttachment = {
+            .view = nextTextureView,
+            .depthSlice = WGPU_DEPTH_SLICE_UNDEFINED,
+            .loadOp = WGPULoadOp_Clear,
+            .storeOp = WGPUStoreOp_Store,
+            .clearValue = { 0.53, 0.81, 0.92, 1.0 }
+        };
+        WGPURenderPassDepthStencilAttachment depthAttachment = {
+            .view = depthTextureView,
+            .depthLoadOp = WGPULoadOp_Clear,
+            .depthStoreOp = WGPUStoreOp_Store,
+            .depthClearValue = 1.0f
+        };
+        WGPURenderPassDescriptor renderPassDesc = {
+            .colorAttachmentCount = 1,
+            .colorAttachments = &colorAttachment,
+            .depthStencilAttachment = &depthAttachment
+        };
 
         WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
         wgpuRenderPassEncoderSetPipeline(renderPass, pipeline);
-        wgpuRenderPassEncoderDraw(renderPass, 3, 1, 0, 0);
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 0, bindGroup0, 0, nullptr);
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 1, bindGroup1, 0, nullptr);
+        wgpuRenderPassEncoderSetVertexBuffer(renderPass, 0, vertexBuffer.get(), 0, WGPU_WHOLE_SIZE);
+        wgpuRenderPassEncoderDraw(renderPass, 4, 1, 0, 0); 
         wgpuRenderPassEncoderEnd(renderPass);
         wgpuRenderPassEncoderRelease(renderPass);
 
         WGPUCommandBufferDescriptor cmdBufferDesc = {};
         WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDesc);
         wgpuQueueSubmit(queue, 1, &command);
-
         wgpuCommandBufferRelease(command);
         wgpuTextureViewRelease(nextTextureView);
         wgpuSurfacePresent(surface);
     }
 
-    wgpuSurfaceUnconfigure(surface);
     wgpuRenderPipelineRelease(pipeline);
-    wgpuShaderModuleRelease(shaderModule);
-    wgpuQueueRelease(queue);
-    wgpuAdapterRelease(adapter);
-    wgpuSurfaceRelease(surface);
-    wgpuInstanceRelease(instance);
-    glfwDestroyWindow(window);
+    wgpuBindGroupRelease(bindGroup0);
+    wgpuBindGroupRelease(bindGroup1);
+    wgpuTextureViewRelease(depthTextureView);
+    wgpuTextureRelease(depthTexture);
+    wgpuTextureViewRelease(textureView);
+    wgpuSamplerRelease(sampler);
+    wgpuTextureRelease(texture);
     glfwTerminate();
 
     return 0;
