@@ -53,6 +53,12 @@ struct LightMaterialUniforms {
     float padding[3];
 };
 
+struct WindowContext {
+    bool resized = false;
+    int width = 800;
+    int height = 600;
+};
+
 /* Retrieves the Surface from the system's window manager
 
    This is very important, for these reasons:
@@ -72,25 +78,34 @@ struct LightMaterialUniforms {
 WGPUSurface GetSurfaceFromGLFW(WGPUInstance instance, GLFWwindow *window) {
     WGPUSurfaceDescriptor surfaceDesc= {};
 #if defined(_WIN32)
-    WGPUSurfaceSourceWindowsHWND hwndDesc = {};
-    hwndDesc.chain.sType = WGPUSType_SurfaceSourceWindowsHWND;
-    hwndDesc.hinstance = GetModuleHandle(NULL);
-    hwndDesc.hwnd = glfwGetWin32Window(window);
+    WGPUSurfaceSourceWindowsHWND hwndDesc = {
+        .chain = {
+            .sType = WGPUSType_SurfaceSourceWindowsHWND
+        },
+        .hinstance = GetModuleHandle(NULL),
+        .hwnd = glfwGetWin32Window(window)
+    };
     surfaceDesc.nextInChain = (WGPUChainedStruct*)&hwndDesc;
 #elif defined (__linux__)
     char *envSession = std::getenv("XDG_SESSION_TYPE");
     std::string windowingSystem = envSession ? envSession : "x11";
     if (windowingSystem == "x11") {
-        WGPUSurfaceSourceXlibWindow x11Desc = {};
-        x11Desc.chain.sType = WGPUSType_SurfaceSourceXlibWindow;
-        x11Desc.display = glfwGetX11Display();
-        x11Desc.window = glfwGetX11Window(window);
+        WGPUSurfaceSourceXlibWindow x11Desc = {
+            .chain = { 
+                .sType = WGPUSType_SurfaceSourceXlibWindow
+            },
+            .display = glfwGetX11Display(),
+            .window = glfwGetX11Window(window)
+        };
         surfaceDesc.nextInChain = (WGPUChainedStruct*)&x11Desc;
     } else if (windowingSystem == "wayland") {
-        WGPUSurfaceSourceWaylandSurface waylandDesc = {};
-        waylandDesc.chain.sType = WGPUSType_SurfaceSourceWaylandSurface;
-        waylandDesc.display = glfwGetWaylandDisplay();
-        waylandDesc.surface = glfwGetWaylandWindow(window);
+        WGPUSurfaceSourceWaylandSurface waylandDesc = {
+            .chain = {
+                .sType = WGPUSType_SurfaceSourceWaylandSurface
+            },
+            .display = glfwGetWaylandDisplay(),
+            .surface = glfwGetWaylandWindow(window)
+        };
         surfaceDesc.nextInChain = (WGPUChainedStruct*)&waylandDesc;
     }
 #elif defined(__APPLE__)
@@ -104,11 +119,15 @@ WGPUSurface GetSurfaceFromGLFW(WGPUInstance instance, GLFWwindow *window) {
     id metalLayer = ((id(*)(id, SEL))objc_msgSend)(caMetalLayerClass, sel_registerName("layer"));
     ((void(*)(id, SEL, bool))objc_msgSend)(nsView, sel_registerName("setWantsLayer:"), true);
     ((void(*)(id, SEL, id))objc_msgSend)(nsView, sel_registerName("setLayer:"), metalLayer);
+    ((void(*)(id, SEL, bool))objc_msgSend)(metalLayer, sel_registerName("setDisplaySyncEnabled:"), false);
     // end objc
 
-    WGPUSurfaceSourceMetalLayer metalDesc = {};
-    metalDesc.chain.sType = WGPUSType_SurfaceSourceMetalLayer;
-    metalDesc.layer = metalLayer;
+    WGPUSurfaceSourceMetalLayer metalDesc = {
+        .chain = {
+            .sType = WGPUSType_SurfaceSourceMetalLayer
+        },
+        .layer = metalLayer
+    };
     surfaceDesc.nextInChain = (WGPUChainedStruct*)&metalDesc;
 #endif
     return wgpuInstanceCreateSurface(instance, &surfaceDesc);
@@ -119,6 +138,17 @@ int main() {
     if (!glfwInit()) return -1;
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     GLFWwindow *window = glfwCreateWindow(800, 600, "WebGPU Demo", nullptr, nullptr);
+    WindowContext winCtx;
+    glfwSetWindowUserPointer(window, &winCtx);
+    glfwSetFramebufferSizeCallback(window, [](GLFWwindow* w, int width, int height) {
+        if (width == 0 || height == 0) return; // Ignora se la finestra è minimizzata
+        WindowContext* ctx = (WindowContext*)glfwGetWindowUserPointer(w);
+        ctx->resized = true;
+        ctx->width = width;
+        ctx->height = height;
+    });
+    double lastTime = glfwGetTime();
+    int nbFrames = 0;
 
     // WebGPU Base Initialization
     WGPUInstanceDescriptor instDesc = {};
@@ -174,7 +204,7 @@ int main() {
         .viewFormatCount = 0,
         .viewFormats = nullptr,
         .alphaMode = WGPUCompositeAlphaMode_Auto,
-        .presentMode = WGPUPresentMode_Fifo
+        .presentMode = WGPUPresentMode_Immediate
     };
     wgpuSurfaceConfigure(surface, &surfaceConfig);
 
@@ -342,12 +372,33 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         time += 0.016f;
+        double currentTime = glfwGetTime();
+        nbFrames++;
+        if (currentTime - lastTime >= 3.0) {
+            std::string title = "WebGPU Demo - FPS: " + std::to_string(nbFrames);
+            glfwSetWindowTitle(window, title.c_str());
+            nbFrames = 0;
+            lastTime += 1.0;
+        }
 
         MatricesUniforms matrices = {};
         matrices.projection = glm::perspective(glm::radians(60.0f), 1024.0f / 512.0f, 0.1f, 1000.0f);
         matrices.modelview = glm::lookAt(glm::vec3(0, 20, 80), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
         matrices.normal = glm::inverseTranspose(matrices.modelview);
         matricesBuffer.update(queue, &matrices, sizeof(MatricesUniforms));
+
+        if (winCtx.resized) {
+            surfaceConfig.width = winCtx.width;
+            surfaceConfig.height = winCtx.height;
+            wgpuSurfaceConfigure(surface, &surfaceConfig);
+            wgpuTextureViewRelease(depthTextureView);
+            wgpuTextureRelease(depthTexture);
+            depthTexDesc.size = { (uint32_t)winCtx.width, (uint32_t)winCtx.height, 1 };
+            depthTexture = wgpuDeviceCreateTexture(device, &depthTexDesc);
+            depthTextureView = wgpuTextureCreateView(depthTexture, &depthViewDesc);
+            matrices.projection = glm::perspective(glm::radians(60.0f), (float)winCtx.width / (float)winCtx.height, 0.1f, 1000.0f);
+            winCtx.resized = false;
+        }
 
         lightMat.lightPosition = matrices.modelview * glm::vec4(sin(time)*50.0f, 20.0f, cos(time)*50.0f, 1.0f);
         lightBuffer.update(queue, &lightMat, sizeof(LightMaterialUniforms));
