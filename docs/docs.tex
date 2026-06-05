@@ -557,6 +557,25 @@ sostenibilità didattica e cross-platform per integrare i calcolatori di ogni st
 
 \chapter{Design e implementazione}
 
+Questo capitolo descrive in dettaglio la fase di implementazione del motore di rendering, che funge da \textit{Proof of
+concept} per determinare la fattibilità dell'architettura sotto esame.
+L'implementazione viene affrontata in modo incrementale, data la mancanza di esperienza per quanto riguarda le
+tecnologie in questione, e viene divisa in tre pilastri fondamentali, che verranno esplorati nelle sezioni seguenti:
+
+\begin{enumerate}
+    \item Il motore grafico di base \texttt{WebGPU}, consistente nella costruzione di una pipeline di rendering 
+        esplicita ed autonoma, utilizzando l'API \texttt{wgpu\_native}. Questa fase risolve le critiche relative
+        all'allineamento della memoria, alla gestione esplicita dello stato ed al caricamento degli assets.
+    \item L'integrazione di \texttt{OpenXR}, che vede l'implementazione di un'interfaccia indipendente dall'hardware
+        per comunicare con i visori di realtà virtuale, gestendo il tracciamento spaziale, gli stati della sessione e
+        l'acquisizione della swapchain.
+    \item Il ciclo applicativo principale che fa da ponte tra i due sottosistemi, sincronizzando il rendering
+        stereoscopico di \texttt{WebGPU} con i requisiti temporali di visualizzazione del compositor \texttt{OpenXR}.
+\end{enumerate}
+
+Analizzando queste tre fasi, questo capitolo illustra come i requisti ingegneristici teorici vengono tradotti in un
+prototipo funzionale, ottimizzato e possibilmente multipiattaforma.
+
 \chapter{Test e validazione}
 
 \section{Risultati}
