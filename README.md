@@ -62,3 +62,4 @@ cd src/build/main && ./demo_main
 # License
 
 This project is developed for SUPSI and therefore licensed to the istitution.
+You can also take inspiration or use it as a tutorial under my name with a MIT License.
