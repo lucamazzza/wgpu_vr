@@ -576,6 +576,49 @@ tecnologie in questione, e viene divisa in tre pilastri fondamentali, che verran
 Analizzando queste tre fasi, questo capitolo illustra come i requisti ingegneristici teorici vengono tradotti in un
 prototipo funzionale, ottimizzato e possibilmente multipiattaforma.
 
+\newpage
+
+\section{\texttt{WebGPU}}
+
+La seguente sezione si concentra sulle funzionalità di \texttt{WebGPU} implementate, utili a raggiungere lo stesso
+risultato dimostrato nel tutorial ufficiale del corso di realtà virtuale.
+
+È importante che la codebase, sebbene facente uso di un'API con struttura e filosofia radicalmente differenti, sia
+strutturata il più simile possibile a quella del corso, per rendere la comparazione il più semplice ed efficiente
+possibile.
+
+Altresì importante è tenere a mente che il codice prodotto è pensato per uno studente, è quindi da
+considerare le piattaforme e il livello di confidenza nell'apprendere un'API del genere.
+
+\subsection{Architettura}
+
+A differenza di \texttt{OpenGL}, il quale mantiene uno stato globale e gestisce la sincronizzazione della memoria in
+background, la nuova architettura richiede definizioni esplicite per ogni singola fase della pipeline. Per mantenere
+una minima leggibilità e separare qualche responsabilità, pur lasciando la struttura simile a quella del tutorial del
+corso per facilitarne la comparazione; per questo, seguendo l'architettura di corso, sono state modularizzate le classi:
+
+\begin{itemize}
+    \item \textbf{\texttt{Shader}}: Gestisce il caricamento, la compilazione ed il ciclo di vita degli Shader Modules
+        WebGPU, partendo dalla sorgente di codice, nel linguaggio \texttt{WGSL} (Web GPU Shading Language).
+        Evita il caricamento di file esterni direttamente dal punto d'entrata del motore.
+        \begin{figure}[h]
+        \centering
+        \includegraphics[width=0.7\textwidth]{shader_class.png}
+        \caption{\texttt{Shader} class}
+    \end{figure}
+    \item \textbf{\texttt{WgpuBuffer}}: Incapsula la creazione e l'aggiornamento dei buffer GPU, detti
+        \texttt{WGPUBuffer}, imponendo il rigoroso allineamento della memoria a 4 byte, richiesto dalle specifiche
+        dell'API per i vertici ed i dati \textit{uniform}.
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=0.7\textwidth]{wgpubuffer_class.png}
+        \caption{\texttt{WgpuBuffer} class}
+        \end{figure}
+\end{itemize}
+
+Questo incapsulamento garantisce che il ciclo principale dell'applicazione, includendo i descrittori della pipeline e la
+codifica dei comandi, rimanga pulito e focalizzato esclusivamente sull'inizializzazione e l'orchestrazione.
+
 \chapter{Test e validazione}
 
 \section{Risultati}
