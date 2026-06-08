@@ -11,6 +11,7 @@
 \setmainfont[Scale=0.95]{Helvetica}
 \setmonofont[Scale=0.9]{IBM Plex Mono}
 \newfontfamily\titlefont{Times New Roman}
+\usepackage[font=footnotesize]{caption}
 
 % Page Layout & Margins
 \usepackage[
@@ -89,7 +90,7 @@
 % Code Snippets
 \usepackage{minted}
 \usepackage{xcolor}
-\usemintedstyle{xcode}
+\usemintedstyle{emacs}
 \setminted{
 bgcolor=lightgray!20,
 framesep=2mm,
@@ -253,8 +254,10 @@ fontsize=\small,
 \listoffigures
 \blankpage
 \listoftables
+\blankpage
+\renewcommand\listoflistingscaption{Elenco dei codici sorgente}
+\listoflistings
 \newpage
-
 \blankpage
 
 \pagenumbering{arabic}
@@ -618,6 +621,130 @@ corso per facilitarne la comparazione; per questo, seguendo l'architettura di co
 
 Questo incapsulamento garantisce che il ciclo principale dell'applicazione, includendo i descrittori della pipeline e la
 codifica dei comandi, rimanga pulito e focalizzato esclusivamente sull'inizializzazione e l'orchestrazione.
+
+\subsection{Inizializzazione contesto \& Windowing System}
+
+La fase di inizializzazione del contesto, richiede il collegamento dell'istanza WebGPU ad un sistema di windowing al
+livello del sistema operativo.
+Questo requisito risulta relativamente complesso per l'integrazione della nuova API, in quanto questa è pensata per il
+web, quindi non avendo alcun accesso diretto alle API di sistema per l'acquisizione della finestra.
+
+\subsubsection{Windows}
+
+Per i sistemi operativi della famiglia Windows, l'integrazione risulta relativamente lineare, grazie all'accesso diretto
+alle API \texttt{Win32} fornite dalla libreria \texttt{GLFW}. Il descrittore specifico per questa piattaforma,
+\texttt{WGPUSurfaceSourceWindowsHWND}, richiede la provvigione di due parametri fondamentali: l'handle dell'istanza
+dell'applicazione (\texttt{hinstance}), recuperabile tramite la chiamata di sistema \texttt{GetModuleHandle}, e l'handle
+della finestra nativa \texttt{hwnd}.
+Come mostrato nel listing \ref{listing:winwinctx}, questi dati vengono incapsulati e concatenati direttamente al
+descrittore generico della \textit{Surface}, sfruttando il meccansimo del puntatore \texttt{\gls{nextInChain}}.
+
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+WGPUSurfaceDescriptor surfaceDesc= {};
+#if defined(_WIN32)
+WGPUSurfaceSourceWindowsHWND hwndDesc = {
+    .chain = { .sType = WGPUSType_SurfaceSourceWindowsHWND },
+    .hinstance = GetModuleHandle(NULL),
+    .hwnd = glfwGetWin32Window(window)
+};
+surfaceDesc.nextInChain = (WGPUChainedStruct*)&hwndDesc;
+\end{minted}
+\vspace{-0.75cm}
+\caption{Inizializzazione contesto finestra (Windows)}
+\label{listing:winwinctx}
+\end{listing}
+\vspace{-0.75cm}
+
+\subsubsection{Linux}
+
+Nel panorama Linux, l'acquisizione del contesto della finestra richiede un approccio dinamico a causa della coesistenza
+di due differenti protocolli per server grafici: l'ormai legacy \textit{X11} ed il più moderno \textit{Wayland}. Per
+garantire la massima portabilità e compatibilità, l'implementazione non assume a priori l'infrastruttura sottostante,
+ma interroga la variabile d'ambiente \texttt{XDG\_SESSION\_TYPE} del sistema operativo per determinare il compositor
+attualmente in uso.
+A seconda del risultato (vedi listing \ref{listing:linwinctx}), l'algoritmo istanzia il descrittore appropriato
+estraendo da \texttt{GLFW} i rispettivi puntatori nativi per il display e per la superficie di rendering.
+
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+#elif defined (__linux__)
+char *envSession = std::getenv("XDG_SESSION_TYPE");
+std::string windowingSystem = envSession ? envSession : "x11";
+if (windowingSystem == "x11") {
+    WGPUSurfaceSourceXlibWindow x11Desc = {
+        .chain = { .sType = WGPUSType_SurfaceSourceXlibWindow },
+        .display = glfwGetX11Display(),
+        .window = glfwGetX11Window(window) };
+    surfaceDesc.nextInChain = (WGPUChainedStruct*)&x11Desc;
+} else if (windowingSystem == "wayland") {
+    WGPUSurfaceSourceWaylandSurface waylandDesc = {
+        .chain = { .sType = WGPUSType_SurfaceSourceWaylandSurface },
+        .display = glfwGetWaylandDisplay(),
+        .surface = glfwGetWaylandWindow(window) };
+    surfaceDesc.nextInChain = (WGPUChainedStruct*)&waylandDesc;
+}
+\end{minted}
+\vspace{-0.75cm}
+\caption{Inizializzazione contesto finestra (Linux Wayland/X11)}
+\label{listing:linwinctx}
+\end{listing}
+\vspace{-0.75cm}
+
+\newpage
+
+\subsubsection{macOS}
+
+L'ecosistema Apple presenta il livello di complessità più alto per quanto riguarda la creazione della superficie,
+poiché su queste piattaforme \texttt{WebGPU} si appoggia nativamente al backend grafico \texttt{Metal}.
+Per evitare di dover introdurre nella codebase \texttt{C++} delle sorgenti scritte in \texttt{ObjectiveC}, che
+richiederebbe l'uso di sorgenti \texttt{.mm}, l'implementazione sfrutta l'iniezione a runtime tramite la funzione
+\texttt{objc\_msgSend} che permette di interagire direttamente con le librerie di sistema \texttt{Cocoa}.
+Il processo, consultabile nel listing \ref{listing:macwinctx}, si occupa di estrarre dapprima l'oggetto
+\texttt{NSWindow}, ne recupera poi la vista principale \texttt{contentView} e vi aggancia dinamicamente un livello di
+rendering dedicato, chiamato \texttt{CAMetalLayer}.
+Inoltre, durante questa fase, viene esplicitamenet disabilitata la proprietà \texttt{displaySyncEnabled} del layer
+Metal; questo è un passaggio fondamentale per aggirare la sincronizzazione verticale forzata in modo aggressivo dal
+\textit{Window Server} di macOS, permettendo all'applicazione di sbloccare il framerate per una migliore profilazione
+delle performance.
+Il livello così configurato viene finalmente passato al descrittore \texttt{WGPUSurfaceSourceMetalLayer}.
+
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+#elif defined(__APPLE__)
+#include <objc/message.h>
+#include <objc/runtime.h>
+id nsWindow = glfwGetCocoaWindow(window);
+id nsView = ((id(*)(id, SEL))objc_msgSend)(nsWindow, 
+    sel_registerName("contentView"));
+id caMetalLayerClass = (id)objc_getClass("CAMetalLayer");
+id metalLayer = ((id(*)(id, SEL))objc_msgSend)(caMetalLayerClass,
+    sel_registerName("layer"));
+((void(*)(id, SEL, bool))objc_msgSend)(nsView,
+    sel_registerName("setWantsLayer:"), true);
+((void(*)(id, SEL, id))objc_msgSend)(nsView,
+    sel_registerName("setLayer:"), metalLayer);
+((void(*)(id, SEL, bool))objc_msgSend)(metalLayer,
+    sel_registerName("setDisplaySyncEnabled:"), false);
+WGPUSurfaceSourceMetalLayer metalDesc = {
+    .chain = { .sType = WGPUSType_SurfaceSourceMetalLayer },
+    .layer = metalLayer
+};
+surfaceDesc.nextInChain = (WGPUChainedStruct*)&metalDesc;
+#endif
+\end{minted}
+\vspace{-0.75cm}
+\caption{Inizializzazione contesto finestra (macOS)}
+\label{listing:macwinctx}
+\end{listing}
+
+Una volta configurato il descrittore specifico per la piattaforma host corrente tramite la catena di strutture
+\texttt{\gls{nextInChain}}, la superficie viene concretamente istanziata e restituita al ciclo di vita dell'applicazione
+tramite la chiamata nativa dell'API.
+
+\begin{minted}{cpp}
+return wgpuInstanceCreateSurface(instance, &surfaceDesc);
+\end{minted}
 
 \chapter{Test e validazione}
 
