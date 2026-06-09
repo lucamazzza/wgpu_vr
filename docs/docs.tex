@@ -259,6 +259,7 @@ fontsize=\small,
 \listoflistings
 \newpage
 \blankpage
+\blankpage %% Temporary
 
 \pagenumbering{arabic}
 \chapter{Abstract}
@@ -746,6 +747,58 @@ tramite la chiamata nativa dell'API.
 return wgpuInstanceCreateSurface(instance, &surfaceDesc);
 \end{minted}
 
+\newpage
+
+\section{Gestione Memoria e assets}
+
+Il passaggio dal \texttt{glTexImage2D} di \texttt{OpenGL} al sistema adottato da \texttt{WebGPU} richiede il calcolo
+manuale degli \textit{stride} di memoria. La libreria \texttt{stb\_image} è stata integrata per caricare gli assets
+direttamente in un formato \textit{top-down}, corrisponendo nativamenta al sistema di coordinate delle texture
+\texttt{WebGPU} ed eliminando la necessità di invertire l'asse $y$ durante il caricamento.
+
+L'API impone un vincolo sui caricamenti delle texture tramite \texttt{wgpuQueueWriteTexture}: il parametro
+\texttt{bytesPerRow} deve essere obbligatoriamente un multiplo di $256$ bytes. Questo problema è stato risolto
+calcolando e applicando matematicamente un padding al buffer dei dati grezzi dell'immagine, prima di consegnarlo alla
+GPU.
+
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+uint32_t bytesPerRow = (texWidth * 4 + 255) & ~255;
+std::vector<uint8_t> paddedData(bytesPerRow * texHeight, 0)
+for (int y = 0; y < texHeight; ++y) {
+    memcpy(&paddedData[y*bytesPerRow], &rawData[y*texWidth*4], texWidth*4);
+}
+\end{minted}
+\vspace{-0.75cm}
+\caption{Generazione dei dati texture con padding}
+\label{listing:texpad}
+\end{listing}
+
+Un altro fondamentale cambiamento di paradigma riguarda l'allineamento delle strutture tra \texttt{C++} e \texttt{WGSL}.
+Questo infatti impone rigorose regole di layout nella memoria, nelle quali tipi di dati come \texttt{vec3} devono essere
+strettamente allineati a limiti di $16$ bytes.
+Per prevenire la desincronizzazione della memoria tra le \texttt{struct} di \texttt{C++} a $128$ bytes e la
+\texttt{struct WGSL} attesa, da $144$ bytes, è stato introdotto un padding manuale nelle strutture dati \texttt{C++} per
+soddisfare le aspettative di memoria della GPU, senza sprecare larghezza di banda.
+
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+struct LightMaterialUniforms {
+    glm::vec4 lightPosition;
+    glm::vec4 lightAmbient;
+    glm::vec4 lightDiffuse;
+    glm::vec4 lightSpecular;
+    glm::vec4 matAmbient;
+    glm::vec4 matDiffuse;
+    glm::vec4 matSpecular;
+    float matShininess;
+    float padding[3];
+};
+\end{minted}
+\caption{Esempio di allineamento a $16$ bytes}
+\label{listing:wgslpad}
+\end{listing}
+
 \chapter{Test e validazione}
 
 \section{Risultati}
@@ -766,4 +819,3 @@ return wgpuInstanceCreateSurface(instance, &surfaceDesc);
 \printbibliography[heading=bibintoc, title=Sitografia]
 
 \end{document}
-
