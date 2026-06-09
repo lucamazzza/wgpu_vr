@@ -92,10 +92,13 @@
 \usepackage{xcolor}
 \usemintedstyle{emacs}
 \setminted{
-bgcolor=lightgray!20,
+numbersep=5pt,
+frame=lines,
 framesep=2mm,
-xleftmargin=10pt,
 fontsize=\small,
+}
+\renewcommand{\theFancyVerbLine}{
+    \textcolor{darkgray}{\tiny\ttfamily\arabic{FancyVerbLine}}
 }
 
 % Hyperlinks
@@ -782,7 +785,7 @@ Per prevenire la desincronizzazione della memoria tra le \texttt{struct} di \tex
 soddisfare le aspettative di memoria della GPU, senza sprecare larghezza di banda.
 
 \begin{listing}[!ht]
-\begin{minted}{cpp}
+\begin{minted}[highlightlines={10}]{cpp}
 struct LightMaterialUniforms {
     glm::vec4 lightPosition;
     glm::vec4 lightAmbient;
@@ -795,9 +798,42 @@ struct LightMaterialUniforms {
     float padding[3];
 };
 \end{minted}
+\vspace{-0.75cm}
 \caption{Esempio di allineamento a $16$ bytes}
 \label{listing:wgslpad}
 \end{listing}
+
+\newpage
+
+\section{Pipeline e Bind Group}
+
+La pipeline di rendering funge da oggetto di stato immutabile. Il prototipo utilizza un modello di illuminazione
+\textit{Blinn-Phong}, proprio come nel tutorial del corso, il tutto tradotto in una \textit{Shader} scritta nel
+linguaggio \texttt{WGSL}. Durante la creazione della pipeline, viene sfruttata la funzionalità di \textit{Auto-Layout}.
+
+\begin{minted}{cpp}
+pipelineDesc.layout = nullptr;
+\end{minted}
+
+Questo istruisce il backend WebGPU a inferire dinamicamente il layout del Bind Group, direttamente dalle annotazioni
+del linguaggio di shading (\texttt{@group} e \texttt{@binding}), riducento significativamente la verbosità del
+\texttt{C++}.
+
+Le risorse da fornire al programma shader sono divise in due distinti Bind Group in base alla loro frequenza di
+aggiornamento:
+
+\begin{enumerate}
+    \item \textbf{Bind Group 0}: contiene gli Uniform Buffer per le matrici \textit{Model-View-Projection} ed i
+        parametri dei materiali di illuminazione, aggiornati ad ogni frame
+    \item \textbf{Bind Group 1}: contiene il \textit{Sampler} e la \textit{Texture View}, che rimangono statici per
+        tutto il ciclo di vita dell'applicazione
+\end{enumerate}
+
+Inoltre, le rigide regole di validazione dell'API hanno richiesto una gestione esplicita delle \textit{C Strings}.
+Con i recenti aggiornamenti delle API, gli entrypoint degli shader devono essere passati come oggetti di tipo
+\texttt{WGPUStringView}, che abbinano il contenuto della stringa con una macro di lunghezza specifica
+(\texttt{WGPU\_STRLEN}), piuttosto che come puntatori terminati da carattere nullo, al fine di gestire la sicurezza
+della memoria attraverso i confini del backend Rust.
 
 \chapter{Test e validazione}
 
