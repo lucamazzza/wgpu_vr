@@ -251,7 +251,7 @@ fontsize=\small,
 % Front Matter
 \pagenumbering{roman}
 \tableofcontents
-\newpage
+\blankpage
 
 % List of Figures/Tables (Optional)
 \listoffigures
@@ -262,7 +262,6 @@ fontsize=\small,
 \listoflistings
 \newpage
 \blankpage
-\blankpage %% Temporary
 
 \pagenumbering{arabic}
 \chapter{Abstract}
@@ -803,8 +802,6 @@ struct LightMaterialUniforms {
 \label{listing:wgslpad}
 \end{listing}
 
-\newpage
-
 \section{Pipeline e Bind Group}
 
 La pipeline di rendering funge da oggetto di stato immutabile. Il prototipo utilizza un modello di illuminazione
@@ -834,6 +831,23 @@ Con i recenti aggiornamenti delle API, gli entrypoint degli shader devono essere
 \texttt{WGPUStringView}, che abbinano il contenuto della stringa con una macro di lunghezza specifica
 (\texttt{WGPU\_STRLEN}), piuttosto che come puntatori terminati da carattere nullo, al fine di gestire la sicurezza
 della memoria attraverso i confini del backend Rust.
+
+\section{Command Encoder e Render Loop}
+
+Il ciclo principale vede un \texttt{WGPUCommandEncoder} che registra una serie di istruzioni all'interno di un command
+buffer, che viene successivamente sottomesso alla queue della GPU in una singola operazione.
+
+Una cruciale implementazione di stabilità all'interno del ciclo di rendering è la gestione dello stato di acquisizione
+della \texttt{WGPUSurfaceTexture}. Le latenze del sistema operativo, come il ridimensionamento o la riduzione ad icona
+della finestra potrebbero far sì che la superficie "perda" temporaneamente accesso alla texture del frame corrente;
+l'aggiunta di una \textit{guard clause} che valuti lo stato \texttt{WGPUSurfaceGetCurrentTextureStatus\_Success}
+impedisce al backend Rust di andare in \textit{panic} alla ricezione di un puntatore nullo, garantendo la totale
+robustezza del motore in caso di eventi esterni.
+
+Infine, il \texttt{WGPURenderPassDescription} richiede definizioni esplicite e complete, inclusa la specifica del
+parametro \texttt{depthSlice} a \texttt{WGPU\_DEPTH\_SLICE\_UNDEFINED}, per i color attachment 2D, una configurazione
+necessaria per conformarsi in modo rigoroso alle specifiche di rendering delle texture 3D, recentemente introdotte
+in WebGPU.
 
 \chapter{Test e validazione}
 
