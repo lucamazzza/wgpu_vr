@@ -3,7 +3,7 @@ set(TARGET_NAME "demo_openxr")
 add_executable(${TARGET_NAME} main.cpp)
 
 target_link_libraries(${TARGET_NAME} PRIVATE
-    openxr_loader
+    OpenXR::openxr_loader
     glfw
     glm::glm
 )
