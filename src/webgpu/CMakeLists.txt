@@ -14,6 +14,15 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     glm::glm
 )
 
+if(WIN32)
+    target_link_libraries(${TARGET_NAME} PRIVATE
+        ws2_32
+        userenv
+        bcrypt
+        ntdll
+    )
+endif()
+
 target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/shader.wgsl")
