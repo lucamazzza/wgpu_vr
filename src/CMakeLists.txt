@@ -20,14 +20,14 @@ set_target_properties(wgpu_native PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/external/wgpu/include"
 )
 
-if(WIN64)
+if(WIN32)
     set(WGPU_NATIVE_DLL "${CMAKE_SOURCE_DIR}/external/wgpu/lib/x64/wgpu_native.dll")
     set(WGPU_NATIVE_IMPLIB "${CMAKE_SOURCE_DIR}/external/wgpu/lib/x64/wgpu_native.lib")
     set_target_properties(wgpu_native PROPERTIES
         IMPORTED_LOCATION "${WGPU_NATIVE_DLL}"
         IMPORTED_IMPLIB "${WGPU_NATIVE_IMPLIB}"
         IMPORTED_LOCATION_RELEASE "${WGPU_NATIVE_DLL}"
-        IMPORTED_IMPLIB_RELEASE "${WGPU_NATIVE_IMPLIB}"
+        IMPORTED_IMPLIB_RELEASE "${WGPU_NATIVE_IMPLIB}"        
         IMPORTED_LOCATION_DEBUG "${WGPU_NATIVE_DLL}"
         IMPORTED_IMPLIB_DEBUG "${WGPU_NATIVE_IMPLIB}"
     )

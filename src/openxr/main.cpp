@@ -5,10 +5,10 @@
 #include <ostream>
 #include <vector>
 
-#define XR_CHECK(res, msg)                                                      \
-    if (XR_FAILED(res)) {                                                       \
+#define XR_CHECK(res, msg)                                                       \
+    if (XR_FAILED(res)) {                                                        \
         std::cerr << "[ERROR] " << msg << " (Code: " << res << ")" << std::endl; \
-        exit(1);                                                                \
+        exit(1);                                                                 \
     }
 
 int main() {
