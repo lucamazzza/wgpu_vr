@@ -12,3 +12,7 @@ docs/*
 # src
 compile_commands.json
 [B|b]uild
+
+# windows
+.vs
+CMakeSettings.json
