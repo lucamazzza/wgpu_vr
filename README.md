@@ -2,6 +2,9 @@
 
 <img src="https://capsule-render.vercel.app/api?type=venom&color=005A9C&height=200&section=header&text=WebGPU%20for%20VR&fontSize=80&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Feasibility%20Study%20for%20WebGPU+OpenXR&descAlignY=61&descAlign=50"/>
 
+<img src="https://img.shields.io/badge/29.0.0.0-230076CC?style=for-the-badge&logo=webgpu&logoColor=%230076CC&labelColor=%23ffffff&color=%230076CC&logoSize=auto"/>
+<img src="https://img.shields.io/badge/20-%23044f88?style=for-the-badge&logo=cplusplus&logoColor=%23044f88&labelColor=%23ffffff&color=%23044f88"/>
+
 </p>
 
 This repository contains a C++ prototype demonstrating interoperability between **WebGPU** (via `wgpu_native`) and **OpenXR**.
