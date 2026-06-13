@@ -8,11 +8,13 @@ add_executable(${TARGET_NAME}
     XrWGPUBridge.h
     XrWGPUBridge.cpp
     main.cpp
- "stb_image.h")
+
+    stb_image.h
+)
 
 target_include_directories(${TARGET_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/vulkan/include
+    ${CMAKE_SOURCE_DIR}/external/vulkan/include
 )
 
 target_link_libraries(${TARGET_NAME} PRIVATE
