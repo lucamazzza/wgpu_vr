@@ -1,4 +1,5 @@
 #include "XrWGPUBridge.h"
+#include "openxr/openxr.h"
 #include <iostream>
 
 #define XR_USE_GRAPHICS_API_VULKAN
@@ -43,4 +44,32 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
         return XR_NULL_HANDLE;
     }
     return m_xrSession;
+}
+
+void XrWGPUBridge::xrwgpuCreateSwapchain(XrSession session, int64_t vulkanFormat, uint32_t width, uint32_t height) {
+    m_xrSession = session;
+    XrSwapchainCreateInfo swapchainInfo{XR_TYPE_SWAPCHAIN_CREATE_INFO};
+    swapchainInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchainInfo.format = vulkanFormat;
+    swapchainInfo.sampleCount = 1;
+    swapchainInfo.width = width;
+    swapchainInfo.height = height;
+    swapchainInfo.faceCount = 1;
+    swapchainInfo.arraySize = 1;
+    swapchainInfo.mipCount = 1;
+    XrResult res = xrCreateSwapchain(m_xrSession, &swapchainInfo, &m_xrSwapchain);
+    if (XR_FAILED(res)) {
+        std::cerr << "[XrWGPUBridge] Cannot create OpenXR swapchain" << std::endl;
+        return;
+    }
+    uint32_t imageCount = 0;
+    xrEnumerateSwapchainImages(m_xrSwapchain, 0, &imageCount, nullptr);
+    std::cout << "[XrWGPUBridge] Successfully created swapchain with " << imageCount << " images" << std::endl;
+    m_vk->xrImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR});
+    xrEnumerateSwapchainImages(m_xrSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*) m_vk->xrImages.data());
+    m_swapchainTextures.resize(imageCount);
+    m_swapchainViews.resize(imageCount);
+    for (uint32_t i = 0; i < imageCount; i++) {
+        VkImage rawVkImage = m_vk->xrImages[i].image;
+    }
 }
