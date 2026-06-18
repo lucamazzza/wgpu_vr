@@ -10,7 +10,7 @@ class XrWGPUBridge {
 public:
     XrWGPUBridge();
     ~XrWGPUBridge();
-    bool xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice);
+    bool xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice, WGPUAdapter wgpuAdapter);
     XrSession xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xrSystemId);
     void xrwgpuCreateSwapchain(XrSession session, int64_t format, uint32_t width, uint32_t height);
     WGPUTextureView xrwgpuAcquireNextImage();

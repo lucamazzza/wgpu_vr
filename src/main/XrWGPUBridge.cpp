@@ -18,17 +18,12 @@ XrWGPUBridge::XrWGPUBridge() : m_vk(std::make_unique<VKInternals>()) {}
 
 XrWGPUBridge::~XrWGPUBridge() {}
 
-bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice) {
+bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice, WGPUAdapter wgpuAdapter) {
     m_wgpuDevice = wgpuDevice;
     std::cout << "[XrWGPUBridge]: Extracting Vulkan handles from WebGPU..." << std::endl;
-
-    /*
-        TODO: extract these API handles in Rust source code
-
-    m_vk->vkInstance = wgpuInstanceGetVulkanInstance(wgpuInstance);
-    m_vk->vkDevice = wgpuDeviceGetVulkanDevice(wgpuDevice);
-    m_vk->vkPhysicalDevice = wgpuDeviceGetVulkanPhysicalDevice(wgpuDevice);
-    */
+    m_vk->vkInstance = (VkInstance)wgpuInstanceGetVulkanInstance(wgpuInstance);
+    m_vk->vkDevice = (VkDevice)wgpuDeviceGetVulkanDevice(wgpuDevice);
+    m_vk->vkPhysicalDevice = (VkPhysicalDevice)wgpuAdapterGetVulkanPhysicalDevice(wgpuAdapter);
 
     m_vk->graphicsBinding.instance = m_vk->vkInstance;
     m_vk->graphicsBinding.physicalDevice = m_vk->vkPhysicalDevice;
