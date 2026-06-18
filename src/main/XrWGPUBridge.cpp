@@ -1,5 +1,4 @@
 #include "XrWGPUBridge.h"
-#include "openxr/openxr.h"
 #include <iostream>
 
 #define XR_USE_GRAPHICS_API_VULKAN
@@ -71,5 +70,21 @@ void XrWGPUBridge::xrwgpuCreateSwapchain(XrSession session, int64_t vulkanFormat
     m_swapchainViews.resize(imageCount);
     for (uint32_t i = 0; i < imageCount; i++) {
         VkImage rawVkImage = m_vk->xrImages[i].image;
+        // TODO: take raw vk image and create a WGPUTexture wo/ extra mem alloc
     }
+}
+
+WGPUTextureView XrWGPUBridge::xrwgpuAcquireNextImage() {
+    XrSwapchainImageAcquireInfo acquireInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+    uint32_t imageIndex;
+    xrAcquireSwapchainImage(m_xrSwapchain, &acquireInfo, &imageIndex);
+    XrSwapchainImageWaitInfo waitInfo{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+    waitInfo.timeout = XR_INFINITE_DURATION;
+    xrWaitSwapchainImage(m_xrSwapchain, &waitInfo);
+    return m_swapchainViews[imageIndex];
+}
+
+void XrWGPUBridge::present() {
+    XrSwapchainImageReleaseInfo releaseInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+    xrReleaseSwapchainImage(m_xrSwapchain, &releaseInfo);
 }
