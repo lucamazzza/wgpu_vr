@@ -6742,6 +6742,7 @@ WGPU_EXPORT void wgpuTextureViewRelease(WGPUTextureView textureView) WGPU_FUNCTI
 WGPU_EXPORT void *wgpuInstanceGetVulkanInstance(WGPUInstance instance);
 WGPU_EXPORT void *wgpuAdapterGetVulkanPhysicalDevice(WGPUAdapter adapter);
 WGPU_EXPORT void *wgpuDeviceGetVulkanDevice(WGPUDevice device);
+WGPU_EXPORT void *wgpuTextureGetVulkanImage(WGPUTexture texture);
 
 #endif  // !defined(WGPU_SKIP_DECLARATIONS)
 
