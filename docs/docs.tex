@@ -395,6 +395,8 @@ Questo rapporto è stato scritto durante tutta la durata del progetto, parallela
 \end{tabular}
 \end{table}
 
+\blankpage
+
 \chapter{Stato dell'arte}
 
 Negli ultimi dieci anni, l'ecosistema dello sviluppo di applicazioni grafiche interattive ha visto intercorrere una
@@ -849,8 +851,6 @@ parametro \texttt{depthSlice} a \texttt{WGPU\_DEPTH\_SLICE\_UNDEFINED}, per i co
 necessaria per conformarsi in modo rigoroso alle specifiche di rendering delle texture 3D, recentemente introdotte
 in WebGPU.
 
-\newpage
-
 \section{Interoperabilità \texttt{WebGPU-OpenXR}}
 
 L'integrazione tra \texttt{WebGPU} e \texttt{OpenXR} presenta una sfida architetturale fondamentale legata ai paradigmi
@@ -871,20 +871,62 @@ iniezione di codice, tramite una tecnica chiamata \textit{\gls{FFI}}, direttamen
 di \texttt{wgpu-native}.
 
 Sfruttando le capacità di interoperabilità e esportazione in C di Rust, vengono iniettate delle funzioni custom, in
-grado di interrogare l'oggetto \texttt{context} all'interno di \texttt{WebGPU}. Ciò permette di forzare l'astrazione
-e di risalire all'istanza Vulkan nativa, restituendola all'API C++ sottoforma di puntatore opaco.
+grado di interrogare l'oggetto \texttt{context} all'interno di \texttt{WebGPU}.
+
+\noindent Ciò permette di forzare l'astrazione e di risalire all'istanza Vulkan nativa, restituendola all'API C++
+sottoforma di puntatore opaco.
 
 \begin{listing}[!ht]
 \begin{minted}{rust}
 #[no_mangle]
-pub unsafe extern "C" fn wgpuDeviceGetVulkanDevice(
-    device: crate::native::WGPUDevice
-) -> *mut c_void {}
+pub unsafe extern "C" fn function(...) -> *mut c_void {}
 \end{minted}
 \vspace{-0.75cm}
 \caption{Esempio di FFI in Rust}
 \label{listing:ffiex}
 \end{listing}
+\vspace{-0.75cm}
+
+\subsection{\textit{Pointer Punning} per l'estrazione di memoria}
+
+Il problema più critico si presenta quando si deve gestire la \textit{\gls{Swapchain}}. \texttt{OpenXR} richiede che i
+fotogrammi vengano renderizzati direttamente sulle sue \texttt{VkImage}.
+Tuttavia, le strutture interne di \texttt{WebGPU} possiedono campi strettamente privati, impedendo la costruzione o la
+manipolazione di texture a partire da memoria pre-allocata esternamente.
+
+La soluzione sfrutta una tecnica di accesso diretto alla memoria, nota come \textit{Pointer Punning}.
+Sapendo per costruzione che il primo campo della struttura \texttt{Texture} nel backend Vulkan di WebGPU corrisponde
+all'handle nativo \texttt{ash::vk::Image}, è possibile bypassare la protezione del compilatore castando
+direttamente l'indirizzo di memoria della struttura ad un puntatore Vulkan.
+
+\begin{listing}[!ht]
+\begin{minted}{rust}
+#[no_mangle]
+pub unsafe extern "C" fn wgpuTextureGetVulkanImage(
+    texture: crate::native::WGPUTexture,
+) -> *mut c_void {
+    #[cfg(all(
+        any(target_os="windows",target_os="linux"),
+        feature="vulkan"
+    ))]
+    {
+        let texture = texture.as_ref().expect();
+        let hal_tex = 
+            texture.context.texture_as_hal::<hal::api::Vulkan>(texture.id);
+        if let Some(hal_device) = hal_device {
+            return &hal_device.raw_device().handle() as *const _ as *mut c_void;
+        }
+        std::ptr::null_mut()
+    } // Fallback per altri OS
+}
+\end{minted}
+\vspace{-0.75cm}
+\caption{Estrazione di una \texttt{VkImage}}
+\label{listing:vkimagepunning}
+\end{listing}
+\vspace{-0.75cm}
+
+\blankpage
 
 \chapter{Test e validazione}
 
