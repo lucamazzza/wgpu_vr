@@ -751,7 +751,7 @@ return wgpuInstanceCreateSurface(instance, &surfaceDesc);
 
 \newpage
 
-\section{Gestione Memoria e assets}
+\subsection{Gestione Memoria e assets}
 
 Il passaggio dal \texttt{glTexImage2D} di \texttt{OpenGL} al sistema adottato da \texttt{WebGPU} richiede il calcolo
 manuale degli \textit{stride} di memoria. La libreria \texttt{stb\_image} è stata integrata per caricare gli assets
@@ -802,7 +802,7 @@ struct LightMaterialUniforms {
 \label{listing:wgslpad}
 \end{listing}
 
-\section{Pipeline e Bind Group}
+\subsection{Pipeline e Bind Group}
 
 La pipeline di rendering funge da oggetto di stato immutabile. Il prototipo utilizza un modello di illuminazione
 \textit{Blinn-Phong}, proprio come nel tutorial del corso, il tutto tradotto in una \textit{Shader} scritta nel
@@ -832,7 +832,7 @@ Con i recenti aggiornamenti delle API, gli entrypoint degli shader devono essere
 (\texttt{WGPU\_STRLEN}), piuttosto che come puntatori terminati da carattere nullo, al fine di gestire la sicurezza
 della memoria attraverso i confini del backend Rust.
 
-\section{Command Encoder e Render Loop}
+\subsection{Command Encoder e Render Loop}
 
 Il ciclo principale vede un \texttt{WGPUCommandEncoder} che registra una serie di istruzioni all'interno di un command
 buffer, che viene successivamente sottomesso alla queue della GPU in una singola operazione.
@@ -848,6 +848,21 @@ Infine, il \texttt{WGPURenderPassDescription} richiede definizioni esplicite e c
 parametro \texttt{depthSlice} a \texttt{WGPU\_DEPTH\_SLICE\_UNDEFINED}, per i color attachment 2D, una configurazione
 necessaria per conformarsi in modo rigoroso alle specifiche di rendering delle texture 3D, recentemente introdotte
 in WebGPU.
+
+\newpage
+
+\section{Interoperabilità \texttt{WebGPU-OpenXR}}
+
+L'integrazione tra \texttt{WebGPU} e \texttt{OpenXR} presenta una sfida architetturale fondamentale legata ai paradigmi
+di sicurezza ed astrazione delle due API; \texttt{WebGPU}, per sua natura, è agnostica e sicura: il suo obbiettivo è
+di nascondere completamente i dettagli hardware sottostanti dietro ad un'interfaccia unificata. Al contrario,
+\texttt{OpenXR} per operare in ambiente VR richiede un'accesso esplicito e diretto ai puntatori nativi della GPU, ed
+alle allocazioni di memoria delle immagini per poter gestire la swapchain a bassa latenza.
+
+Nella versione più recente\footnote{\url{https://github.com/gfx-rs/wgpu-native/tree/v29.0.0.0}}, le funzioni di
+estrazione per il backend \texttt{Vulkan} sono state rimosse dall'API pubblica, sigillando di fatto i puntatori nativi
+all'interno dell'Hardware Abstraction Layer, scritto in Rust. Ciò rende impossibile l'inizializzazione standard di una
+\texttt{XrSession} basata sul contesto grafico di WebGPU.
 
 \chapter{Test e validazione}
 
