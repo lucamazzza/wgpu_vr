@@ -864,6 +864,28 @@ estrazione per il backend \texttt{Vulkan} sono state rimosse dall'API pubblica, 
 all'interno dell'Hardware Abstraction Layer, scritto in Rust. Ciò rende impossibile l'inizializzazione standard di una
 \texttt{XrSession} basata sul contesto grafico di WebGPU.
 
+\subsection{Rust \textit{FFI Injection}}
+
+Per aggirare questa limitazione senza dover riscrivere interi moduli della libreria si è optato per una tecnica di
+iniezione di codice, tramite una tecnica chiamata \textit{\gls{FFI}}, direttamente nel codice sorgente
+di \texttt{wgpu-native}.
+
+Sfruttando le capacità di interoperabilità e esportazione in C di Rust, vengono iniettate delle funzioni custom, in
+grado di interrogare l'oggetto \texttt{context} all'interno di \texttt{WebGPU}. Ciò permette di forzare l'astrazione
+e di risalire all'istanza Vulkan nativa, restituendola all'API C++ sottoforma di puntatore opaco.
+
+\begin{listing}[!ht]
+\begin{minted}{rust}
+#[no_mangle]
+pub unsafe extern "C" fn wgpuDeviceGetVulkanDevice(
+    device: crate::native::WGPUDevice
+) -> *mut c_void {}
+\end{minted}
+\vspace{-0.75cm}
+\caption{Esempio di FFI in Rust}
+\label{listing:ffiex}
+\end{listing}
+
 \chapter{Test e validazione}
 
 \section{Risultati}
