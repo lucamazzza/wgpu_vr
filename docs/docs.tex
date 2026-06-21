@@ -317,10 +317,10 @@ modalità ottimali per l'adozione di \texttt{WebGPU} in ambito didattico e appli
 Virtuale.
 
 Con questo documento non si intende però produrre una guida dettagliata per quanto riguarda l'API di \texttt{WebGPU},
-e nemmeno all'utilizzo di \texttt{OpenXR} o alle funzionalità VR, bensì saranno espliciti solamente i concetti
+e nemmeno all'utilizzo di \texttt{\gls{OpenXR}} o alle funzionalità VR, bensì saranno espliciti solamente i concetti
 essenziali alla comprensione di questo lavoro. Se si desidera apprendere i concetti riguardanti entrambe le API
 menzionate si può fare riferimento alla guida per i fondamentali di \texttt{WebGPU}\cite{webgpufundamentals} e a quella
-di \texttt{OpenXR}\cite{openxrtutorial}.
+di \texttt{\gls{OpenXR}}\cite{openxrtutorial}.
 
 È anche da notare che questo documento non ha lo scopo di rendere noto ogni singolo dettaglio di codice sviluppato,
 bensì di accompagnare alla comprensione del problema, dei passi intrapresi per cercare di risolverlo e, se finalmente
@@ -336,33 +336,34 @@ eventuali problemi o deviazioni dai mezzi discussi inizialmente.
 \begin{enumerate}
     \item \textbf{Analisi \texttt{WebGPU}}: Analizzare l'approccio necessario per lo sviluppo di un'applicazione grafica
         facente uso dell'API di \texttt{WebGPU}.
-    \item \textbf{Analisi \texttt{OpenXR}}: Analizzare l'approccio utilizzato nei progetti precedenti (specialmente per
+    \item \textbf{Analisi \texttt{\gls{OpenXR}}}: Analizzare l'approccio utilizzato nei progetti precedenti (specialmente per
         quanto riguarda \textit{\texttt{XRBridge}}\footnote{\url{https://github.com/JollyCookie2000/xr-bridge}}) per lo
-        sviluppo di un'applicazione grafica che faccia utilizzo di \texttt{OpenXR} per fornire funzionalità per la
+        sviluppo di un'applicazione grafica che faccia utilizzo di \texttt{\gls{OpenXR}} per fornire funzionalità per la
         realtà virtuale.
     \item \textbf{Demo \texttt{WebGPU} indipendente}: Derivante dall'analisi riguardante l'API di \texttt{WebGPU},
         sviluppare una demo che possa rappresentare un punto di partenza per lo sviluppo della demo finale. Questa
         deve concentrarsi sulle funzionalità dell'API \texttt{WebGPU}. Questa demo deve rimanere semplice e ridurre la
         complessità di integrazione di ulteriori funzionalità, specialmente quelle riguardanti la realtà virtuale.
-    \item \textbf{Demo \texttt{OpenXR} indipendente}: Derivante dall'analisi riguardante \texttt{OpenXR}, sviluppare una
-        demo che possa rappresentare un punto di partenza per lo sviluppo della demo finale. Questa deve concentrarsi 
-        sulle funzionalità di realtà virtuale. Questa demo deve essere imperativamente concentrata sui requisiti del
-        corso di realtà virtuale e concentrarsi ad adattare unicamente ciò che è necessario per il corso.
+    \item \textbf{Demo \texttt{\gls{OpenXR}} indipendente}: Derivante dall'analisi riguardante \texttt{\gls{OpenXR}},
+        sviluppare una demo che possa rappresentare un punto di partenza per lo sviluppo della demo finale. Questa deve
+        concentrarsi sulle funzionalità di realtà virtuale. Questa demo deve essere imperativamente concentrata sui
+        requisiti del corso di realtà virtuale e concentrarsi ad adattare unicamente ciò che è necessario per il corso.
         Ulteriormente, questa deve essere integrabile nell'ambiente WebGPU, deve quindi avere un approccio modulare,
         il quale permetterà di rimuovere le funzionalità \texttt{OpenGL} e sostituirle con quelle di \texttt{WebGPU}.
-    \item \textbf{Swapchain condivisa}: Sviluppare una swapchain, condivisa tra \texttt{WebGPU} e \texttt{OpenXR}, che
-        permetta di condividere le texture da mostrare tramite gli occhi dell'headset, tra l'API \texttt{WebGPU} e
-        quella di \texttt{OpenXR}. Ciò si riduce nella produzione di una libreria bridge, che utilizzi uno dei "minimi
-        comun denominatori\footnote{WebGPU si interfaccia direttamente con l'API di sistema per la rappresentazione
-        nativa di immagini grafiche.}" tra le due tecnologie, in questo caso una tra \texttt{\gls{Vulkan}},
-        \texttt{\gls{DirectX}} o \texttt{\gls{Metal}}.
+    \item \textbf{Swapchain condivisa}: Sviluppare una swapchain, condivisa tra \texttt{WebGPU} e \texttt{\gls{OpenXR}},
+        che permetta di condividere le texture da mostrare tramite gli occhi dell'headset, tra l'API \texttt{WebGPU} e
+        quella di \texttt{\gls{OpenXR}}. Ciò si riduce nella produzione di una libreria bridge, che utilizzi uno dei
+        "minimi comun denominatori\footnote{WebGPU si interfaccia direttamente con l'API di sistema per la
+        rappresentazione nativa di immagini grafiche.}" tra le due tecnologie, in questo caso una tra
+        \texttt{\gls{Vulkan}}, \texttt{\gls{DirectX}} o \texttt{\gls{Metal}}.
     \item \textbf{Sincronizzazione \& Rendering Stereoscopico}: Integrare la sincronizzazione del loop di
-        rendering di \texttt{WebGPU} con i tempi dettati da \texttt{OpenXR}.
+        rendering di \texttt{WebGPU} con i tempi dettati da \texttt{\gls{OpenXR}}.
         Deve essere inoltre modificata la pipeline di \texttt{WebGPU} per renderizzare la scena due volte, basandosi
-        sulle matrici di \textit{projection} e \texttt{view} fornite da \texttt{OpenXR} per occhio sinistro e destro.
+        sulle matrici di \textit{projection} e \texttt{view} fornite da \texttt{\gls{OpenXR}} per occhio sinistro e
+        destro.
     \item \textbf{Demo unificata}: Produrre una demo che unisca tutte le funzionalità richieste dal corso di Realtà
         Virtuale, utilizzando l'architettura prodotta nelle fasi precedenti. Questa deve dimostrare in maniera semplice
-        e efficace i risultati ottenibili dalla combinazione di \texttt{WebGPU} e \texttt{OpenXR}.
+        e efficace i risultati ottenibili dalla combinazione di \texttt{WebGPU} e \texttt{\gls{OpenXR}}.
     \item \textbf{Benchmarking}: Misurare il \gls{framerate} e la latenza della demo, utilizzando appropriati strumenti
         di misurazione.
     \item \textbf{Valutazione \textit{effort}}: Confrontare la pipeline prodotta con quelle utilizzate negli anni
@@ -382,7 +383,7 @@ Questo rapporto è stato scritto durante tutta la durata del progetto, parallela
 \toprule
 \textbf{ID}   & \textbf{Descrizione}                                                                    & \textbf{Note}    \\ \midrule
 \texttt{R-00} & Deve presentare un backend \texttt{WebGPU}, con \texttt{wgpu\_native}, in \texttt{C++}  & < \texttt{C++20} \\
-\texttt{R-01} & Deve presentare l'integrazione di \texttt{OpenXR} per gestire funzionalità VR/XR        & -                \\
+\texttt{R-01} & Deve presentare l'integrazione di \texttt{\gls{OpenXR}} per gestire funzionalità VR/XR  & -                \\
 \texttt{R-02} & Deve acquisire i dati di tracciamento dell'\gls{HMD}                                    & -                \\
 \texttt{R-03} & Deve gestire allocazione texture e submission duale con swapchains                      & -                \\
 \texttt{R-04} & Deve gestire la sincronizzazione con il framerate runtime VR                            & -                \\
@@ -452,7 +453,7 @@ visore o elemento periferico per il sistema VR viene rilasciato.
 Pur offrendo un'integrazione diretta e robusta con \texttt{OpenGL}, al momento si tratta di una tecnologia legacy,
 non più allineata con la traiettoria dell'industria moderna.
 
-\section{Frammentazione - \texttt{Vulkan}, \texttt{DirectX} \& \texttt{Metal}}
+\section{Frammentazione - \gls{Vulkan}, \gls{DirectX} \& \gls{Metal}}
 
 Il limite fisiologico di \texttt{OpenGL} ha portato alla nascita di una nuova generazione di API grafiche di basso
 livello; il successore naturale è \textbf{\texttt{\gls{Vulkan}}}, sviluppato dallo stesso Khronos Group,
@@ -466,28 +467,28 @@ Vi sono due fattori critici che rendono queste API problematiche per la didattic
 \begin{enumerate}
     \item \gls{Vulkan} richiede un approccio esplicito alla gestione delle risorse. Il developer deve allocare
         manualmente la memoria, gestire i descriptor set, configurare le pipeline memory barrier e orchestrare le code
-        di comandi. Realizzare il rendering di un singolo triangolo colorato utilizzando Vulkan richiede la stesura di
-        1000-1500 righe di codice, che a confronto delle 50-100 di OpenGL risultano eccessive per un corso di dieci
-        settimane. Inoltre, un corso accademico focalizzato sulla realtà virtuale, dove gli argomenti principali
+        di comandi. Realizzare il rendering di un singolo triangolo colorato utilizzando \gls{Vulkan} richiede la
+        stesura di 1000-1500 righe di codice, che a confronto delle 50-100 di OpenGL risultano eccessive per un corso di
+        dieci settimane. Inoltre, un corso accademico focalizzato sulla realtà virtuale, dove gli argomenti principali
         dovrebbero essere la stereoscopia, l'interazione spaziale e la cinematica, forzare gli studenti ad apprendere
         quest'API significherebbe consumare l'intero semestre solo per inizializzare l'ambiente grafico.
     \item Apple ha ufficialmente deprecato \texttt{OpenGL} sui propri sistemi operativi, per poi rimuovere completamente
         il supporto nativo a tutte quelle tecnologie non-proprietarie che compongono lo standard \textit{de-facto}
         dell'industria. Attualmente infatti, l'unica API grafica nativa supportata dall'hardware \texttt{Apple Silicon}
         e dai sistemi operativi moderni della casa californiana, è \textbf{\texttt{\gls{Metal}}}. Apple ha rifiutato di
-        adottare \texttt{Vulkan}, costringendo gli sviluppatori ad affidarsi a complessi layer di traduzione, come
+        adottare \gls{Vulkan}, costringendo gli sviluppatori ad affidarsi a complessi layer di traduzione, come
         \textit{\texttt{MoltenVK}}, per ottenere una parvenza di compatibilità.
         Questa tendenza a murare il proprio giardino distrugge il paradigma \textit{Write once, Compile everywhere},
         rendendo impossibile fornire un ambiente di sviluppo nativo e condiviso tra chi sceglie di utilizzare Windows,
         Linux o macOS.
 \end{enumerate}
 
-\section{Comparativa - \texttt{OpenVR} \& \texttt{OpenXR}}
+\section{Comparativa - \texttt{OpenVR} \& \texttt{\gls{OpenXR}}}
 
 La medesima frammentazione vissuta nel mercato delle API si è ripercossa su quello dell'hardware VR. Per risolvere
-questo problema, il \textit{Khronos Group}\footnote{\url{https://khronos.org}} ha rilasciato \texttt{OpenXR}, l'attuale
-standard industriale open-source per lo spatial computing, adottato universalmente da tutti i principali produttori,
-inclusa Valve stessa, che ha attivamente incoraggiato l'abbandono di \texttt{OpenVR}
+questo problema, il \textit{Khronos Group}\footnote{\url{https://khronos.org}} ha rilasciato \texttt{\gls{OpenXR}},
+l'attuale standard industriale open-source per lo spatial computing, adottato universalmente da tutti i principali
+produttori, inclusa Valve stessa, che ha attivamente incoraggiato l'abbandono di \texttt{OpenVR}
 \footnote{\url{https://windowscentral.com/steamvr-gets-open-source-upgrade-valve-transitions-openxr-api}}.
 
 Le differenze architetturali tra le due API sono profonde e rappresentano una rivoluzione concettuale nel modo in cui
@@ -496,13 +497,13 @@ vengono concepite le applicazioni immersive. Di seguito le principali divergenze
 \begin{itemize}
     \item \textbf{Gestione Input (Hardware-Centric/Action-Based)}: in \texttt{OpenVR}, il programmatore interroga
         direttamente l'hardware; questo approccio lo obbliga a riscrivere il codice ogni volta che un nuovo visore o una
-        nuova periferica viene rilasciata sul mercato. In risposta a questo problema, \texttt{OpenXR} introduce un
+        nuova periferica viene rilasciata sul mercato. In risposta a questo problema, \texttt{\gls{OpenXR}} introduce un
         sistema \textbf{Action-Based}. Qui, lo sviluppatore definisce in modo astratto delle azioni logiche, per poi
         passarle al Runtime, il quale si occupa di mapparle sull'hardware utilizzato correntemente dall'utente in base a
         profili di interazione. Ciò rende le applicazioni scritte oggi con hardware che verrà rilasciato anche nel
         lontano futuro, senza necessità di modifiche o patching.
     \item \textbf{Gestione Spazi/Tracking}: \texttt{OpenVR} restituisce le matrici di posizionamento (\textit{Poses})
-        basate su un sistema di coordinate cablato. \texttt{OpenXR} invece introduce il concetto id
+        basate su un sistema di coordinate cablato. \texttt{\gls{OpenXR}} invece introduce il concetto id
         \texttt{XrSpace}\footnote{\url{https://registry.khronos.org/OpenXR/specs/1.1/man/html/XrSpace.html}}, dove ogni
         elemento, che si tratti del visore, del controller o della zona di gioco, è codificato come "Spazio".
         Al suo interno, la posizione di un oggetto viene calcolata interrogando il runtime, chiedendogli di localizzare
@@ -510,17 +511,17 @@ vengono concepite le applicazioni immersive. Di seguito le principali divergenze
         complessi algoritmi di predizione, oltre che la posizione degli oggetti.
     \item \textbf{Architettura Swapchain}: per quanto riguarda \texttt{OpenVR}, l'applicazione grafica ha il compito
         di generare le texture e di provvederle al visore, tramite la funzione \texttt{Submit}. Al contrario, per quanto
-        riguarda \texttt{OpenXR}, l'architettura è pensata all'inverso; è il runtime a possedere e allocare le immagini
-        della Swapchain, garantendo ottimizzazione per l'hardware. L'applicazione deve quindi implementare un Graphic
-        Binding esplicito, richiedendo al runtime i puntatori di memoria per poi disegnarci sopra. L'inversione del
-        controllo rende estremamente complessa l'integrazione di API grafiche non ufficialmente supportate.
+        riguarda \texttt{\gls{OpenXR}}, l'architettura è pensata all'inverso; è il runtime a possedere e allocare le
+        immagini della Swapchain, garantendo ottimizzazione per l'hardware. L'applicazione deve quindi implementare un
+        Graphic Binding esplicito, richiedendo al runtime i puntatori di memoria per poi disegnarci sopra. L'inversione
+        del controllo rende estremamente complessa l'integrazione di API grafiche non ufficialmente supportate.
 \end{itemize}
 
 \newpage
 
 \section{L'emergere di \texttt{WebGPU}}
 
-Per colmare il vuoto lasciato dalla deprecazione di \texttt{OpenGL} e dalla complessità proibitiva di \texttt{Vulkan},
+Per colmare il vuoto lasciato dalla deprecazione di \texttt{OpenGL} e dalla complessità proibitiva di \gls{Vulkan},
 il \textit{World Wide Web Consortium} (W3C) ha sviluppato \texttt{WebGPU}. Nata originariamente per succedere a
 \texttt{WebGL}, per i browser web, questa tecnologia è progettata con lo scopo di esporre le capacità delle API moderne
 garantendo sicurezza, portabilità ed un livello di astrazione ergonomico per lo sviluppatore.
@@ -532,7 +533,7 @@ Queste librerie operano come \textit{Render Hardware Interface} (RHI) universale
 relativo alla propria applicazione grafica, utilizzando l'API \texttt{WebGPU} standard e scrive gli shader nel
 linguaggio \texttt{WGSL} (WebGPU Shading Language). Il backend esegue poi automaticamente la traduzione
 \textit{just-in-time} e invia i comandi all'API nativa del sistema operativo, quindi \texttt{Vulkan/DirectX} per quanto
-riguarda Windows, \texttt{Vulkan} per quanto riguarda Linux ed infine \texttt{Metal} per macOS.
+riguarda Windows, \gls{Vulkan} per quanto riguarda Linux ed infine \gls{Metal} per macOS.
 
 \texttt{WebGPU} nativo risolve quindi simultaneamente due problemi fondamentali: riduce il boilerplate necessario per
 controllare l'hardware grafico, sempre utilizzando le API grafiche più moderne, performanti, efficienti e ottimizzate,
@@ -540,7 +541,7 @@ e garantisce una compatibilità cross-platform assoluta, aggirando le restrizion
 
 \section{Conclusione}
 
-L'industria dello spatial computing è ormai stabilmente posizionata su \texttt{OpenXR}, per la logica \texttt{XR}.
+L'industria dello spatial computing è ormai stabilmente posizionata su \texttt{\gls{OpenXR}}, per la logica \texttt{XR}.
 
 \begin{figure}[h]
 \centering
@@ -552,14 +553,14 @@ Sul fronte grafico, mentre i motori commerciali (Unity, Unreal) o quelli proprie
 grafiche internamente, per lo sviluppo nativo ed educativo, \texttt{WebGPU} si sta affermando come soluzione più
 promettente.
 
-Tuttavia, esiste attualmente un vuoto tecnologico per quanto riguarda l'API del \texttt{W3C} e \texttt{OpenXR}; tra
-le due tecnologie non esiste alcun Graphic Binding ufficiale da parte di Khronos. Quest'ultimo infatti definisce
-binding per \texttt{OpenGL}, \texttt{Vulkan}, \texttt{Direct3D} e \texttt{Metal}, ma non per \texttt{WebGPU}, essendo
+Tuttavia, esiste attualmente un vuoto tecnologico per quanto riguarda l'API del \texttt{W3C} e \texttt{\gls{OpenXR}};
+tra le due tecnologie non esiste alcun Graphic Binding ufficiale da parte di Khronos. Quest'ultimo infatti definisce
+binding per \texttt{OpenGL}, \gls{Vulkan}, \texttt{Direct3D} e \gls{Metal}, ma non per \texttt{WebGPU}, essendo
 quest'ultima un'RHI e non consistente in un driver nativo.
 
 Il presente lavoro si inserisce esattamente in questo contesto; l'obbiettivo tecnico e scientifico è di dimostrare la
 fattibilità di un layer di interoperabilità che permetta di implementare nativamente con \texttt{wgpu\_native} e che
-questa implementazione possa comunicare con la complessa swapchain ed il frame-pacing di \texttt{OpenXR}.
+questa implementazione possa comunicare con la complessa swapchain ed il frame-pacing di \texttt{\gls{OpenXR}}.
 Ciò permetterebbe di pensionare lo stack legacy e sostituirlo con uno all'avanguardia per il corso, con completa 
 sostenibilità didattica e cross-platform per integrare i calcolatori di ogni studente.
 
@@ -574,11 +575,12 @@ tecnologie in questione, e viene divisa in tre pilastri fondamentali, che verran
     \item Il motore grafico di base \texttt{WebGPU}, consistente nella costruzione di una pipeline di rendering 
         esplicita ed autonoma, utilizzando l'API \texttt{wgpu\_native}. Questa fase risolve le critiche relative
         all'allineamento della memoria, alla gestione esplicita dello stato ed al caricamento degli assets.
-    \item L'integrazione di \texttt{OpenXR}, che vede l'implementazione di un'interfaccia indipendente dall'hardware
-        per comunicare con i visori di realtà virtuale, gestendo il tracciamento spaziale, gli stati della sessione e
-        l'acquisizione della swapchain.
+    \item L'integrazione di \texttt{\gls{OpenXR}}, che vede l'implementazione di un'interfaccia indipendente
+        dall'hardware per comunicare con i visori di realtà virtuale, gestendo il tracciamento spaziale, gli stati della
+        sessione e l'acquisizione della swapchain.
     \item Il ciclo applicativo principale che fa da ponte tra i due sottosistemi, sincronizzando il rendering
-        stereoscopico di \texttt{WebGPU} con i requisiti temporali di visualizzazione del compositor \texttt{OpenXR}.
+        stereoscopico di \texttt{WebGPU} con i requisiti temporali di visualizzazione del compositor
+        \texttt{\gls{OpenXR}}.
 \end{enumerate}
 
 Analizzando queste tre fasi, questo capitolo illustra come i requisti ingegneristici teorici vengono tradotti in un
@@ -701,7 +703,7 @@ if (windowingSystem == "x11") {
 \subsubsection{macOS}
 
 L'ecosistema Apple presenta il livello di complessità più alto per quanto riguarda la creazione della superficie,
-poiché su queste piattaforme \texttt{WebGPU} si appoggia nativamente al backend grafico \texttt{Metal}.
+poiché su queste piattaforme \texttt{WebGPU} si appoggia nativamente al backend grafico \gls{Metal}.
 Per evitare di dover introdurre nella codebase \texttt{C++} delle sorgenti scritte in \texttt{ObjectiveC}, che
 richiederebbe l'uso di sorgenti \texttt{.mm}, l'implementazione sfrutta l'iniezione a runtime tramite la funzione
 \texttt{objc\_msgSend} che permette di interagire direttamente con le librerie di sistema \texttt{Cocoa}.
@@ -709,9 +711,9 @@ Il processo, consultabile nel listing \ref{listing:macwinctx}, si occupa di estr
 \texttt{NSWindow}, ne recupera poi la vista principale \texttt{contentView} e vi aggancia dinamicamente un livello di
 rendering dedicato, chiamato \texttt{CAMetalLayer}.
 Inoltre, durante questa fase, viene esplicitamenet disabilitata la proprietà \texttt{displaySyncEnabled} del layer
-Metal; questo è un passaggio fondamentale per aggirare la sincronizzazione verticale forzata in modo aggressivo dal
-\textit{Window Server} di macOS, permettendo all'applicazione di sbloccare il framerate per una migliore profilazione
-delle performance.
+\gls{Metal}; questo è un passaggio fondamentale per aggirare la sincronizzazione verticale forzata in modo aggressivo
+dal \textit{Window Server} di macOS, permettendo all'applicazione di sbloccare il framerate per una migliore
+profilazione delle performance.
 Il livello così configurato viene finalmente passato al descrittore \texttt{WGPUSurfaceSourceMetalLayer}.
 
 \begin{listing}[!ht]
@@ -853,14 +855,14 @@ in WebGPU.
 
 \section{Interoperabilità \texttt{WebGPU-OpenXR}}
 
-L'integrazione tra \texttt{WebGPU} e \texttt{OpenXR} presenta una sfida architetturale fondamentale legata ai paradigmi
-di sicurezza ed astrazione delle due API; \texttt{WebGPU}, per sua natura, è agnostica e sicura: il suo obbiettivo è
-di nascondere completamente i dettagli hardware sottostanti dietro ad un'interfaccia unificata. Al contrario,
-\texttt{OpenXR} per operare in ambiente VR richiede un'accesso esplicito e diretto ai puntatori nativi della GPU, ed
-alle allocazioni di memoria delle immagini per poter gestire la swapchain a bassa latenza.
+L'integrazione tra \texttt{WebGPU} e \texttt{\gls{OpenXR}} presenta una sfida architetturale fondamentale legata ai
+paradigmi di sicurezza ed astrazione delle due API; \texttt{WebGPU}, per sua natura, è agnostica e sicura: il suo
+obbiettivo è di nascondere completamente i dettagli hardware sottostanti dietro ad un'interfaccia unificata.
+Al contrario, \texttt{\gls{OpenXR}} per operare in ambiente VR richiede un'accesso esplicito e diretto ai puntatori
+nativi della GPU, ed alle allocazioni di memoria delle immagini per poter gestire la swapchain a bassa latenza.
 
 Nella versione più recente\footnote{\url{https://github.com/gfx-rs/wgpu-native/tree/v29.0.0.0}}, le funzioni di
-estrazione per il backend \texttt{Vulkan} sono state rimosse dall'API pubblica, sigillando di fatto i puntatori nativi
+estrazione per il backend \gls{Vulkan} sono state rimosse dall'API pubblica, sigillando di fatto i puntatori nativi
 all'interno dell'Hardware Abstraction Layer, scritto in Rust. Ciò rende impossibile l'inizializzazione standard di una
 \texttt{XrSession} basata sul contesto grafico di WebGPU.
 
@@ -873,7 +875,7 @@ di \texttt{wgpu-native}.
 Sfruttando le capacità di interoperabilità e esportazione in C di Rust, vengono iniettate delle funzioni custom, in
 grado di interrogare l'oggetto \texttt{context} all'interno di \texttt{WebGPU}.
 
-\noindent Ciò permette di forzare l'astrazione e di risalire all'istanza Vulkan nativa, restituendola all'API C++
+\noindent Ciò permette di forzare l'astrazione e di risalire all'istanza \gls{Vulkan} nativa, restituendola all'API C++
 sottoforma di puntatore opaco.
 
 \begin{listing}[!ht]
@@ -889,15 +891,15 @@ pub unsafe extern "C" fn function(...) -> *mut c_void {}
 
 \subsection{\textit{Pointer Punning} per l'estrazione di memoria}
 
-Il problema più critico si presenta quando si deve gestire la \textit{\gls{Swapchain}}. \texttt{OpenXR} richiede che i
-fotogrammi vengano renderizzati direttamente sulle sue \texttt{VkImage}.
+Il problema più critico si presenta quando si deve gestire la \textit{\gls{Swapchain}}. \texttt{\gls{OpenXR}} richiede
+che i fotogrammi vengano renderizzati direttamente sulle sue \texttt{VkImage}.
 Tuttavia, le strutture interne di \texttt{WebGPU} possiedono campi strettamente privati, impedendo la costruzione o la
 manipolazione di texture a partire da memoria pre-allocata esternamente.
 
 La soluzione sfrutta una tecnica di accesso diretto alla memoria, nota come \textit{Pointer Punning}.
-Sapendo per costruzione che il primo campo della struttura \texttt{Texture} nel backend Vulkan di WebGPU corrisponde
-all'handle nativo \texttt{ash::vk::Image}, è possibile bypassare la protezione del compilatore castando
-direttamente l'indirizzo di memoria della struttura ad un puntatore Vulkan.
+Sapendo per costruzione che il primo campo della struttura \texttt{Texture} nel backend \gls{Vulkan} di WebGPU
+corrisponde all'handle nativo \texttt{ash::vk::Image}, è possibile bypassare la protezione del compilatore castando
+direttamente l'indirizzo di memoria della struttura ad un puntatore \gls{Vulkan}.
 
 \begin{listing}[!ht]
 \begin{minted}{rust}
@@ -925,6 +927,25 @@ pub unsafe extern "C" fn wgpuTextureGetVulkanImage(
 \label{listing:vkimagepunning}
 \end{listing}
 \vspace{-0.75cm}
+
+\subsection{Giustificazione architetturale}
+
+Inizialmente si era valutata l'ipotesi di istanziatre un oggetto \texttt{WGPUTexture} direttamente sopra la memoria
+allocata da \texttt{\gls{OpenXR}}, tecnica detta \textit{Memory Aliasing}.
+Questo approccio è stato tuttavia scartato, in favore dell'estrazione diretta della \texttt{VKImage} descritta nel
+Listing \ref{listing:vkimagepunning}, per due ragioni fondamentali legate alla sicurezza del ciclo di vita della
+memoria, il quale è fondamentale per il corretto funzionamento soprattutto in una codebase Rust.
+
+\begin{enumerate}
+    \item Se le due API condividessero lo stesso blocco di memoria, la distruzione al termine del programma genererebbe
+        conflitti fatali, poiché entrambi i sistemi tenterebbero di deallocare la stessa risorsa. Questa situazione è
+        anche nota come \textit{Double-Free}.
+    \item L'architettura implementata separa le responsabilità; \texttt{WebGPU} renderizza sulle proprie textures,
+        mentre \texttt{\gls{OpenXR}} alloca la sua \gls{Swapchain}. Sfruttando la funzione nel Listing
+        \ref{listing:vkimagepunning}, il motore C++ può eseguire una copia diretta dei pixel ad un bassissimo livello
+        di \gls{Vulkan}; quest'ultima tecnica è detta \textit{Command Copying} o \textit{Blitting}, e si può eseguire
+        tramite la funzione \texttt{vkCmdCopyImage}.
+\end{enumerate}
 
 \blankpage
 
