@@ -10,6 +10,10 @@ struct XrWGPUBridge::VKInternals {
     VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
     VkDevice vkDevice = VK_NULL_HANDLE;
     uint32_t queueFamilyIndex = 0;
+    VkQueue vkQueue = VK_NULL_HANDLE;
+    VkCommandPool vkCmdPool = VK_NULL_HANDLE;
+    VkCommandBuffer vkCmdBuffer = VK_NULL_HANDLE;
+    VkImage vkRenderTargetImage = VK_NULL_HANDLE;
     XrGraphicsBindingVulkanKHR graphicsBinding{XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR};
     std::vector<XrSwapchainImageVulkanKHR> xrImages;
 };
@@ -30,6 +34,16 @@ bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDe
     m_vk->graphicsBinding.device = m_vk->vkDevice;
     m_vk->graphicsBinding.queueFamilyIndex = m_vk->queueFamilyIndex;
     m_vk->graphicsBinding.queueIndex = 0;
+    vkGetDeviceQueue(m_vk->vkDevice, m_vk->queueFamilyIndex, 0, &m_vk->vkQueue);
+    VkCommandPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+    poolInfo.queueFamilyIndex = m_vk->queueFamilyIndex;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    vkCreateCommandPool(m_vk->vkDevice, &poolInfo, nullptr, &m_vk->vkCmdPool);
+    VkCommandBufferAllocateInfo allocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    allocInfo.commandPool = m_vk->vkCmdPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+    vkAllocateCommandBuffers(m_vk->vkDevice, &allocInfo, &m_vk->vkCmdBuffer);
     return true;
 }
 
@@ -45,7 +59,13 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
     return m_xrSession;
 }
 
-void XrWGPUBridge::xrwgpuCreateSwapchain(XrSession session, int64_t vulkanFormat, uint32_t width, uint32_t height) {
+void XrWGPUBridge::xrwgpuCreateSwapchain(
+    XrSession session,
+    WGPUTextureFormat wgpuFormat,
+    int64_t vulkanFormat,
+    uint32_t width,
+    uint32_t height
+) {
     m_xrSession = session;
     XrSwapchainCreateInfo swapchainInfo{XR_TYPE_SWAPCHAIN_CREATE_INFO};
     swapchainInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
@@ -66,12 +86,17 @@ void XrWGPUBridge::xrwgpuCreateSwapchain(XrSession session, int64_t vulkanFormat
     std::cout << "[XrWGPUBridge] Successfully created swapchain with " << imageCount << " images" << std::endl;
     m_vk->xrImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR});
     xrEnumerateSwapchainImages(m_xrSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*) m_vk->xrImages.data());
-    m_swapchainTextures.resize(imageCount);
-    m_swapchainViews.resize(imageCount);
-    for (uint32_t i = 0; i < imageCount; i++) {
-        VkImage rawVkImage = m_vk->xrImages[i].image;
-        // TODO: take raw vk image and create a WGPUTexture wo/ extra mem alloc
-    }
+    WGPUTextureDescriptor desc = {};
+    desc.usage = WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_CopySrc;
+    desc.dimension = WGPUTextureDimension_2D;
+    desc.size = {width, height, 1};
+    desc.format = wgpuFormat;
+    desc.mipLevelCount = 1;
+    desc.sampleCount = 1;
+    m_renderTarget = wgpuDeviceCreateTexture(m_wgpuDevice, &desc);
+    m_renderTargetView = wgpuTextureCreateView(m_renderTarget, nullptr);
+    m_vk->vkRenderTargetImage = (VkImage)wgpuTextureGetVulkanImage(m_renderTarget);
+    std::cout << "[XrWGPUBridge] Swapchain ready. VkImage WebGPU extracted: " << m_vk->vkRenderTargetImage << std::endl;
 }
 
 WGPUTextureView XrWGPUBridge::xrwgpuAcquireNextImage() {
