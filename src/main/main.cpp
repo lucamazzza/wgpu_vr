@@ -1,9 +1,14 @@
+#include "openxr/openxr.h"
 #include "shader.h"
 #include "buffer.h"
+#include "XrWGPUBridge.h"
+#include "vulkan/vulkan_core.h"
 
+#include <chrono>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <thread>
 #include <webgpu.h>
 #include <wgpu.h>
 #include <GLFW/glfw3.h>
@@ -53,112 +58,14 @@ struct LightMaterialUniforms {
     float padding[3];
 };
 
-struct WindowContext {
-    bool resized = false;
-    int width = 800;
-    int height = 600;
-};
-
-/* Retrieves the Surface from the system's window manager
-
-   This is very important, for these reasons:
-      * WebGPU does not know anything about the system per-se, because it runs on top of the system's API
-        and is designed for the web, it does not know what the surface of a window should be.
-      * This work was before done by the OpenGL system driver, now that we don't directly rely on something
-        that has the same structure in every operating system, we have to do the manual labour.
-
-   This is the real price of WebGPU true multiplatformness, given that every window manager is different
-   we have to adapt.
-
-   For now these are supported:
-      * Windows => HWND "Handle for a WiNDow"
-      * Linux   => x11 and Wayland
-      * macOS   => NSWindow with strict presence of a CAMetalLayer
-*/
-WGPUSurface GetSurfaceFromGLFW(WGPUInstance instance, GLFWwindow* window) {
-    WGPUSurfaceDescriptor surfaceDesc = {};
-#if defined(_WIN32)
-    WGPUSurfaceSourceWindowsHWND hwndDesc = {
-        .chain = {
-            .sType = WGPUSType_SurfaceSourceWindowsHWND
-        },
-        .hinstance = GetModuleHandle(NULL),
-        .hwnd = glfwGetWin32Window(window)
-    };
-    surfaceDesc.nextInChain = (WGPUChainedStruct*)&hwndDesc;
-#elif defined (__linux__)
-    char* envSession = std::getenv("XDG_SESSION_TYPE");
-    std::string windowingSystem = envSession ? envSession : "x11";
-    if (windowingSystem == "x11") {
-        WGPUSurfaceSourceXlibWindow x11Desc = {
-            .chain = {
-                .sType = WGPUSType_SurfaceSourceXlibWindow
-            },
-            .display = glfwGetX11Display(),
-            .window = glfwGetX11Window(window)
-        };
-        surfaceDesc.nextInChain = (WGPUChainedStruct*)&x11Desc;
-    }
-    else if (windowingSystem == "wayland") {
-        WGPUSurfaceSourceWaylandSurface waylandDesc = {
-            .chain = {
-                .sType = WGPUSType_SurfaceSourceWaylandSurface
-            },
-            .display = glfwGetWaylandDisplay(),
-            .surface = glfwGetWaylandWindow(window)
-        };
-        surfaceDesc.nextInChain = (WGPUChainedStruct*)&waylandDesc;
-    }
-#elif defined(__APPLE__)
-    // The following lines use ObjectiveC to ensure the presence of a Metal Layer in the NSWindow
-    // glfwGetCocoaWindow is not sufficient, as it does not ensure that.
-
-    // objc
-    id nsWindow = glfwGetCocoaWindow(window);
-    id nsView = ((id(*)(id, SEL))objc_msgSend)(nsWindow, sel_registerName("contentView"));
-    id caMetalLayerClass = (id)objc_getClass("CAMetalLayer");
-    id metalLayer = ((id(*)(id, SEL))objc_msgSend)(caMetalLayerClass, sel_registerName("layer"));
-    ((void(*)(id, SEL, bool))objc_msgSend)(nsView, sel_registerName("setWantsLayer:"), true);
-    ((void(*)(id, SEL, id))objc_msgSend)(nsView, sel_registerName("setLayer:"), metalLayer);
-    ((void(*)(id, SEL, bool))objc_msgSend)(metalLayer, sel_registerName("setDisplaySyncEnabled:"), false);
-    // end objc
-
-    WGPUSurfaceSourceMetalLayer metalDesc = {
-        .chain = {
-            .sType = WGPUSType_SurfaceSourceMetalLayer
-        },
-        .layer = metalLayer
-    };
-    surfaceDesc.nextInChain = (WGPUChainedStruct*)&metalDesc;
-#endif
-    return wgpuInstanceCreateSurface(instance, &surfaceDesc);
-}
-
 int main() {
-    // Window Initialization
-    if (!glfwInit()) return -1;
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow* window = glfwCreateWindow(800, 600, "WebGPU Demo", nullptr, nullptr);
-    WindowContext winCtx;
-    glfwSetWindowUserPointer(window, &winCtx);
-    glfwSetFramebufferSizeCallback(window, [](GLFWwindow* w, int width, int height) {
-        if (width == 0 || height == 0) return; // Ignora se la finestra è minimizzata
-        WindowContext* ctx = (WindowContext*)glfwGetWindowUserPointer(w);
-        ctx->resized = true;
-        ctx->width = width;
-        ctx->height = height;
-        });
-    double lastTime = glfwGetTime();
-    int nbFrames = 0;
 
     // WebGPU Base Initialization
     WGPUInstanceDescriptor instDesc = {};
     WGPUInstance instance = wgpuCreateInstance(&instDesc);
-    WGPUSurface surface = GetSurfaceFromGLFW(instance, window);
 
     // Adapter Request (GPU)
     WGPURequestAdapterOptions adapterOpts = {};
-    adapterOpts.compatibleSurface = surface;
     WGPUAdapter adapter = nullptr;
     WGPURequestAdapterCallbackInfo adapterCbInfo = {
         .nextInChain = nullptr,
@@ -195,19 +102,42 @@ int main() {
 
     WGPUQueue queue = wgpuDeviceGetQueue(device);
 
-    // Surface Configuration
-    WGPUSurfaceConfiguration surfaceConfig = {
-        .device = device,
-        .format = WGPUTextureFormat_BGRA8Unorm,
-        .usage = WGPUTextureUsage_RenderAttachment,
-        .width = 800,
-        .height = 600,
-        .viewFormatCount = 0,
-        .viewFormats = nullptr,
-        .alphaMode = WGPUCompositeAlphaMode_Auto,
-        .presentMode = WGPUPresentMode_Immediate
-    };
-    wgpuSurfaceConfigure(surface, &surfaceConfig);
+    // OpenXR Initialization
+    XrInstanceCreateInfo xrInstanceInfo{XR_TYPE_INSTANCE_CREATE_INFO};
+    strcpy(xrInstanceInfo.applicationInfo.applicationName, "MAIN_Demo");
+    xrInstanceInfo.applicationInfo.apiVersion = XR_CURRENT_API_VERSION;
+    // -- Enable Vulkan Extension
+    const char *extensions[] = {"XR_KHR_vulkan_enable"};
+    xrInstanceInfo.enabledExtensionCount = 1;
+    xrInstanceInfo.enabledExtensionNames = extensions;
+    XrInstance xrInstance;
+    if (XR_FAILED(xrCreateInstance(&xrInstanceInfo, &xrInstance))) {
+        std::cerr << "No OpenXR runtime found!" << std::endl;
+        return -1;
+    }
+    XrSystemGetInfo systemInfo{XR_TYPE_SYSTEM_GET_INFO};
+    systemInfo.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
+    XrSystemId systemId;
+    if (XR_FAILED(xrGetSystem(xrInstance, &systemInfo, &systemId))) {
+        std::cerr << "No VR Headset found!" << std::endl;
+        return -1;
+    }
+
+    // XrWGPUBridge
+    XrWGPUBridge bridge;
+    if (!bridge.xrwgpuInitialize(instance, device, adapter)) {
+        return -1;
+    }
+    XrSession session = bridge.xrwgpuCreateSession(xrInstance, systemId);
+    if (session == XR_NULL_HANDLE) return -1;
+    uint32_t width = 1440;
+    uint32_t height = 1600;
+    bridge.xrwgpuCreateSwapchain(session, WGPUTextureFormat_BGRA8Unorm, VK_FORMAT_B8G8R8A8_SRGB, width, height);
+    XrSessionActionSetsAttachInfo attachInfo{XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO};
+    xrAttachSessionActionSets(session, &attachInfo);
+    XrSessionBeginInfo beginInfo{XR_TYPE_SESSION_BEGIN_INFO};
+    beginInfo.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+    xrBeginSession(session, &beginInfo);
 
     // Shader Loading
     Shader shader;
@@ -370,89 +300,89 @@ int main() {
 
     // Render Loop
     float time = 0.0f;
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-        time += 0.016f;
-        double currentTime = glfwGetTime();
-        nbFrames++;
-        if (currentTime - lastTime >= 3.0) {
-            std::string title = "WebGPU Demo - FPS: " + std::to_string(nbFrames);
-            glfwSetWindowTitle(window, title.c_str());
-            nbFrames = 0;
-            lastTime += 1.0;
+    bool isRunning = true;
+    XrSessionState sessionState = XR_SESSION_STATE_UNKNOWN;
+    while (isRunning) {
+        XrEventDataBuffer eventData{XR_TYPE_EVENT_DATA_BUFFER};
+        while (xrPollEvent(xrInstance, &eventData) == XR_SUCCESS) {
+            if (eventData.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) {
+                auto *stateEvent = reinterpret_cast<XrEventDataSessionStateChanged*>(&eventData);
+                sessionState = stateEvent->state;
+                std::cout << "OpenXR Session State Changed: " << sessionState << std::endl;
+                if (sessionState == XR_SESSION_STATE_EXITING || sessionState == XR_SESSION_STATE_LOSS_PENDING) {
+                    isRunning = false;
+                }
+            }
+            eventData.type = XR_TYPE_EVENT_DATA_BUFFER;
         }
-
-        MatricesUniforms matrices = {};
-        matrices.projection = glm::perspective(glm::radians(60.0f), 1024.0f / 512.0f, 0.1f, 1000.0f);
-        matrices.modelview = glm::lookAt(glm::vec3(0, 20, 80), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-        matrices.normal = glm::inverseTranspose(matrices.modelview);
-        matricesBuffer.update(queue, &matrices, sizeof(MatricesUniforms));
-
-        if (winCtx.resized) {
-            surfaceConfig.width = winCtx.width;
-            surfaceConfig.height = winCtx.height;
-            wgpuSurfaceConfigure(surface, &surfaceConfig);
-            wgpuTextureViewRelease(depthTextureView);
-            wgpuTextureRelease(depthTexture);
-            depthTexDesc.size = { (uint32_t)winCtx.width, (uint32_t)winCtx.height, 1 };
-            depthTexture = wgpuDeviceCreateTexture(device, &depthTexDesc);
-            depthTextureView = wgpuTextureCreateView(depthTexture, &depthViewDesc);
-            matrices.projection = glm::perspective(glm::radians(60.0f), (float)winCtx.width / (float)winCtx.height, 0.1f, 1000.0f);
-            winCtx.resized = false;
-        }
-
-        lightMat.lightPosition = matrices.modelview * glm::vec4(sin(time) * 50.0f, 20.0f, cos(time) * 50.0f, 1.0f);
-        lightBuffer.update(queue, &lightMat, sizeof(LightMaterialUniforms));
-
-        WGPUSurfaceTexture surfaceTexture;
-        wgpuSurfaceGetCurrentTexture(surface, &surfaceTexture);
-        if (surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal) {
+        if (!isRunning) break;
+        if (sessionState != XR_SESSION_STATE_FOCUSED && sessionState != XR_SESSION_STATE_VISIBLE) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
-        WGPUTextureViewDescriptor currentViewDesc = {
-            .format = WGPUTextureFormat_BGRA8Unorm,
-            .dimension = WGPUTextureViewDimension_2D,
-            .mipLevelCount = 1,
-            .arrayLayerCount = 1
-        };
-        WGPUTextureView nextTextureView = wgpuTextureCreateView(surfaceTexture.texture, &currentViewDesc);
-        WGPUCommandEncoderDescriptor encoderDesc = {};
-        WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, &encoderDesc);
+        XrFrameWaitInfo frameWaitInfo{XR_TYPE_FRAME_WAIT_INFO};
+        XrFrameState frameState{XR_TYPE_FRAME_STATE};
+        xrWaitFrame(session, &frameWaitInfo, &frameState);
+        XrFrameBeginInfo frameBeginInfo{XR_TYPE_FRAME_BEGIN_INFO};
+        xrBeginFrame(session, &frameBeginInfo);
 
-        WGPURenderPassColorAttachment colorAttachment = {
-            .view = nextTextureView,
-            .depthSlice = WGPU_DEPTH_SLICE_UNDEFINED,
-            .loadOp = WGPULoadOp_Clear,
-            .storeOp = WGPUStoreOp_Store,
-            .clearValue = { 0.53, 0.81, 0.92, 1.0 }
-        };
-        WGPURenderPassDepthStencilAttachment depthAttachment = {
-            .view = depthTextureView,
-            .depthLoadOp = WGPULoadOp_Clear,
-            .depthStoreOp = WGPUStoreOp_Store,
-            .depthClearValue = 1.0f
-        };
-        WGPURenderPassDescriptor renderPassDesc = {
-            .colorAttachmentCount = 1,
-            .colorAttachments = &colorAttachment,
-            .depthStencilAttachment = &depthAttachment
-        };
+        if (frameState.shouldRender) {
 
-        WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
-        wgpuRenderPassEncoderSetPipeline(renderPass, pipeline);
-        wgpuRenderPassEncoderSetBindGroup(renderPass, 0, bindGroup0, 0, nullptr);
-        wgpuRenderPassEncoderSetBindGroup(renderPass, 1, bindGroup1, 0, nullptr);
-        wgpuRenderPassEncoderSetVertexBuffer(renderPass, 0, vertexBuffer.get(), 0, WGPU_WHOLE_SIZE);
-        wgpuRenderPassEncoderDraw(renderPass, 4, 1, 0, 0);
-        wgpuRenderPassEncoderEnd(renderPass);
-        wgpuRenderPassEncoderRelease(renderPass);
+            MatricesUniforms matrices = {};
+            matrices.projection = glm::perspective(glm::radians(60.0f), 1024.0f / 512.0f, 0.1f, 1000.0f);
+            matrices.modelview = glm::lookAt(glm::vec3(0, 20, 80), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+            matrices.normal = glm::inverseTranspose(matrices.modelview);
+            matricesBuffer.update(queue, &matrices, sizeof(MatricesUniforms));
 
-        WGPUCommandBufferDescriptor cmdBufferDesc = {};
-        WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDesc);
-        wgpuQueueSubmit(queue, 1, &command);
-        wgpuCommandBufferRelease(command);
-        wgpuTextureViewRelease(nextTextureView);
-        wgpuSurfacePresent(surface);
+            lightMat.lightPosition = matrices.modelview * glm::vec4(sin(time) * 50.0f, 20.0f, cos(time) * 50.0f, 1.0f);
+            lightBuffer.update(queue, &lightMat, sizeof(LightMaterialUniforms));
+
+            WGPUTextureView nextImage = bridge.xrwgpuAcquireNextImage();
+            WGPUCommandEncoderDescriptor encoderDesc = {};
+            WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, &encoderDesc);
+
+            WGPURenderPassColorAttachment colorAttachment = {
+                .view = nextImage,
+                .depthSlice = WGPU_DEPTH_SLICE_UNDEFINED,
+                .loadOp = WGPULoadOp_Clear,
+                .storeOp = WGPUStoreOp_Store,
+                .clearValue = { 0.53, 0.81, 0.92, 1.0 }
+            };
+            WGPURenderPassDepthStencilAttachment depthAttachment = {
+                .view = depthTextureView,
+                .depthLoadOp = WGPULoadOp_Clear,
+                .depthStoreOp = WGPUStoreOp_Store,
+                .depthClearValue = 1.0f
+            };
+            WGPURenderPassDescriptor renderPassDesc = {
+                .colorAttachmentCount = 1,
+                .colorAttachments = &colorAttachment,
+                .depthStencilAttachment = &depthAttachment
+            };
+
+            WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
+            wgpuRenderPassEncoderSetPipeline(renderPass, pipeline);
+            wgpuRenderPassEncoderSetBindGroup(renderPass, 0, bindGroup0, 0, nullptr);
+            wgpuRenderPassEncoderSetBindGroup(renderPass, 1, bindGroup1, 0, nullptr);
+            wgpuRenderPassEncoderSetVertexBuffer(renderPass, 0, vertexBuffer.get(), 0, WGPU_WHOLE_SIZE);
+            wgpuRenderPassEncoderDraw(renderPass, 4, 1, 0, 0);
+            wgpuRenderPassEncoderEnd(renderPass);
+            wgpuRenderPassEncoderRelease(renderPass);
+
+            WGPUCommandBufferDescriptor cmdBufferDesc = {};
+            WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDesc);
+            wgpuQueueSubmit(queue, 1, &command);
+            wgpuCommandBufferRelease(command);
+            bridge.present();
+        }
+
+        XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
+        frameEndInfo.displayTime = frameState.predictedDisplayTime;
+        frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
+        frameEndInfo.layerCount = 0; // TODO: Set to stereo eyes layers
+        frameEndInfo.layers = nullptr; 
+        xrEndFrame(session, &frameEndInfo);
+        time += 0.016f;
     }
 
     wgpuRenderPipelineRelease(pipeline);
@@ -463,7 +393,6 @@ int main() {
     wgpuTextureViewRelease(textureView);
     wgpuSamplerRelease(sampler);
     wgpuTextureRelease(texture);
-    glfwTerminate();
 
     return 0;
 }
