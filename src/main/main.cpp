@@ -2,7 +2,6 @@
 #include "shader.h"
 #include "buffer.h"
 #include "XrWGPUBridge.h"
-#include "vulkan/vulkan_core.h"
 
 #include <chrono>
 #include <glm/glm.hpp>
@@ -11,22 +10,6 @@
 #include <thread>
 #include <webgpu.h>
 #include <wgpu.h>
-#include <GLFW/glfw3.h>
-
-#if defined(_WIN32)
-#define GLFW_EXPOSE_NATIVE_WIN32
-#elif defined(__APPLE__)
-#define GLFW_EXPOSE_NATIVE_COCOA
-#elif defined(__linux__)
-#define GLFW_EXPOSE_NATIVE_X11
-#define GLFW_EXPOSE_NATIVE_WAYLAND
-#endif
-#include <GLFW/glfw3native.h>
-
-#if defined(__APPLE__)
-#include <objc/message.h>
-#include <objc/runtime.h>
-#endif
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -132,7 +115,7 @@ int main() {
     if (session == XR_NULL_HANDLE) return -1;
     uint32_t width = 1440;
     uint32_t height = 1600;
-    bridge.xrwgpuCreateSwapchain(session, WGPUTextureFormat_BGRA8Unorm, VK_FORMAT_B8G8R8A8_SRGB, width, height);
+    bridge.xrwgpuCreateSwapchain(session, WGPUTextureFormat_BGRA8Unorm, 43 /* VK_FORMAT_B8G8R8A8_SRGB*/, width, height);
     XrSessionActionSetsAttachInfo attachInfo{XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO};
     xrAttachSessionActionSets(session, &attachInfo);
     XrSessionBeginInfo beginInfo{XR_TYPE_SESSION_BEGIN_INFO};
@@ -332,10 +315,12 @@ int main() {
             matrices.projection = glm::perspective(glm::radians(60.0f), 1024.0f / 512.0f, 0.1f, 1000.0f);
             matrices.modelview = glm::lookAt(glm::vec3(0, 20, 80), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
             matrices.normal = glm::inverseTranspose(matrices.modelview);
-            matricesBuffer.update(queue, &matrices, sizeof(MatricesUniforms));
+            wgpuQueueWriteBuffer(queue, matricesBuffer.get(), 0, &matrices, sizeof(MatricesUniforms));
+            // matricesBuffer.update(queue, &matrices, sizeof(MatricesUniforms));
 
             lightMat.lightPosition = matrices.modelview * glm::vec4(sin(time) * 50.0f, 20.0f, cos(time) * 50.0f, 1.0f);
-            lightBuffer.update(queue, &lightMat, sizeof(LightMaterialUniforms));
+            wgpuQueueWriteBuffer(queue, lightBuffer.get(), 0, &lightMat, sizeof(LightMaterialUniforms));
+            // lightBuffer.update(queue, &lightMat, sizeof(LightMaterialUniforms));
 
             WGPUTextureView nextImage = bridge.xrwgpuAcquireNextImage();
             WGPUCommandEncoderDescriptor encoderDesc = {};

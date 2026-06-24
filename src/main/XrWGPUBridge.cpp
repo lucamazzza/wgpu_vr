@@ -1,4 +1,5 @@
 #include "XrWGPUBridge.h"
+#include "vulkan/vulkan_core.h"
 #include <iostream>
 
 #define XR_USE_GRAPHICS_API_VULKAN
