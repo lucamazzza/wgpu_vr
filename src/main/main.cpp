@@ -88,7 +88,7 @@ int main() {
     // OpenXR Initialization
     XrInstanceCreateInfo xrInstanceInfo{XR_TYPE_INSTANCE_CREATE_INFO};
     strcpy(xrInstanceInfo.applicationInfo.applicationName, "MAIN_Demo");
-    xrInstanceInfo.applicationInfo.apiVersion = XR_CURRENT_API_VERSION;
+    xrInstanceInfo.applicationInfo.apiVersion = XR_MAKE_VERSION(1, 0, 0);
     // -- Enable Vulkan Extension
     const char *extensions[] = {"XR_KHR_vulkan_enable"};
     xrInstanceInfo.enabledExtensionCount = 1;
