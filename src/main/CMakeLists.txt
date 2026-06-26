@@ -22,6 +22,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     wgpu_native
     glfw
     glm::glm
+    ${CMAKE_SOURCE_DIR}/external/vulkan/lib/vulkan-1.lib
 )
 
 if(WIN32)
