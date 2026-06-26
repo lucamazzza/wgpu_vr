@@ -1,4 +1,5 @@
 #include "XrWGPUBridge.h"
+#include "openxr/openxr.h"
 #include "vulkan/vulkan_core.h"
 #include <iostream>
 
@@ -49,6 +50,26 @@ bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDe
 }
 
 XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xrSystemId) {
+    std::cout << "[XrWGPUBridge]: Checking FFI WebGPU Pointers:" << std::endl;
+    std::cout << "\tvkInstance:       " << m_vk->vkInstance << std::endl;
+    std::cout << "\tvkPhysicalDevice: " << m_vk->vkPhysicalDevice << std::endl;
+    std::cout << "\tvkDevice:         " << m_vk->vkDevice << std::endl;
+    if (!m_vk->vkInstance || !m_vk->vkPhysicalDevice || !m_vk->vkDevice) {
+        std::cerr << "[XrWGPUBridge]: fatal - FFI Pointers are nullptr" << std::endl;
+        return XR_NULL_HANDLE;
+    }
+    {
+        PFN_xrGetVulkanGraphicsRequirementsKHR checkRequirements = nullptr;
+        xrGetInstanceProcAddr(xrInstance, "xrGetVulkanGraphicsRequirementsKHR",
+                              (PFN_xrVoidFunction*)&checkRequirements);
+        if (checkRequirements != nullptr) {
+            XrGraphicsRequirementsVulkanKHR graphicsRequirements{XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN_KHR};
+            checkRequirements(xrInstance, xrSystemId, &graphicsRequirements);
+            std::cout << "[XrWGPUBridge]: Vulkan Requirements are satisfied" << std::endl;
+        } else {
+            std::cerr << "[XrWGPUBridge]: function xrGetVulkanGraphicsRequirementsKHR not found" << std::endl;
+        }
+    }
     XrSessionCreateInfo sessionInfo{XR_TYPE_SESSION_CREATE_INFO};
     sessionInfo.next = &m_vk->graphicsBinding;
     sessionInfo.systemId = xrSystemId;
