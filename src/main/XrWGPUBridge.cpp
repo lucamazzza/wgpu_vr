@@ -30,11 +30,31 @@ bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDe
     m_vk->vkInstance = (VkInstance)wgpuInstanceGetVulkanInstance(wgpuInstance);
     m_vk->vkDevice = (VkDevice)wgpuDeviceGetVulkanDevice(wgpuDevice);
     m_vk->vkPhysicalDevice = (VkPhysicalDevice)wgpuAdapterGetVulkanPhysicalDevice(wgpuAdapter);
-
+    memset(&m_vk->graphicsBinding, 0, sizeof(XrGraphicsBindingVulkanKHR));
+    m_vk->graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR;
     m_vk->graphicsBinding.instance = m_vk->vkInstance;
     m_vk->graphicsBinding.physicalDevice = m_vk->vkPhysicalDevice;
     m_vk->graphicsBinding.device = m_vk->vkDevice;
-    m_vk->graphicsBinding.queueFamilyIndex = m_vk->queueFamilyIndex;
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(m_vk->vkPhysicalDevice, &queueFamilyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(m_vk->vkPhysicalDevice, &queueFamilyCount, queueFamilies.data());
+    uint32_t graphicsQueueIndex = 0;
+    bool queueFound = false;
+    for (uint32_t i = 0; i < queueFamilyCount; i++) {
+        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            graphicsQueueIndex = i;
+            queueFound = true;
+            break;
+        }
+    }
+    if (!queueFound) {
+        std::cerr << "[XrWGPUBridge]: No Graphics Queue found on GPU" << std::endl;
+        return false;
+    }
+    std::cout << "[XrWGPUBridge]: Vulkan Graphics Queue found at index: " << graphicsQueueIndex << std::endl;
+    m_vk->graphicsBinding.queueFamilyIndex = graphicsQueueIndex;
+    m_vk->queueFamilyIndex = graphicsQueueIndex;
     m_vk->graphicsBinding.queueIndex = 0;
     vkGetDeviceQueue(m_vk->vkDevice, m_vk->queueFamilyIndex, 0, &m_vk->vkQueue);
     VkCommandPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
@@ -70,12 +90,30 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
             std::cerr << "[XrWGPUBridge]: function xrGetVulkanGraphicsRequirementsKHR not found" << std::endl;
         }
     }
+    {
+        PFN_xrGetVulkanGraphicsDeviceKHR getVulkanDeviceFunc = nullptr;
+        xrGetInstanceProcAddr(xrInstance, "xrGetVulkanGraphicsDeviceKHR", (PFN_xrVoidFunction*)&getVulkanDeviceFunc);
+        if (getVulkanDeviceFunc != nullptr) {
+            VkPhysicalDevice openxrRequestedDevice = VK_NULL_HANDLE;
+            XrResult devRes = getVulkanDeviceFunc(xrInstance, xrSystemId, m_vk->vkInstance, &openxrRequestedDevice);
+            if (XR_SUCCEEDED(devRes)) {
+                std::cout << "[XrWGPUBridge] OpenXR advises to use PhysicalDevice: " << openxrRequestedDevice << std::endl;
+                if (openxrRequestedDevice != m_vk->vkPhysicalDevice) {
+                    std::cerr << "[XrWGPUBridge] GPU Mismatch" << std::endl;
+                    std::cerr << "WebGPU is using: " << m_vk->vkPhysicalDevice << " but OpenXR wants: " << openxrRequestedDevice << std::endl;
+                }
+            }
+        }
+    }
     XrSessionCreateInfo sessionInfo{XR_TYPE_SESSION_CREATE_INFO};
     sessionInfo.next = &m_vk->graphicsBinding;
     sessionInfo.systemId = xrSystemId;
     XrResult res = xrCreateSession(xrInstance, &sessionInfo, &m_xrSession);
     if (XR_FAILED(res)) {
+        char errorStr[XR_MAX_RESULT_STRING_SIZE];
+        xrResultToString(xrInstance, res, errorStr);
         std::cerr << "[XrWGPUBridge]: Failed to create OpenXR session with Vulkan binding" << std::endl;
+        std::cerr << "\tCause: " << errorStr << std::endl;
         return XR_NULL_HANDLE;
     }
     return m_xrSession;
