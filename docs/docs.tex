@@ -889,7 +889,7 @@ pub unsafe extern "C" fn function(...) -> *mut c_void {}
 \end{listing}
 \vspace{-0.75cm}
 
-\subsection{\textit{Pointer Punning} per l'estrazione di memoria}
+\subsubsection{\textit{Pointer Punning} per l'estrazione di memoria}
 
 Il problema più critico si presenta quando si deve gestire la \textit{\gls{Swapchain}}. \texttt{\gls{OpenXR}} richiede
 che i fotogrammi vengano renderizzati direttamente sulle sue \texttt{VkImage}.
@@ -928,7 +928,7 @@ pub unsafe extern "C" fn wgpuTextureGetVulkanImage(
 \end{listing}
 \vspace{-0.75cm}
 
-\subsection{Giustificazione architetturale}
+\subsubsection{Giustificazione architetturale}
 
 Inizialmente si era valutata l'ipotesi di istanziatre un oggetto \texttt{WGPUTexture} direttamente sopra la memoria
 allocata da \texttt{\gls{OpenXR}}, tecnica detta \textit{Memory Aliasing}.
@@ -946,6 +946,38 @@ memoria, il quale è fondamentale per il corretto funzionamento soprattutto in u
         di \gls{Vulkan}; quest'ultima tecnica è detta \textit{Command Copying} o \textit{Blitting}, e si può eseguire
         tramite la funzione \texttt{vkCmdCopyImage}.
 \end{enumerate}
+
+\subsubsection{Ostacoli e conclusione}
+
+L'integrazione richiede l'accesso alle interfacce FFI per bypassare l'astrazione di \texttt{WebGPU} ed estrarre
+le istanze \texttt{VkInstance}, \texttt{VkDevice} e \texttt{VkPhysicalDevice}.
+Sebbene l'estrazione dei puntatori vada a buon fine, il test evidenzia un blocco strutturale al momento dell'handshake
+con il runtime OpenXR:
+
+\begin{itemize}
+    \item \texttt{\gls{OpenXR}} richiede l'attivazione di estensioni \texttt{\gls{Vulkan}} specifiche per la
+        condivisione della memoria, come \texttt{VK\_KHR\_external\_memory\_win32}, per permettere al compositore
+        esterno di accedere ai framebuffer generati dall'applicazione.
+    \item \texttt{WebGPU}, interrogando la scheda video, rileva il supporto di tali estensioni ma, per design
+        di sicurezza, non le include nella lista delle estensioni abilitate durante la creazione del \texttt{VkDevice}
+        logico.
+    \item Di conseguenza, quando \texttt{\gls{OpenXR}} tenta di invocare le funzioni di memoria condivisa, si verifica
+        un \textit{Segmentation Fault} a livello di driver, rendendo impossibile il rendering.
+\end{itemize}
+
+L'unico metodo per aggirare questo limit4e consiste nella modifica diretta e ricompilazione del codice sorgente
+dell'implementazione di \texttt{WebGPU}, nel sottomodulo
+\texttt{wgpu-hal}\footnote{\url{https://github.com/gfx-rs/wgpu/tree/trunk/wgpu-hal}}, iniettando forzatamente le
+estensioni richieste.
+Tuttavia, il presente progetto non si allinea con questo genere di aggiramenti, in quanto mirato all'insegnamento del
+corso universitario e alla longevità degli strumenti necessari per adempire a questo compito: mantenere versioni
+separate di due progetti, già in continuo cambiamento non risulta fattibile e la garanzia di funzionamento cade
+potenzialmente ad ogni rilascio di una nuova versione.
+
+Concludendo questo esperimento, si dimostra che allo stato attuale, l'integrazione diretta tra \texttt{WebGPU} nativo
+e \texttt{\gls{OpenXR}} richiede forzature che distruggono l'eleganza, la mantenibilità e la sicurezza offerte dall'API.
+Il percorso sin qui descritto, iniettando funzionalità nell'API Rust risulta quindi parzialmente o totalmente
+sconsigliato, in quanto poco mantenibile e praticamente inutilizzabile sulla lunga durata di un prodotto o di un corso.
 
 \blankpage
 
