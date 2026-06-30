@@ -5,9 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Vulkan REQUIRED)
-find_package(glfw3 REQUIRED)
-find_package(glm REQUIRED)
-find_package(OpenXR REQUIRED)
+add_subdirectory(external/glm)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(BUILD_CONFORMANCE_TESTS OFF CACHE BOOL "" FORCE)
+add_subdirectory(external/openxr)
 
 set(DAWN_SRC_DIR "C:/dev/dawn/dawn" CACHE PATH "Path to Dawn source directory")
 set(DAWN_BUILD_DIR "${DAWN_SRC_DIR}/out/Release" CACGHE PATH "Path to Dawn Ninja build directory")
@@ -30,7 +31,6 @@ target_link_libraries(demo_main PRIVATE
     dawn_proc
 
     Vulkan::Vulkan
-    glfw
     glm::glm
     OpenXR::openxr_loader
 )
