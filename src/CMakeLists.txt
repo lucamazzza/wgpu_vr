@@ -4,49 +4,38 @@ project(wgpu_openxr_demos VERSION 1.0 LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory(external/glm)
+find_package(Vulkan REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(glm REQUIRED)
+find_package(OpenXR REQUIRED)
 
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-add_subdirectory(external/glfw)
+set(DAWN_SRC_DIR "C:/dev/dawn/dawn" CACHE PATH "Path to Dawn source directory")
+set(DAWN_BUILD_DIR "${DAWN_SRC_DIR}/out/Release" CACGHE PATH "Path to Dawn Ninja build directory")
 
-set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(BUILD_CONFORMANCE_TESTS OFF CACHE BOOL "" FORCE)
-add_subdirectory(external/openxr)
-
-add_library(wgpu_native SHARED IMPORTED)
-set_target_properties(wgpu_native PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/external/wgpu/include"
+add_executable(demo_main
+    main.cpp
 )
 
-if(WIN32)
-    set(WGPU_NATIVE_DLL "${CMAKE_SOURCE_DIR}/external/wgpu/lib/x64/wgpu_native.dll")
-    set(WGPU_NATIVE_IMPLIB "${CMAKE_SOURCE_DIR}/external/wgpu/lib/x64/wgpu_native.lib")
-    set_target_properties(wgpu_native PROPERTIES
-        IMPORTED_LOCATION "${WGPU_NATIVE_DLL}"
-        IMPORTED_IMPLIB "${WGPU_NATIVE_IMPLIB}"
-        IMPORTED_LOCATION_RELEASE "${WGPU_NATIVE_DLL}"
-        IMPORTED_IMPLIB_RELEASE "${WGPU_NATIVE_IMPLIB}"
-        IMPORTED_LOCATION_DEBUG "${WGPU_NATIVE_DLL}"
-        IMPORTED_IMPLIB_DEBUG "${WGPU_NATIVE_IMPLIB}"
-    )
-elseif(APPLE)
-    set(WGPU_NATIVE_DYLIB "${CMAKE_SOURCE_DIR}/external/wgpu/lib/macos/libwgpu_native.dylib")
-    set_target_properties(wgpu_native PROPERTIES
-        IMPORTED_LOCATION "${WGPU_NATIVE_DYLIB}"
-        IMPORTED_LOCATION_RELEASE "${WGPU_NATIVE_DYLIB}"
-        IMPORTED_LOCATION_DEBUG "${WGPU_NATIVE_DYLIB}"
-    )
-else()
-    set(WGPU_NATIVE_SO "${CMAKE_SOURCE_DIR}/external/wgpu/lib/linux/libwgpu_native.so")
-    set_target_properties(wgpu_native PROPERTIES
-        IMPORTED_LOCATION "${WGPU_NATIVE_SO}"
-        IMPORTED_LOCATION_RELEASE "${WGPU_NATIVE_SO}"
-        IMPORTED_LOCATION_DEBUG "${WGPU_NATIVE_SO}"
-    )
-endif()
+target_include_directories(demo_main PRIVATE
+    ${DAWN_SRC_DIR}/include
+    ${DAWN_SRC_DIR}/src
+    ${DAWN_BUILD_DIR}/gen/include
+)
 
-add_subdirectory(main)
-add_subdirectory(openxr)
-add_subdirectory(webgpu)
+target_link_directories(demo_main PRIVATE ${DAWN_BUILD_DIR})
+
+target_link_libraries(demo_main PRIVATE
+    webgpu_dawn
+    dawn_native
+    dawn_proc
+
+    Vulkan::Vulkan
+    glfw
+    glm::glm
+    OpenXR::openxr_loader
+)
+
+target_compile_definitions(demo_main PRIVATE 
+    XR_USE_GRAPHICS_API_VULKAN
+    DAWN_ENABLE_BACKEND_VULKAN
+)
