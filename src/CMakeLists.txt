@@ -11,7 +11,7 @@ set(BUILD_CONFORMANCE_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/openxr)
 
 set(DAWN_SRC_DIR "C:/dev/dawn/dawn" CACHE PATH "Path to Dawn source directory")
-set(DAWN_BUILD_DIR "${DAWN_SRC_DIR}/out/Release" CACGHE PATH "Path to Dawn Ninja build directory")
+set(DAWN_BUILD_DIR "${DAWN_SRC_DIR}/out/Release" CACHE PATH "Path to Dawn Ninja build directory")
 
 add_executable(demo_main
     main.cpp
@@ -21,14 +21,18 @@ target_include_directories(demo_main PRIVATE
     ${DAWN_SRC_DIR}/include
     ${DAWN_SRC_DIR}/src
     ${DAWN_BUILD_DIR}/gen/include
+    ${DAWN_BUILD_DIR}/gen/src
 )
 
-target_link_directories(demo_main PRIVATE ${DAWN_BUILD_DIR})
+target_link_directories(demo_main PRIVATE 
+    ${DAWN_BUILD_DIR}/obj/src/dawn
+    ${DAWN_BUILD_DIR}/obj/src/dawn/native
+)
 
 target_link_libraries(demo_main PRIVATE
     webgpu_dawn
-    dawn_native
-    dawn_proc
+    dawn_native_static
+    dawn_proc_static
 
     Vulkan::Vulkan
     glm::glm
