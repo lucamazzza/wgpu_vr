@@ -18,6 +18,7 @@ add_executable(demo_main
 )
 
 target_include_directories(demo_main PRIVATE
+    ${DAWN_SRC_DIR}
     ${DAWN_SRC_DIR}/include
     ${DAWN_SRC_DIR}/src
     ${DAWN_BUILD_DIR}/gen/include
