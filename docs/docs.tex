@@ -1053,7 +1053,27 @@ Le criticità si riassumono quindi in tre punti principali:
         volta ad aggiungere funzioni verrebbe respinta in quanto contrasterebbe la filosofia corrente.
 \end{itemize}
 
-\subsection{Transizione verso un nuovo paradigma}
+\subsection{Out-of-Scope}
+
+Alla luce dei risultati ottenuti, è apparso chiaro che proseguire su questa strada avrebbe significato deviare
+completamente dagli obbiettivi del presente progetto. Il mandato richiede uno studio di fattibilità
+dell'interoperabilità tra WebGPU e i runtime VR, non lo sviluppo ed il mantenimento di un backend grafico custom.
+
+Costringere l'API a comportarsi in un modo che ricade al di fuori della filosofia architetturale e di sviluppo per la
+quale è pensata, modificandone il codice sorgente, genera un notevole debito tecnico, specialmente in contesto didattico
+dove gli studenti devono potersi concentrare sulla logica VR, e non il debugging di un'API frammentata ed instabile.
+
+In conclusione, il tentativo di utilizzare \texttt{WebGPU} come entità creatrice delle risorse native e modificarne il
+core per estrarle è formalmente abbandonato, in quanto le risorse necessarie per tale estrazione rendono il risultato
+inutilizzabile per il corso di realtà virtuale.
+
+\section{Inversion of Control (IoC)}
+
+Il fallimento descritto negli atti finali della sezione precedente evidenzia un'alternativa via percorribile per aprire
+il dialogo tra questi due mondi chiusi. Se risulta infattibile l'esposizione di risorse native create da \texttt{WebGPU}
+verso \texttt{\gls{OpenXR}}, è necessario ribaltare il paradigma ed applicare un pattern di inversione di controllo.
+Ciò consiste nella creazione delle risorse native al di fuori del contesto di \texttt{WebGPU}, direttamente tramite
+istruzioni \texttt{Vulkan} native, per poi crearvi attorno gli oggetti di contesto dell'API \texttt{WebGPU}.
 
 \blankpage
 
