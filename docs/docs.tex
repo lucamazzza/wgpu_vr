@@ -853,7 +853,7 @@ parametro \texttt{depthSlice} a \texttt{WGPU\_DEPTH\_SLICE\_UNDEFINED}, per i co
 necessaria per conformarsi in modo rigoroso alle specifiche di rendering delle texture 3D, recentemente introdotte
 in WebGPU.
 
-\section{Interoperabilità \texttt{WebGPU-OpenXR}}
+\section{Interoperabilità \texttt{wgpu-native+OpenXR}}
 
 L'integrazione tra \texttt{WebGPU} e \texttt{\gls{OpenXR}} presenta una sfida architetturale fondamentale legata ai
 paradigmi di sicurezza ed astrazione delle due API; \texttt{WebGPU}, per sua natura, è agnostica e sicura: il suo
@@ -978,6 +978,32 @@ Concludendo questo esperimento, si dimostra che allo stato attuale, l'integrazio
 e \texttt{\gls{OpenXR}} richiede forzature che distruggono l'eleganza, la mantenibilità e la sicurezza offerte dall'API.
 Il percorso sin qui descritto, iniettando funzionalità nell'API Rust risulta quindi parzialmente o totalmente
 sconsigliato, in quanto poco mantenibile e praticamente inutilizzabile sulla lunga durata di un prodotto o di un corso.
+
+\section{Passaggio a \texttt{Dawn}}
+
+A seguito delle limitazioni riscontrate durante lo sviluppo della soluzione con \texttt{wgpu-native}, lo studio si è
+spostato su \textbf{\texttt{Dawn}}, implementazione in \texttt{C++} di WebGPU sviluppata da Google ed utilizzata come
+backend per il browser \textit{\gls{Chromium}}. Architetturalmente, \texttt{Dawn} presenta una scelta più promettente:
+essendo sviluppata nativamente in \texttt{C++}, offre una superficie API teoricamente più flessibile rispetto ai rigidi
+binding \texttt{C} basati su \texttt{Rust}, offerti da \texttt{wgpu-native}.
+
+Il requisito fondamentale per l'integrazione con un runtime VR tramite \texttt{OpenXR} è la condivisione del contesto
+grafico. \texttt{OpenXR} opera ad un livello molto vicino all'hardware; per poter comporre l'immagine stereoscopica da
+inviare al visore, il runtime VR deve conoscere esattamente quale istanza e quale device \gls{Vulkan} (oppure
+\gls{DirectX}/OpenGL) stanno generando i frame. Nello specifico, per un backend \gls{Vulkan}, \texttt{OpenXR} richiede
+l'accesso esplicito agli handle nativi \texttt{VkInstance}, \texttt{VkPhysicalDevice} e \texttt{VkDevice}.
+
+L'approccio iniziale prevede di mantenere \texttt{WebGPU} come driver dell'applicazione; Dawn deve inizializzare il
+contesto grafico, creare il device logico e, successivamente, l'applicazione avrebbe dovuto estrarre questi handle
+nativi da passare ad \texttt{OpenXR}.
+
+\newpage
+
+\subsection{Analisi della superficie API Dawn}
+
+\subsection{Conflitto filosofico con lo standard W3C}
+
+\subsection{Transizione verso un nuovo paradigma}
 
 \blankpage
 
