@@ -1001,7 +1001,57 @@ nativi da passare ad \texttt{OpenXR}.
 
 \subsection{Analisi della superficie API Dawn}
 
+L'analisi della codebase di \texttt{Dawn} rivela che, sebbene in passato esistessero funzioni per l'interoberabilità
+nativa, proprio come per \texttt{wgpu-native}, queste sono soggette a deprecazione; il design dell'API di Google
+fortemente orientato all'incapsulamento, nascondendo deliberatamente tutti i dettagli sottostanti alle astrazioni.
+
+Per poter fornire ad \texttt{OpenXR} i dati necessari, è necessario tentare di estrarre questi dai dati encapsulati
+nei tipi definiti da \texttt{Dawn}; essendo assenti tali funzioni si rende di nuovo necessaria l'estensione manuale
+dell'API con funzioni personalizzate. Queste modifiche vedono due obbiettivi:
+
+\begin{enumerate}
+    \item L'implementazione di funzioni "getter" personalizzate, all'interno del \gls{namespace} dedicato
+        \texttt{dawn::native::vulkan} per esporre i puntatori agli oggetti \texttt{VkInstance} e \texttt{VkDevice}
+        nascosti all'interno dei relativi oggetti \texttt{Adapter} e \texttt{Device} di \texttt{Dawn}.
+    \item \texttt{OpenXR} non si limita a richiedere il device, ma impone che quest'ultimo venga creato con specifiche
+        estensioni \gls{Vulkan} abilitate, come \texttt{VK\_KHR\_external\_memory} oppure altre estensioni per il timing
+        del visore. Dawn normalmente alloca il device richiedendo solamente le estensioni strettamente necessarie per
+        il funzionamento base di \texttt{WebGPU}.
+\end{enumerate}
+
+Procedendo con un tentativo di modifica diretta, tramite forking e patching del codice sorgente di \texttt{Dawn}, ciò
+richiede l'alterazione del processo di inizializzazione all'interno del file \texttt{dawn/native/vulkan/DeviceVK.cpp}
+\footnote{\url{https://github.com/google/dawn/blob/main/src/dawn/native/vulkan/DeviceVk.h}},
+per forzare l'inclusione delle estensioni richieste.
+
 \subsection{Conflitto filosofico con lo standard W3C}
+
+Durante l'implementazione di tali modifiche sono emerse criticità architetturali insormontabili, non legate a bug o
+imperfezioni del codice, bensì alla filosofia stessa con cui \texttt{WebGPU} è concepita dal W3C.
+
+L'API infatti è progettate per essere "Sandboxed", ovvero \textit{confinata}. Il suo scopo primario è di eseguire
+carichi di lavoro grafici e calcolo in modo sicuro all'interno di un web browser, prevenendo per design l'accesso
+arbitrario a qualsiasi settore della memoria GPU o al sistema operativo host.
+Esporre gli handle di Vulkan nudi e crudi oppure permettere l'iniezione di estensioni esterne non verificate da WebGPU
+viola questo principio proprio alla base, e risulta quindi molto difficoltoso ed impossibile da mantenere in sicurezza.
+
+Le criticità si riassumono quindi in tre punti principali:
+
+\begin{itemize}
+    \item Anche riuscendo ad estrarre il Device, \texttt{OpenXR} richiede di renderizzare direttamente sulle immagini
+        della propria \gls{Swapchain}, ottenibili tramite \texttt{xrEnumerateSwapchainImagesKHR}.
+        \texttt{Dawn} non fornisce alcun metodo standardizzato e stabile per wrappare un array di \texttt{VkImage}
+        esterne, in oggetti di tipo \texttt{WGPUTexture}, destinati al rendering continuo, senza dover passare per
+        costose copie di memoria.
+    \item Modificare il backend di \texttt{Dawn} ha richiesto l'uso di hack invasivi. L'API è in continua e rapida
+        evoluzione, con commit giornalieri e features non ancora completamente definite per quanto riguarda
+        l'architettura. Mantenere una versione "patched" di questa per supportare funzionalità VR si traduce in una
+        condanna all'obsolescenza immediata e periodica. Inoltre, sempre per le stesse motivazioni di sicurezza, il W3C
+        non sembra aver intenzione di supportare estensioni o plugin per estendere le funzionalità dell'API.
+    \item Le discussioni sui repository ufficiali del W3C e di \texttt{Dawn} confermano che non vi è alcuna intenzione,
+        almeno nel breve termine, di standardizzare l'esportazione di handle nativi. Qualsiasi \textit{\gls{Pull Request}}
+        volta ad aggiungere funzioni verrebbe respinta in quanto contrasterebbe la filosofia corrente.
+\end{itemize}
 
 \subsection{Transizione verso un nuovo paradigma}
 
