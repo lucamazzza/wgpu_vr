@@ -1,6 +1,7 @@
 #include "XrWGPUBridge.h"
 #include <iostream>
 #include <cassert>
+#include <stdexcept>
 
 XrWGPUBridge::XrWGPUBridge() {}
 
@@ -75,4 +76,24 @@ void XrWGPUBridge::InitVulkanViaOpenXR() {
     xrCreateVulkanDeviceKHR(m_xrInstance, &deviceCreateInfo, &m_vkDevice, &vkResult);
     vkGetDeviceQueue(m_vkDevice, m_vkQueueFamilyIndex, 0, &m_vkQueue);
     std::cout << "Vulkan Context Created via OpenXR" << std::endl;
+}
+
+void XrWGPUBridge::InitDawnFromVulkan() {
+    m_dawnInstance = std::make_unique<dawn::native::Instance>();
+
+    dawn::native::vulkan::AdapterDiscoveryOptions adapterOptions;
+    adapterOptions.vkInstance = m_vkInstance;
+    adapterOptions.vkPhysicalDevice = m_vkPhysicalDevice;
+    m_dawnInstance->DiscoverAdapters(&adapterOptions);
+
+    auto adapters = m_dawnInstance->GetAdapters();
+    if (adapters.empty()) throw std::runtime_error("Dawn failed to wrap Vulkan resources");
+
+    dawn::native::Adapter nativeAdapter = adapters[0];
+
+    WGPUDeviceDescriptor deviceDesc = {};
+    m_wgpuDevice = wgpu::Device::Acquire(nativeAdapter.CreateDevice(&deviceDesc));
+    m_wgpuQueue = m_wgpuDevice.GetQueue();
+
+    std::cout << "Dawn successfully hooked onto Vulkan context" << std::endl;
 }
