@@ -36,12 +36,43 @@ void XrWGPUBridge::InitVulkanViaOpenXR() {
     XrGraphicsRequirementsVulkanKHR vkReqs{XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN_KHR};
     xrGetVulkanGraphicsRequirements2KHR(m_xrInstance, m_xrSystemId, &vkReqs);
 
-    const char *instanceExtensions = {
+    const char *instanceExtensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
         // TODO: ADD OTHER EXTENSIONS HERE
     };
 
     VkInstanceCreateInfo vkInstanceCreateInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
     vkInstanceCreateInfo.enabledExtensionCount = (uint32_t)sizeof(instanceExtensions)/sizeof(instanceExtensions[0]);
-    vkInstanceCreateInfo.ppEnabledExtensionNames = &instanceExtensions;
+    vkInstanceCreateInfo.ppEnabledExtensionNames = instanceExtensions;
+
+    XrVulkanInstanceCreateInfoKHR createInfo{XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR};
+    createInfo.systemId = m_xrSystemId;
+    createInfo.vulkanCreateInfo = &vkInstanceCreateInfo;
+
+    VkResult vkResult;
+    xrCreateVulkanInstanceKHR(m_xrInstance, &createInfo, &m_vkInstance, &vkResult);
+
+    XrVulkanGraphicsDeviceGetInfoKHR deviceGetInfo{XR_TYPE_VULKAN_GRAPHICS_DEVICE_GET_INFO_KHR};
+    deviceGetInfo.systemId = m_xrSystemId;
+    xrGetVulkanGraphicsDevice2KHR(m_xrInstance, &deviceGetInfo, &m_vkPhysicalDevice);
+
+    const char *deviceExtensions[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
+        // TODO: ADD OTHER EXTENSIONS HERE
+    };
+
+    VkDeviceCreateInfo vkDeviceCreateInfo = {VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
+    vkDeviceCreateInfo.enabledExtensionCount = (uint32_t)sizeof(deviceExtensions)/sizeof(deviceExtensions[0]);
+    vkDeviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
+
+    // TODO: SETUP QUEUE FAMILIES
+
+    XrVulkanDeviceCreateInfoKHR deviceCreateInfo{XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR};
+    deviceCreateInfo.systemId = m_xrSystemId;
+    deviceCreateInfo.vulkanCreateInfo = &vkDeviceCreateInfo;
+    xrCreateVulkanDeviceKHR(m_xrInstance, &deviceCreateInfo, &m_vkDevice, &vkResult);
+    vkGetDeviceQueue(m_vkDevice, m_vkQueueFamilyIndex, 0, &m_vkQueue);
+    std::cout << "Vulkan Context Created via OpenXR" << std::endl;
 }
