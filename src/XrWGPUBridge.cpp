@@ -176,3 +176,23 @@ bool XrWGPUBridge::RenderFrame() {
     xrEndFrame(m_xrSession, &frameEndInfo);
     return true;
 }
+
+void XrWGPUBridge::RenderWebGPUScene(int eyeIndex, wgpu::TextureView targetView) {
+    wgpu::CommandEncoder encoder = m_wgpuDevice.CreateCommandEncoder();
+    wgpu::RenderPassColorAttachment colorAttachment = {
+        .view = targetView,
+        .loadOp = wgpu::LoadOp::Clear,
+        .storeOp = wgpu::StoreOp::Store,
+        .clearValue = {0.1f, 0.2f, 0.4f, 1.0f},
+    };
+    wgpu::RenderPassDescriptor renderPassDesc = {
+        .colorAttachmentCount = 1,
+        .colorAttachments = &colorAttachment,
+    };
+    wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDesc);
+    // TODO: Draw geometry
+    pass.End();
+
+    wgpu::CommandBuffer commands = encoder.Finish();
+    m_wgpuQueue.Submit(1, &commands);
+}
