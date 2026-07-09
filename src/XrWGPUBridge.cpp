@@ -1,4 +1,5 @@
 #include "XrWGPUBridge.h"
+#include "openxr/openxr.h"
 #include <iostream>
 #include <cassert>
 #include <stdexcept>
@@ -96,4 +97,34 @@ void XrWGPUBridge::InitDawnFromVulkan() {
     m_wgpuQueue = m_wgpuDevice.GetQueue();
 
     std::cout << "Dawn successfully hooked onto Vulkan context" << std::endl;
+}
+
+void XrWGPUBridge::CreateSwapchainAndRenderTarget() {
+    m_eyeTargets.resize(2);
+    for (int i = 0; i < 2; i++) {
+        m_eyeTargets[i].width = 2000; // FIXME: Should come from ViewConfigurationViews
+        m_eyeTargets[i].height = 2000; // FIXME: Should come from ViewConfigurationViews
+
+        uint32_t imageCount;
+        xrEnumerateSwapchainImages(m_eyeTargets[i].openxrSwapchain, 0, &imageCount, nullptr);
+        m_eyeTargets[i].swapchainImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR});
+        xrEnumerateSwapchainImages(
+            m_eyeTargets[i].openxrSwapchain,
+            imageCount,
+            &imageCount,
+            (XrSwapchainImageBaseHeader*)m_eyeTargets[i].swapchainImages.data()
+        );
+
+        wgpu::TextureDescriptor textDesc = {
+            .usage = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::CopySrc,
+            .size = { m_eyeTargets[i].width, m_eyeTargets[i].height, 1 },
+            .format = wgpu::TextureFormat::RGBA8UnormSrgb,
+        };
+
+        m_eyeTargets[i].wgpuOffscreenTexture = m_wgpuDevice.CreateTexture(&texDesc);
+        m_eyeTargets[i].wgpuTextureView = m_eyeTargets[i].wgpuOffscreenTexture.CreateView();
+
+        m_eyeTargets[i].extractedDawnImage = dawn::native::vulkan::GetVkImage(
+            m_wgpuDevice.Get(), m_eyeTargets[i].wgpuOffscreenTexture());
+    }
 }
