@@ -128,3 +128,16 @@ void XrWGPUBridge::CreateSwapchainAndRenderTarget() {
             m_wgpuDevice.Get(), m_eyeTargets[i].wgpuOffscreenTexture());
     }
 }
+
+void XrWGPUBridge::SetupVulkanBlitCommand() {
+    VkCommandPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolInfo.queueFamilyIndex = m_vkQueueFamilyIndex;
+    vkCreateCommandPool(m_vkDevice, &poolInfo, nullptr, &m_vkCmdPool);
+
+    VkCommandBufferAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+    allocInfo.commandPool = m_vkCmdPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+    vkAllocateCommandBuffers(m_vkDevice, &allocInfo, m_vkCmdBuffer);
+}
