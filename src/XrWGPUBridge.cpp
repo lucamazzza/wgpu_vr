@@ -1,5 +1,6 @@
 #include "XrWGPUBridge.h"
 #include "openxr/openxr.h"
+
 #include <iostream>
 #include <cassert>
 #include <stdexcept>
@@ -140,4 +141,38 @@ void XrWGPUBridge::SetupVulkanBlitCommand() {
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
     vkAllocateCommandBuffers(m_vkDevice, &allocInfo, m_vkCmdBuffer);
+}
+
+bool XrWGPUBridge::RenderFrame() {
+    XrFrameWaitInfo frameWaitInfo{XR_TYPE_FRAME_WAIT_INFO};
+    XrFrameState frameState{XR_TYPE_FRAME_STATE};
+    xrWaitFrame(m_xrSession, &frameWaitInfo, &frameState);
+
+    XrFrameBeginInfo frameBeginInfo{XR_TYPE_FRAME_BEGIN_INFO};
+    xrBeginFrame(m_xrSession, &frameBeginInfo);
+
+    if (frameState.shouldRender) {
+        for (int i = 0; i < 2; i++) {
+            uint32_t imageIndex;
+            XrSwapchainImageAcquireInfo acquireInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+            xrAcquireSwapchainImage(m_eyeTargets[i].openxrSwapchain, &acquireInfo, imageIndex);
+
+            XrSwapchainImageWaitInfo waitInfo{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+            waitInfo.timeout = XR_INFINITE_DURATION;
+            xrWaitSwapchainImage(m_eyeTargets[i].openxrSwapchain, &waitInfo);
+
+            VkImage targetXrImage = m_eyeTargets[i].swapchainImages[imageIndex].image;
+
+            RenderWebGPUScene(i, m_eyeTargets[i].wgpuTextureView);
+            m_wgpuDevice.Tick();
+
+            CopyDawnToOpenXR(m_eyeTargets[i].extractedDawnImage, targetXrImage, m_eyeTargets[i].width, m_eyeTargets[i].height);
+            XrSwapchainImageReleaseInfo releaseInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+            xrReleaseSwapchainImage(m_eyeTargets[i], &releaseInfo);
+        }
+    }
+    XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
+    // TODO: frame end info setup with projection layers
+    xrEndFrame(m_xrSession, &frameEndInfo);
+    return true;
 }
