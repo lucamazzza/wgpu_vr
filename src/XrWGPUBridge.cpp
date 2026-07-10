@@ -196,3 +196,31 @@ void XrWGPUBridge::RenderWebGPUScene(int eyeIndex, wgpu::TextureView targetView)
     wgpu::CommandBuffer commands = encoder.Finish();
     m_wgpuQueue.Submit(1, &commands);
 }
+
+void XrWGPUBridge::CopyDawnToOpenXR(VkImage srcDawnImage, VkImage dstOpenXRImage, uint32_t width, uint32_t height) {
+    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(m_vkCmdBuffer, &beginInfo);
+
+    // TODO: Memory barriers
+
+    VkImageCopy copyRegion = {
+        .dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+        .srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+        .extent = {width, height, 1};
+    };
+
+    vkCmdCopyImage(m_vkCmdBuffer,
+                   srcDawnImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   dstOpenXRImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   1, &copyRegion);
+
+    // TODO: Memory barriers
+    
+    vkEndCommandBuffer(m_vkCmdBuffer);
+    VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &m_vkCmdBuffer;
+    vkQueueSubmit(m_vkQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_vkQueue);
+}
