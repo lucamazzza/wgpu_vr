@@ -14,6 +14,8 @@ set(DAWN_SRC_DIR "C:/dev/dawn/dawn" CACHE PATH "Path to Dawn source directory")
 set(DAWN_BUILD_DIR "${DAWN_SRC_DIR}/out/Release" CACHE PATH "Path to Dawn Ninja build directory")
 
 add_executable(demo_main
+    XrWGPUBridge.h
+    XrWGPUBridge.cpp
     main.cpp
 )
 

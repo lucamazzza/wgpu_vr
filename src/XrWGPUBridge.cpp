@@ -82,7 +82,8 @@ void XrWGPUBridge::InitVulkanViaOpenXR() {
 
 void XrWGPUBridge::InitDawnFromVulkan() {
     m_dawnInstance = std::make_unique<dawn::native::Instance>();
-
+    /* XXX: Here the Vulkan adapter must be discovered, but the method have been removed...
+    
     dawn::native::vulkan::AdapterDiscoveryOptions adapterOptions;
     adapterOptions.vkInstance = m_vkInstance;
     adapterOptions.vkPhysicalDevice = m_vkPhysicalDevice;
@@ -90,17 +91,18 @@ void XrWGPUBridge::InitDawnFromVulkan() {
 
     auto adapters = m_dawnInstance->GetAdapters();
     if (adapters.empty()) throw std::runtime_error("Dawn failed to wrap Vulkan resources");
-
+    
     dawn::native::Adapter nativeAdapter = adapters[0];
-
+    
     WGPUDeviceDescriptor deviceDesc = {};
     m_wgpuDevice = wgpu::Device::Acquire(nativeAdapter.CreateDevice(&deviceDesc));
     m_wgpuQueue = m_wgpuDevice.GetQueue();
 
     std::cout << "Dawn successfully hooked onto Vulkan context" << std::endl;
+    */
 }
 
-void XrWGPUBridge::CreateSwapchainAndRenderTarget() {
+void XrWGPUBridge::CreateSwapchainsAndRenderTargets() {
     m_eyeTargets.resize(2);
     for (int i = 0; i < 2; i++) {
         m_eyeTargets[i].width = 2000; // FIXME: Should come from ViewConfigurationViews
@@ -116,17 +118,23 @@ void XrWGPUBridge::CreateSwapchainAndRenderTarget() {
             (XrSwapchainImageBaseHeader*)m_eyeTargets[i].swapchainImages.data()
         );
 
-        wgpu::TextureDescriptor textDesc = {
+        wgpu::TextureDescriptor texDesc = {
             .usage = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::CopySrc,
-            .size = { m_eyeTargets[i].width, m_eyeTargets[i].height, 1 },
+            .size = wgpu::Extent3D{ m_eyeTargets[i].width, m_eyeTargets[i].height, 1 },
             .format = wgpu::TextureFormat::RGBA8UnormSrgb,
         };
 
         m_eyeTargets[i].wgpuOffscreenTexture = m_wgpuDevice.CreateTexture(&texDesc);
         m_eyeTargets[i].wgpuTextureView = m_eyeTargets[i].wgpuOffscreenTexture.CreateView();
 
-        m_eyeTargets[i].extractedDawnImage = dawn::native::vulkan::GetVkImage(
-            m_wgpuDevice.Get(), m_eyeTargets[i].wgpuOffscreenTexture());
+        dawn::native::vulkan::ExternalImageExportInfoVk exportInfo;
+
+        bool ok = dawn::native::vulkan::ExportVulkanImage(
+            m_eyeTargets[i].wgpuOffscreenTexture.Get(),
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            &exportInfo
+        );
+		if (!ok) throw std::runtime_error("Failed to export Dawn texture to Vulkan image");
     }
 }
 
@@ -140,7 +148,7 @@ void XrWGPUBridge::SetupVulkanBlitCommand() {
     allocInfo.commandPool = m_vkCmdPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
-    vkAllocateCommandBuffers(m_vkDevice, &allocInfo, m_vkCmdBuffer);
+    vkAllocateCommandBuffers(m_vkDevice, &allocInfo, &m_vkCmdBuffer);
 }
 
 bool XrWGPUBridge::RenderFrame() {
@@ -155,7 +163,7 @@ bool XrWGPUBridge::RenderFrame() {
         for (int i = 0; i < 2; i++) {
             uint32_t imageIndex;
             XrSwapchainImageAcquireInfo acquireInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
-            xrAcquireSwapchainImage(m_eyeTargets[i].openxrSwapchain, &acquireInfo, imageIndex);
+            xrAcquireSwapchainImage(m_eyeTargets[i].openxrSwapchain, &acquireInfo, &imageIndex);
 
             XrSwapchainImageWaitInfo waitInfo{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
             waitInfo.timeout = XR_INFINITE_DURATION;
@@ -168,7 +176,7 @@ bool XrWGPUBridge::RenderFrame() {
 
             CopyDawnToOpenXR(m_eyeTargets[i].extractedDawnImage, targetXrImage, m_eyeTargets[i].width, m_eyeTargets[i].height);
             XrSwapchainImageReleaseInfo releaseInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
-            xrReleaseSwapchainImage(m_eyeTargets[i], &releaseInfo);
+            xrReleaseSwapchainImage(m_eyeTargets[i].openxrSwapchain, &releaseInfo);
         }
     }
     XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
@@ -205,9 +213,9 @@ void XrWGPUBridge::CopyDawnToOpenXR(VkImage srcDawnImage, VkImage dstOpenXRImage
     // TODO: Memory barriers
 
     VkImageCopy copyRegion = {
-        .dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
         .srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
-        .extent = {width, height, 1};
+        .dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+        .extent = {width, height, 1},
     };
 
     vkCmdCopyImage(m_vkCmdBuffer,
