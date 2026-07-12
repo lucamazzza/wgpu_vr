@@ -252,6 +252,7 @@ fontsize=\small,
 \pagenumbering{roman}
 \tableofcontents
 \blankpage
+\blankpage
 
 % List of Figures/Tables (Optional)
 \listoffigures
@@ -535,15 +536,15 @@ linguaggio \texttt{WGSL} (WebGPU Shading Language). Il backend esegue poi automa
 \textit{just-in-time} e invia i comandi all'API nativa del sistema operativo, quindi \texttt{Vulkan/DirectX} per quanto
 riguarda Windows, \gls{Vulkan} per quanto riguarda Linux ed infine \gls{Metal} per macOS.
 
-\texttt{WebGPU} nativo risolve quindi simultaneamente due problemi fondamentali: riduce il boilerplate necessario per
-controllare l'hardware grafico, sempre utilizzando le API grafiche più moderne, performanti, efficienti e ottimizzate,
-e garantisce una compatibilità cross-platform assoluta, aggirando le restrizioni e l'isolazionismo di Apple.
-
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.4\textwidth]{webgpu.png}
 \caption{WebGPU Design}
 \end{figure}
+
+\texttt{WebGPU} nativo risolve quindi simultaneamente due problemi fondamentali: riduce il boilerplate necessario per
+controllare l'hardware grafico, sempre utilizzando le API grafiche più moderne, performanti, efficienti e ottimizzate,
+e garantisce una compatibilità cross-platform assoluta, aggirando le restrizioni e l'isolazionismo di Apple.
 
 \section{Conclusione}
 
@@ -874,6 +875,15 @@ estrazione per il backend \gls{Vulkan} sono state rimosse dall'API pubblica, sig
 all'interno dell'Hardware Abstraction Layer, scritto in Rust. Ciò rende impossibile l'inizializzazione standard di una
 \texttt{XrSession} basata sul contesto grafico di WebGPU.
 
+\vspace{-0.75cm}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{wgpu+openxr.png}
+\caption{Pezzi mancanti per WebGPU + OpenXR}
+\end{figure}
+
+\newpage
+
 \subsection{Rust \textit{FFI Injection}}
 
 Per aggirare questa limitazione senza dover riscrivere interi moduli della libreria si è optato per una tecnica di
@@ -987,6 +997,8 @@ e \texttt{\gls{OpenXR}} richiede forzature che distruggono l'eleganza, la manten
 Il percorso sin qui descritto, iniettando funzionalità nell'API Rust risulta quindi parzialmente o totalmente
 sconsigliato, in quanto poco mantenibile e praticamente inutilizzabile sulla lunga durata di un prodotto o di un corso.
 
+\newpage
+
 \section{Passaggio a \texttt{Dawn}}
 
 A seguito delle limitazioni riscontrate durante lo sviluppo della soluzione con \texttt{wgpu-native}, lo studio si è
@@ -1004,8 +1016,6 @@ l'accesso esplicito agli handle nativi \texttt{VkInstance}, \texttt{VkPhysicalDe
 L'approccio iniziale prevede di mantenere \texttt{WebGPU} come driver dell'applicazione; Dawn deve inizializzare il
 contesto grafico, creare il device logico e, successivamente, l'applicazione avrebbe dovuto estrarre questi handle
 nativi da passare ad \texttt{OpenXR}.
-
-\newpage
 
 \subsection{Analisi della superficie API Dawn}
 
@@ -1031,6 +1041,8 @@ Procedendo con un tentativo di modifica diretta, tramite forking e patching del 
 richiede l'alterazione del processo di inizializzazione all'interno del file \texttt{dawn/native/vulkan/DeviceVK.cpp}
 \footnote{\url{https://github.com/google/dawn/blob/main/src/dawn/native/vulkan/DeviceVk.h}},
 per forzare l'inclusione delle estensioni richieste.
+
+\newpage
 
 \subsection{Conflitto filosofico con lo standard W3C}
 
@@ -1075,6 +1087,8 @@ In conclusione, il tentativo di utilizzare \texttt{WebGPU} come entità creatric
 core per estrarle è formalmente abbandonato, in quanto le risorse necessarie per tale estrazione rendono il risultato
 inutilizzabile per il corso di realtà virtuale.
 
+\newpage
+
 \section{Inversion of Control (IoC)}
 
 Il fallimento descritto negli atti finali della sezione precedente evidenzia un'alternativa via percorribile per aprire
@@ -1082,6 +1096,12 @@ il dialogo tra questi due mondi chiusi. Se risulta infattibile l'esposizione di 
 verso \texttt{\gls{OpenXR}}, è necessario ribaltare il paradigma ed applicare un pattern di inversione di controllo.
 Ciò consiste nella creazione delle risorse native al di fuori del contesto di \texttt{WebGPU}, direttamente tramite
 istruzioni \texttt{Vulkan} native, per poi crearvi attorno gli oggetti di contesto dell'API \texttt{WebGPU}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{ioc.png}
+\caption{Approccio \textit{Inversion of Control}}
+\end{figure}
 
 \subsection{Limiti di esportazione memoria}
 
