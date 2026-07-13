@@ -1177,6 +1177,24 @@ della testa dell'utente e l'aggiornamento dell'immagine nel visore.
 Nella Realtà Virtuale moderna, questa latenza deve essere categoricamente minimizzata per prevenire il rischio di
 motion sickness.
 
+\newpage
+
+\section{Conclusione}
+
+Questo capitolo ha illustrato la complessa parabola ingegneristica affrontata per integrare, integrare \texttt{WebGPU} e
+\texttt{OpenXR} in un unico contesto nativo. Come documentato nei punti precedenti, lo sviluppo del prototipo non si è
+rivelato un mero esercizio di traduzione API, bensì una vera e propria sfida di compatibilità paradigmica.
+
+Provare a integrare delle funzioni precedentemente eliminate o private dall'API ha di sicuro portato più comprensione
+sul funzionamento sottostante della libreria, che però ha confermato la chiusura del paradigma impiegato nel design,
+che infine ha posto una pietra tombale sulla fattibilità del progetto.
+Il passaggio obbligato dall'approccio di partenza \textit{WebGPU-First} ad un modello architetturale basato
+sull'inversione del controllo, quindi \texttt{Vulkan-First}, è stato il primo passo per piegare il sandbox di Dawn alle
+esigenze del runtime VR. Tuttavia, lo scontro con l'immaturità del backend nativo, culminato nella constatazione
+dell'assenza di IPC per l'esportazione di handle \texttt{Win32} ha precluso anche questa strada.
+
+\blankpage
+
 \chapter{Test e validazione}
 
 \section{Risultati}
