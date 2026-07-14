@@ -1074,7 +1074,7 @@ Le criticità si riassumono quindi in tre punti principali:
 \end{itemize}
 
 \begin{listing}[!ht]
-\begin{minted}{cpp}
+\begin{minted}[highlightlines={1}]{cpp}
 dawn::native::vulkan::ExternalImageExportInfoVk exportInfo;
 //                    ^ Non è possibile istanziare oggetti di questo tipo 
 bool ok = dawn::native::vulkan::ExportVulkanImage(
@@ -1224,6 +1224,19 @@ Il passaggio obbligato dall'approccio di partenza \textit{WebGPU-First} ad un mo
 sull'inversione del controllo, quindi \texttt{Vulkan-First}, è stato il primo passo per piegare il sandbox di Dawn alle
 esigenze del runtime VR. Tuttavia, lo scontro con l'immaturità del backend nativo, culminato nella constatazione
 dell'assenza di IPC per l'esportazione di handle \texttt{Win32} ha precluso anche questa strada.
+
+Il sistema finale implementato si regge di conseguenza su un drastico compromesso tecnico, il quale indipendentemente
+dal funzionamento della demo sancisce l'infattibilità del tutto.
+Infatti, il \textit{workaround} consiste nell'estrarre i fotogrammi dalla VRAM e salvarli nella RAM di sistema, tramite
+mappatura asincrona, per poi riiniettarli nella pipeline \texttt{Vulkan} di \texttt{OpenXR}.
+Dal punto di vista strettamente concettuale, questa soluzione soddisfa l'obbiettivo di interconnettere \texttt{WebGPU}
+con \texttt{OpenXR}, dimostrando che modi per farli comunicare ci sono.
+
+Ciononostante, il successo architetturale di questo ponte apre un interrogativo critico sul fronte delle prestazioni.
+L'obbligo di instradare flussi di dati ad altissima risoluzione lungo il bus della scheda madre introduce bottleneck
+che deviano dai requisiti di un'applicazione VR. Il peso effettivo di questo disaccoppiamento della memoria e la latenza
+complessiva saranno analisi del prossimo capitolo, al fine di emettere un verdetto definitivo sulla reale fattibilità
+applicativa e didattica.
 
 \blankpage
 
