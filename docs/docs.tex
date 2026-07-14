@@ -1073,6 +1073,21 @@ Le criticità si riassumono quindi in tre punti principali:
         volta ad aggiungere funzioni verrebbe respinta in quanto contrasterebbe la filosofia corrente.
 \end{itemize}
 
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+dawn::native::vulkan::ExternalImageExportInfoVk exportInfo;
+//                    ^ Non è possibile istanziare oggetti di questo tipo 
+bool ok = dawn::native::vulkan::ExportVulkanImage(
+    m_eyeTargets[i].wgpuOffscreenTexture.Get(),
+    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    &exportInfo
+);
+\end{minted}
+\vspace{-0.75cm}
+\caption{Costruttore inaccessibile per \texttt{ExternalImageExportInfoVK}}
+\label{listing:eivconstructor}
+\end{listing}
+
 \subsection{Out-of-Scope}
 
 Alla luce dei risultati ottenuti, è apparso chiaro che proseguire su questa strada avrebbe significato deviare
@@ -1120,7 +1135,25 @@ sono usualmente il "default" per il sistema operativo (\texttt{Metal} per macOS,
 Nello specifico, si è constatato che tipi di dato, come per esempio l'enum \texttt{ExternalImageType}, necessario
 per la dichiarazione dei tipi di handle del sistema operativo da esportare per i \textit{semaphores} di \texttt{Vulkan},
 supporta nativamente i descrittori per \textit{Android}, \textit{macOS}, \textit{Linux}, ma non ha alcun supporto
-per gli handle nativi di Windows.
+per gli handle nativi di Windows (vedi Listing \ref{listing:eximty}).
+
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+// The different types of external images
+enum ExternalImageType : uint16_t {
+    OpaqueFD,              // Linux
+    DmaBuf,                // ChromeOS
+    IOSurface,             // Metal
+    EGLImage,              // Android
+    GLTexture,             // OpenGL
+    AHardwareBuffer,       // Android
+    Last = AHardwareBuffer,
+};
+\end{minted}
+\vspace{-0.75cm}
+\caption{Enumerativo \texttt{ExternalImageType}}
+\label{listing:eximty}
+\end{listing}
 
 Questa mancanza rende di fatto impossibile, allo stato attuale dell'arte, implementare una sincronizzazione \textit{zero
 copy} tra \texttt{WebGPU} e \texttt{OpenXR} in ambiente Windows, senza ricorrere a pesanti alterazioni del codice
@@ -1151,7 +1184,6 @@ Alla luce della documentata assenza delle primitive IPC per l'ambiente Windows, 
 sulla memoria GPU tra \texttt{Dawn} e \texttt{OpenXR} è precluso. L'unico approccio tecnicamente percorribile per
 estrarre il fotogramma generato da \texttt{WebGPU} e trasmetterlo all'HMD consiste nell'aggirare la memoria video,
 forzando un trasferimento dei pixel attraverso la memoria di sistema.
-
 Questa soluzione di ripiego modifica l'architettura del sistema come segue:
 
 \begin{itemize}
