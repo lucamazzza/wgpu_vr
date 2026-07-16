@@ -374,6 +374,17 @@ eventuali problemi o deviazioni dai mezzi discussi inizialmente.
         lo sviluppo e che guidi l'eventuale integrazione della pipeline nel corso.
 \end{enumerate}
 
+\begin{quote}
+\itshape
+Essendo questo uno studio di fattibilità esplorativo, la pianificazione ha mantenuto un approccio iterativo.
+Come si vedrà nel capitolo 4, le rigidità architetturali incontrate richiedono dei "pivot" durante lo sviluppo,
+forzando la deviazione dal piano originale, verso l'esplorazione di pattern architetturali differenti.
+
+È anche necessario notare che sebbene ovvio, nel caso l'applicazione dei concetti non risultasse fattibile proprio
+dal punto di visto tecnico e non accademico, la valutazione dell'effort e le eventuali analisi delle performance
+risultano poco utili e tralasciabili.
+\end{quote}
+
 Questo rapporto è stato scritto durante tutta la durata del progetto, parallelamente a tutte le fasi descritte sopra.
 
 \section{Requisiti}
@@ -545,6 +556,14 @@ riguarda Windows, \gls{Vulkan} per quanto riguarda Linux ed infine \gls{Metal} p
 \texttt{WebGPU} nativo risolve quindi simultaneamente due problemi fondamentali: riduce il boilerplate necessario per
 controllare l'hardware grafico, sempre utilizzando le API grafiche più moderne, performanti, efficienti e ottimizzate,
 e garantisce una compatibilità cross-platform assoluta, aggirando le restrizioni e l'isolazionismo di Apple.
+
+Tuttavia, questa sicurezza e portabilità derivano da un rigoroso sandboxing dell'API; mentre le API grafiche
+tradizionali permettono facilmente la condivisione di risorse inter-process, un requisito fondamentale per lavorare
+in contesti di realtà virtuale dove il computer ed il visore devono scambiarsi fotogrammi senza costi aggiuntivi di
+memoria, \texttt{WebGPU} sembra nascondere tali funzionalità per mantenere la sicurezza alta.
+Questo scontro di paradigmi rappresenta la sfida principale.
+
+\newpage
 
 \section{Conclusione}
 
@@ -983,7 +1002,7 @@ con il runtime OpenXR:
         un \textit{Segmentation Fault} a livello di driver, rendendo impossibile il rendering.
 \end{itemize}
 
-L'unico metodo per aggirare questo limit4e consiste nella modifica diretta e ricompilazione del codice sorgente
+L'unico metodo per aggirare questo limite consiste nella modifica diretta e ricompilazione del codice sorgente
 dell'implementazione di \texttt{WebGPU}, nel sottomodulo
 \texttt{wgpu-hal}\footnote{\url{https://github.com/gfx-rs/wgpu/tree/trunk/wgpu-hal}}, iniettando forzatamente le
 estensioni richieste.
@@ -1000,10 +1019,13 @@ sconsigliato, in quanto poco mantenibile e praticamente inutilizzabile sulla lun
 \newpage
 
 \section{Passaggio a \texttt{Dawn}}
+Il fallimento dell'iniezione FFI ha evidenziato come l'Hardware Abstraction Layer di wgpu-native, scritto in Rust, sia
+troppo rigido per manipolazioni a basso livello in un ecosistema dominato dal C++.
 
 A seguito delle limitazioni riscontrate durante lo sviluppo della soluzione con \texttt{wgpu-native}, lo studio si è
-spostato su \textbf{\texttt{Dawn}}, implementazione in \texttt{C++} di WebGPU sviluppata da Google ed utilizzata come
-backend per il browser \textit{\gls{Chromium}}. Architetturalmente, \texttt{Dawn} presenta una scelta più promettente:
+quindi spostato su \textbf{\texttt{Dawn}}, implementazione in \texttt{C++} di WebGPU sviluppata da Google ed utilizzata
+come backend per il browser \textit{\gls{Chromium}}. Architetturalmente, \texttt{Dawn} presenta una scelta più
+promettente:
 essendo sviluppata nativamente in \texttt{C++}, offre una superficie API teoricamente più flessibile rispetto ai rigidi
 binding \texttt{C} basati su \texttt{Rust}, offerti da \texttt{wgpu-native}.
 
@@ -1159,14 +1181,18 @@ Questa mancanza rende di fatto impossibile, allo stato attuale dell'arte, implem
 copy} tra \texttt{WebGPU} e \texttt{OpenXR} in ambiente Windows, senza ricorrere a pesanti alterazioni del codice
 sorgente delle librerie grafiche.
 
+Questa mancanza oltretutto non è una svista, ma deriva dalle priorità di sviluppo del backend di Google:
+su Windows, \texttt{Dawn} predilige l'interoperabilità tramite \texttt{DirectX}, mentre riserva l'integrazione nativa
+\texttt{Vulkan} (e la relativa esportazione di \textit{File Descriptors}) principalmente agli ambienti Linux e Android.
+Di conseguenza, il ponte \texttt{Vulkan}-Windows risulta essere un caso d'uso non ancora supportato, bloccando di fatto
+la condivisione Zero-Copy.
+
 \begin{quote}
 \itshape
 Si nota che è molto evidente l'intenzione dei designer e sviluppatori dell'API di WebGPU di proibire o rendere molto
 complesso ciò che si sta provando a compiere. È evidente che le limitazioni vengono direttamente dalla specifica e dalla
 filosofia di WebGPU.
 \end{quote}
-
-\newpage
 
 \subsection{Valutazione del debito tecnico}
 
@@ -1209,8 +1235,6 @@ della testa dell'utente e l'aggiornamento dell'immagine nel visore.
 Nella Realtà Virtuale moderna, questa latenza deve essere categoricamente minimizzata per prevenire il rischio di
 motion sickness.
 
-\newpage
-
 \section{Conclusione}
 
 Questo capitolo ha illustrato la complessa parabola ingegneristica affrontata per integrare, integrare \texttt{WebGPU} e
@@ -1225,10 +1249,17 @@ sull'inversione del controllo, quindi \texttt{Vulkan-First}, è stato il primo p
 esigenze del runtime VR. Tuttavia, lo scontro con l'immaturità del backend nativo, culminato nella constatazione
 dell'assenza di IPC per l'esportazione di handle \texttt{Win32} ha precluso anche questa strada.
 
-Il sistema finale implementato si regge di conseguenza su un drastico compromesso tecnico, il quale indipendentemente
+
+Il la soluzione unica fattibile si regge di conseguenza su un drastico compromesso tecnico, il quale indipendentemente
 dal funzionamento della demo sancisce l'infattibilità del tutto.
 Infatti, il \textit{workaround} consiste nell'estrarre i fotogrammi dalla VRAM e salvarli nella RAM di sistema, tramite
 mappatura asincrona, per poi riiniettarli nella pipeline \texttt{Vulkan} di \texttt{OpenXR}.
+
+Questo passaggio forza l'impiego della funzione asincrona \texttt{MapAsync} di WebGPU. A livello hardware, ciò si
+traduce nel copiare la texture dalla VRAM, farla transitare lungo il bus PCIe fino alla RAM di sistema, bloccare il
+thread CPU in attesa della conferma dalla GPU, e infine utilizzare uno staging buffer di Vulkan per inviarla nuovamente
+lungo il bus PCIe verso la swapchain di \texttt{OpenXR}.
+
 Dal punto di vista strettamente concettuale, questa soluzione soddisfa l'obbiettivo di interconnettere \texttt{WebGPU}
 con \texttt{OpenXR}, dimostrando che modi per farli comunicare ci sono.
 
@@ -1237,6 +1268,9 @@ L'obbligo di instradare flussi di dati ad altissima risoluzione lungo il bus del
 che deviano dai requisiti di un'applicazione VR. Il peso effettivo di questo disaccoppiamento della memoria e la latenza
 complessiva saranno analisi del prossimo capitolo, al fine di emettere un verdetto definitivo sulla reale fattibilità
 applicativa e didattica.
+
+Per questo motivo la demo che utilizza la memoria principale come ponte non è sviluppata, in quanto sicuramente troppo
+poco performante per essere considerata come soluzione.
 
 \blankpage
 
