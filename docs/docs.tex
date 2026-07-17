@@ -252,6 +252,7 @@ fontsize=\small,
 \pagenumbering{roman}
 \tableofcontents
 \blankpage
+\blankpage
 
 % List of Figures/Tables (Optional)
 \listoffigures
@@ -372,6 +373,17 @@ eventuali problemi o deviazioni dai mezzi discussi inizialmente.
     \item \textbf{Linee guida conclusive}: Produrre una guida finale che mostri brevemente le conclusioni tratte durante
         lo sviluppo e che guidi l'eventuale integrazione della pipeline nel corso.
 \end{enumerate}
+
+\begin{quote}
+\itshape
+Essendo questo uno studio di fattibilità esplorativo, la pianificazione ha mantenuto un approccio iterativo.
+Come si vedrà nel capitolo 4, le rigidità architetturali incontrate richiedono dei "pivot" durante lo sviluppo,
+forzando la deviazione dal piano originale, verso l'esplorazione di pattern architetturali differenti.
+
+È anche necessario notare che sebbene ovvio, nel caso l'applicazione dei concetti non risultasse fattibile proprio
+dal punto di visto tecnico e non accademico, la valutazione dell'effort e le eventuali analisi delle performance
+risultano poco utili e tralasciabili.
+\end{quote}
 
 Questo rapporto è stato scritto durante tutta la durata del progetto, parallelamente a tutte le fasi descritte sopra.
 
@@ -535,9 +547,23 @@ linguaggio \texttt{WGSL} (WebGPU Shading Language). Il backend esegue poi automa
 \textit{just-in-time} e invia i comandi all'API nativa del sistema operativo, quindi \texttt{Vulkan/DirectX} per quanto
 riguarda Windows, \gls{Vulkan} per quanto riguarda Linux ed infine \gls{Metal} per macOS.
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{webgpu.png}
+\caption{WebGPU Design}
+\end{figure}
+
 \texttt{WebGPU} nativo risolve quindi simultaneamente due problemi fondamentali: riduce il boilerplate necessario per
 controllare l'hardware grafico, sempre utilizzando le API grafiche più moderne, performanti, efficienti e ottimizzate,
 e garantisce una compatibilità cross-platform assoluta, aggirando le restrizioni e l'isolazionismo di Apple.
+
+Tuttavia, questa sicurezza e portabilità derivano da un rigoroso sandboxing dell'API; mentre le API grafiche
+tradizionali permettono facilmente la condivisione di risorse inter-process, un requisito fondamentale per lavorare
+in contesti di realtà virtuale dove il computer ed il visore devono scambiarsi fotogrammi senza costi aggiuntivi di
+memoria, \texttt{WebGPU} sembra nascondere tali funzionalità per mantenere la sicurezza alta.
+Questo scontro di paradigmi rappresenta la sfida principale.
+
+\newpage
 
 \section{Conclusione}
 
@@ -563,6 +589,8 @@ fattibilità di un layer di interoperabilità che permetta di implementare nativ
 questa implementazione possa comunicare con la complessa swapchain ed il frame-pacing di \texttt{\gls{OpenXR}}.
 Ciò permetterebbe di pensionare lo stack legacy e sostituirlo con uno all'avanguardia per il corso, con completa 
 sostenibilità didattica e cross-platform per integrare i calcolatori di ogni studente.
+
+\blankpage
 
 \chapter{Design e implementazione}
 
@@ -853,7 +881,7 @@ parametro \texttt{depthSlice} a \texttt{WGPU\_DEPTH\_SLICE\_UNDEFINED}, per i co
 necessaria per conformarsi in modo rigoroso alle specifiche di rendering delle texture 3D, recentemente introdotte
 in WebGPU.
 
-\section{Interoperabilità \texttt{WebGPU-OpenXR}}
+\section{Interoperabilità \texttt{wgpu-native+OpenXR}}
 
 L'integrazione tra \texttt{WebGPU} e \texttt{\gls{OpenXR}} presenta una sfida architetturale fondamentale legata ai
 paradigmi di sicurezza ed astrazione delle due API; \texttt{WebGPU}, per sua natura, è agnostica e sicura: il suo
@@ -865,6 +893,15 @@ Nella versione più recente\footnote{\url{https://github.com/gfx-rs/wgpu-native/
 estrazione per il backend \gls{Vulkan} sono state rimosse dall'API pubblica, sigillando di fatto i puntatori nativi
 all'interno dell'Hardware Abstraction Layer, scritto in Rust. Ciò rende impossibile l'inizializzazione standard di una
 \texttt{XrSession} basata sul contesto grafico di WebGPU.
+
+\vspace{-0.75cm}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{wgpu+openxr.png}
+\caption{Pezzi mancanti per WebGPU + OpenXR}
+\end{figure}
+
+\newpage
 
 \subsection{Rust \textit{FFI Injection}}
 
@@ -965,7 +1002,7 @@ con il runtime OpenXR:
         un \textit{Segmentation Fault} a livello di driver, rendendo impossibile il rendering.
 \end{itemize}
 
-L'unico metodo per aggirare questo limit4e consiste nella modifica diretta e ricompilazione del codice sorgente
+L'unico metodo per aggirare questo limite consiste nella modifica diretta e ricompilazione del codice sorgente
 dell'implementazione di \texttt{WebGPU}, nel sottomodulo
 \texttt{wgpu-hal}\footnote{\url{https://github.com/gfx-rs/wgpu/tree/trunk/wgpu-hal}}, iniettando forzatamente le
 estensioni richieste.
@@ -979,11 +1016,273 @@ e \texttt{\gls{OpenXR}} richiede forzature che distruggono l'eleganza, la manten
 Il percorso sin qui descritto, iniettando funzionalità nell'API Rust risulta quindi parzialmente o totalmente
 sconsigliato, in quanto poco mantenibile e praticamente inutilizzabile sulla lunga durata di un prodotto o di un corso.
 
+\newpage
+
+\section{Passaggio a \texttt{Dawn}}
+Il fallimento dell'iniezione FFI ha evidenziato come l'Hardware Abstraction Layer di wgpu-native, scritto in Rust, sia
+troppo rigido per manipolazioni a basso livello in un ecosistema dominato dal C++.
+
+A seguito delle limitazioni riscontrate durante lo sviluppo della soluzione con \texttt{wgpu-native}, lo studio si è
+quindi spostato su \textbf{\texttt{Dawn}}, implementazione in \texttt{C++} di WebGPU sviluppata da Google ed utilizzata
+come backend per il browser \textit{\gls{Chromium}}. Architetturalmente, \texttt{Dawn} presenta una scelta più
+promettente:
+essendo sviluppata nativamente in \texttt{C++}, offre una superficie API teoricamente più flessibile rispetto ai rigidi
+binding \texttt{C} basati su \texttt{Rust}, offerti da \texttt{wgpu-native}.
+
+Il requisito fondamentale per l'integrazione con un runtime VR tramite \texttt{OpenXR} è la condivisione del contesto
+grafico. \texttt{OpenXR} opera ad un livello molto vicino all'hardware; per poter comporre l'immagine stereoscopica da
+inviare al visore, il runtime VR deve conoscere esattamente quale istanza e quale device \gls{Vulkan} (oppure
+\gls{DirectX}/OpenGL) stanno generando i frame. Nello specifico, per un backend \gls{Vulkan}, \texttt{OpenXR} richiede
+l'accesso esplicito agli handle nativi \texttt{VkInstance}, \texttt{VkPhysicalDevice} e \texttt{VkDevice}.
+
+L'approccio iniziale prevede di mantenere \texttt{WebGPU} come driver dell'applicazione; Dawn deve inizializzare il
+contesto grafico, creare il device logico e, successivamente, l'applicazione avrebbe dovuto estrarre questi handle
+nativi da passare ad \texttt{OpenXR}.
+
+\subsection{Analisi della superficie API Dawn}
+
+L'analisi della codebase di \texttt{Dawn} rivela che, sebbene in passato esistessero funzioni per l'interoberabilità
+nativa, proprio come per \texttt{wgpu-native}, queste sono soggette a deprecazione; il design dell'API di Google
+fortemente orientato all'incapsulamento, nascondendo deliberatamente tutti i dettagli sottostanti alle astrazioni.
+
+Per poter fornire ad \texttt{OpenXR} i dati necessari, è necessario tentare di estrarre questi dai dati encapsulati
+nei tipi definiti da \texttt{Dawn}; essendo assenti tali funzioni si rende di nuovo necessaria l'estensione manuale
+dell'API con funzioni personalizzate. Queste modifiche vedono due obbiettivi:
+
+\begin{enumerate}
+    \item L'implementazione di funzioni "getter" personalizzate, all'interno del \gls{namespace} dedicato
+        \texttt{dawn::native::vulkan} per esporre i puntatori agli oggetti \texttt{VkInstance} e \texttt{VkDevice}
+        nascosti all'interno dei relativi oggetti \texttt{Adapter} e \texttt{Device} di \texttt{Dawn}.
+    \item \texttt{OpenXR} non si limita a richiedere il device, ma impone che quest'ultimo venga creato con specifiche
+        estensioni \gls{Vulkan} abilitate, come \texttt{VK\_KHR\_external\_memory} oppure altre estensioni per il timing
+        del visore. Dawn normalmente alloca il device richiedendo solamente le estensioni strettamente necessarie per
+        il funzionamento base di \texttt{WebGPU}.
+\end{enumerate}
+
+Procedendo con un tentativo di modifica diretta, tramite forking e patching del codice sorgente di \texttt{Dawn}, ciò
+richiede l'alterazione del processo di inizializzazione all'interno del file \texttt{dawn/native/vulkan/DeviceVK.cpp}
+\footnote{\url{https://github.com/google/dawn/blob/main/src/dawn/native/vulkan/DeviceVk.h}},
+per forzare l'inclusione delle estensioni richieste.
+
+\newpage
+
+\subsection{Conflitto filosofico con lo standard W3C}
+
+Durante l'implementazione di tali modifiche sono emerse criticità architetturali insormontabili, non legate a bug o
+imperfezioni del codice, bensì alla filosofia stessa con cui \texttt{WebGPU} è concepita dal W3C.
+
+L'API infatti è progettate per essere "Sandboxed", ovvero \textit{confinata}. Il suo scopo primario è di eseguire
+carichi di lavoro grafici e calcolo in modo sicuro all'interno di un web browser, prevenendo per design l'accesso
+arbitrario a qualsiasi settore della memoria GPU o al sistema operativo host.
+Esporre gli handle di Vulkan nudi e crudi oppure permettere l'iniezione di estensioni esterne non verificate da WebGPU
+viola questo principio proprio alla base, e risulta quindi molto difficoltoso ed impossibile da mantenere in sicurezza.
+
+Le criticità si riassumono quindi in tre punti principali:
+
+\begin{itemize}
+    \item Anche riuscendo ad estrarre il Device, \texttt{OpenXR} richiede di renderizzare direttamente sulle immagini
+        della propria \gls{Swapchain}, ottenibili tramite \texttt{xrEnumerateSwapchainImagesKHR}.
+        \texttt{Dawn} non fornisce alcun metodo standardizzato e stabile per wrappare un array di \texttt{VkImage}
+        esterne, in oggetti di tipo \texttt{WGPUTexture}, destinati al rendering continuo, senza dover passare per
+        costose copie di memoria.
+    \item Modificare il backend di \texttt{Dawn} ha richiesto l'uso di hack invasivi. L'API è in continua e rapida
+        evoluzione, con commit giornalieri e features non ancora completamente definite per quanto riguarda
+        l'architettura. Mantenere una versione "patched" di questa per supportare funzionalità VR si traduce in una
+        condanna all'obsolescenza immediata e periodica. Inoltre, sempre per le stesse motivazioni di sicurezza, il W3C
+        non sembra aver intenzione di supportare estensioni o plugin per estendere le funzionalità dell'API.
+    \item Le discussioni sui repository ufficiali del W3C e di \texttt{Dawn} confermano che non vi è alcuna intenzione,
+        almeno nel breve termine, di standardizzare l'esportazione di handle nativi. Qualsiasi \textit{\gls{Pull Request}}
+        volta ad aggiungere funzioni verrebbe respinta in quanto contrasterebbe la filosofia corrente.
+\end{itemize}
+
+\begin{listing}[!ht]
+\begin{minted}[highlightlines={1}]{cpp}
+dawn::native::vulkan::ExternalImageExportInfoVk exportInfo;
+//                    ^ Non è possibile istanziare oggetti di questo tipo 
+bool ok = dawn::native::vulkan::ExportVulkanImage(
+    m_eyeTargets[i].wgpuOffscreenTexture.Get(),
+    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    &exportInfo
+);
+\end{minted}
+\vspace{-0.75cm}
+\caption{Costruttore inaccessibile per \texttt{ExternalImageExportInfoVK}}
+\label{listing:eivconstructor}
+\end{listing}
+
+\subsection{Out-of-Scope}
+
+Alla luce dei risultati ottenuti, è apparso chiaro che proseguire su questa strada avrebbe significato deviare
+completamente dagli obbiettivi del presente progetto. Il mandato richiede uno studio di fattibilità
+dell'interoperabilità tra WebGPU e i runtime VR, non lo sviluppo ed il mantenimento di un backend grafico custom.
+
+Costringere l'API a comportarsi in un modo che ricade al di fuori della filosofia architetturale e di sviluppo per la
+quale è pensata, modificandone il codice sorgente, genera un notevole debito tecnico, specialmente in contesto didattico
+dove gli studenti devono potersi concentrare sulla logica VR, e non il debugging di un'API frammentata ed instabile.
+
+In conclusione, il tentativo di utilizzare \texttt{WebGPU} come entità creatrice delle risorse native e modificarne il
+core per estrarle è formalmente abbandonato, in quanto le risorse necessarie per tale estrazione rendono il risultato
+inutilizzabile per il corso di realtà virtuale.
+
+\newpage
+
+\section{Inversion of Control (IoC)}
+
+Il fallimento descritto negli atti finali della sezione precedente evidenzia un'alternativa via percorribile per aprire
+il dialogo tra questi due mondi chiusi. Se risulta infattibile l'esposizione di risorse native create da \texttt{WebGPU}
+verso \texttt{\gls{OpenXR}}, è necessario ribaltare il paradigma ed applicare un pattern di inversione di controllo.
+Ciò consiste nella creazione delle risorse native al di fuori del contesto di \texttt{WebGPU}, direttamente tramite
+istruzioni \texttt{Vulkan} native, per poi crearvi attorno gli oggetti di contesto dell'API \texttt{WebGPU}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{ioc.png}
+\caption{Approccio \textit{Inversion of Control}}
+\end{figure}
+
+\subsection{Limiti di esportazione memoria}
+
+L'indagine volta all'utilizzo di \texttt{WebGPU} come entità principale per la creazione del contesto grafico si è
+scontrata con limitazioni architetturali intrinseche al design dell'API. Come analizzato precedentemente, l'integrazione
+nativa con \texttt{OpenXR} richiede una rigorosa condivisione delle risorse \texttt{Vulkan}\footnote{Vulkan è l'unico
+backend utilizzato da \texttt{WebGPU} che è direttamente compatibile con almeno 2 dei 3 sistemi operativi maggiormente
+utilizzati}, e soprattutto, una sincronizzazione inter-process per la gestione delle \textit{swapchain images}.
+
+L'analisi dei sorgenti di \texttt{Dawn} ha rivelato che le funzioni sperimenali di interoperabilità, come
+\texttt{ExportVulkanImage} sono soggette a forti instabilità e mancano di simmetrie tra le piattaforme backend.
+In generale si nota che piattaforme supportate da molteplici sistemi operativi, come \texttt{Vulkan}, sono lasciate
+in secondo piano e viene rimossa la possibilità di interoperare direttamente, in favore di piattaforme native che
+sono usualmente il "default" per il sistema operativo (\texttt{Metal} per macOS, \texttt{DirectX} per Windows e
+\textit{File Descriptors} per Linux).
+Nello specifico, si è constatato che tipi di dato, come per esempio l'enum \texttt{ExternalImageType}, necessario
+per la dichiarazione dei tipi di handle del sistema operativo da esportare per i \textit{semaphores} di \texttt{Vulkan},
+supporta nativamente i descrittori per \textit{Android}, \textit{macOS}, \textit{Linux}, ma non ha alcun supporto
+per gli handle nativi di Windows (vedi Listing \ref{listing:eximty}).
+
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+// The different types of external images
+enum ExternalImageType : uint16_t {
+    OpaqueFD,              // Linux
+    DmaBuf,                // ChromeOS
+    IOSurface,             // Metal
+    EGLImage,              // Android
+    GLTexture,             // OpenGL
+    AHardwareBuffer,       // Android
+    Last = AHardwareBuffer,
+};
+\end{minted}
+\vspace{-0.75cm}
+\caption{Enumerativo \texttt{ExternalImageType}}
+\label{listing:eximty}
+\end{listing}
+
+Questa mancanza rende di fatto impossibile, allo stato attuale dell'arte, implementare una sincronizzazione \textit{zero
+copy} tra \texttt{WebGPU} e \texttt{OpenXR} in ambiente Windows, senza ricorrere a pesanti alterazioni del codice
+sorgente delle librerie grafiche.
+
+Questa mancanza oltretutto non è una svista, ma deriva dalle priorità di sviluppo del backend di Google:
+su Windows, \texttt{Dawn} predilige l'interoperabilità tramite \texttt{DirectX}, mentre riserva l'integrazione nativa
+\texttt{Vulkan} (e la relativa esportazione di \textit{File Descriptors}) principalmente agli ambienti Linux e Android.
+Di conseguenza, il ponte \texttt{Vulkan}-Windows risulta essere un caso d'uso non ancora supportato, bloccando di fatto
+la condivisione Zero-Copy.
+
+\begin{quote}
+\itshape
+Si nota che è molto evidente l'intenzione dei designer e sviluppatori dell'API di WebGPU di proibire o rendere molto
+complesso ciò che si sta provando a compiere. È evidente che le limitazioni vengono direttamente dalla specifica e dalla
+filosofia di WebGPU.
+\end{quote}
+
+\subsection{Valutazione del debito tecnico}
+
+Per superare queste limitazioni si è valutata la possibilità di effettuare un fork del repository e alterarne il codice
+sorgente per forzare l'iniezione delle estensioni \texttt{Vulkan} richieste da \texttt{OpenXR} ed esporre deliberatamente
+i puntatori nudi, aggirando l'incapsulamento.
+
+Come già menzionato nelle sezioni precedenti, tale approccio viola apertametne i principi fondamentali definiti dal W3C
+per \texttt{WebGPU}, la quale nasce come \textit{API Sandboxed} orientata alla sicurezza ed all'isolamento.
+Ciò rende inutile anche pensare di aggirare il corrente problema con una modifica all'API per introdurre i tipi mancanti.
+
+\subsection{\textit{Zero-Copy} vs Workaround via RAM}
+
+Alla luce della documentata assenza delle primitive IPC per l'ambiente Windows, è emerso che qualsiasi approccio nativo
+sulla memoria GPU tra \texttt{Dawn} e \texttt{OpenXR} è precluso. L'unico approccio tecnicamente percorribile per
+estrarre il fotogramma generato da \texttt{WebGPU} e trasmetterlo all'HMD consiste nell'aggirare la memoria video,
+forzando un trasferimento dei pixel attraverso la memoria di sistema.
+Questa soluzione di ripiego modifica l'architettura del sistema come segue:
+
+\begin{itemize}
+    \item \texttt{WebGPU} esegue il rendering stereoscopico della scena all'interno delle proprie \texttt{Texture}
+        isolate.
+    \item Terminata la renderizzazione, i dati dei pixel vengono copiati dalle texture della GPU ad un oggetto
+        \texttt{Buffer}.
+    \item Tramite la funzione \texttt{MapAsync}, il buffer viene mappato nella memoria della CPU. Questo passaggio
+        forza la sincronizzazione tra CPU e GPU, consentendo all'applicazione di leggere l'array di byte crudi dei pixel
+        in formato \textit{RGBA}.
+    \item I dati, ora residenti nella \texttt{RAM}, vengono presi in carico dai comanvi Vulkan nativi, indipendenti da
+        \texttt{WebGPU}. Tramite uno staging buffer, questo viene caricato in memoria GPU come \texttt{VkImage}.
+\end{itemize}
+
+Sebbene il passaggio del fotogramma tramite RAM permetta, a livello concettuale, di completare la pipeline visiva
+ottenendo un Proof of Concept funzionante, questa architettura è fallimentare per applicazioni VR.
+
+Il trasferimento continuo di fotogrammi ad altissima risoluzione (per esempio $2000$x$2000$ per occhio, a $90$ o $120$
+FPS) lungo il bus \texttt{PCIe} dalla GPU alla CPU, e successivamente di nuovo dalla CPU alla GPU, genera un bottleneck
+gravissimo.
+Questo processo introduce una massiccia \textit{Motion-to-Photon latency}, ovvero un ritardo critico tra il movimento
+della testa dell'utente e l'aggiornamento dell'immagine nel visore.
+Nella Realtà Virtuale moderna, questa latenza deve essere categoricamente minimizzata per prevenire il rischio di
+motion sickness.
+
+\section{Conclusione}
+
+Questo capitolo ha illustrato la complessa parabola ingegneristica affrontata per integrare, integrare \texttt{WebGPU} e
+\texttt{OpenXR} in un unico contesto nativo. Come documentato nei punti precedenti, lo sviluppo del prototipo non si è
+rivelato un mero esercizio di traduzione API, bensì una vera e propria sfida di compatibilità paradigmica.
+
+Provare a integrare delle funzioni precedentemente eliminate o private dall'API ha di sicuro portato più comprensione
+sul funzionamento sottostante della libreria, che però ha confermato la chiusura del paradigma impiegato nel design,
+che infine ha posto una pietra tombale sulla fattibilità del progetto.
+Il passaggio obbligato dall'approccio di partenza \textit{WebGPU-First} ad un modello architetturale basato
+sull'inversione del controllo, quindi \texttt{Vulkan-First}, è stato il primo passo per piegare il sandbox di Dawn alle
+esigenze del runtime VR. Tuttavia, lo scontro con l'immaturità del backend nativo, culminato nella constatazione
+dell'assenza di IPC per l'esportazione di handle \texttt{Win32} ha precluso anche questa strada.
+
+
+Il la soluzione unica fattibile si regge di conseguenza su un drastico compromesso tecnico, il quale indipendentemente
+dal funzionamento della demo sancisce l'infattibilità del tutto.
+Infatti, il \textit{workaround} consiste nell'estrarre i fotogrammi dalla VRAM e salvarli nella RAM di sistema, tramite
+mappatura asincrona, per poi riiniettarli nella pipeline \texttt{Vulkan} di \texttt{OpenXR}.
+
+Questo passaggio forza l'impiego della funzione asincrona \texttt{MapAsync} di WebGPU. A livello hardware, ciò si
+traduce nel copiare la texture dalla VRAM, farla transitare lungo il bus PCIe fino alla RAM di sistema, bloccare il
+thread CPU in attesa della conferma dalla GPU, e infine utilizzare uno staging buffer di Vulkan per inviarla nuovamente
+lungo il bus PCIe verso la swapchain di \texttt{OpenXR}.
+
+Dal punto di vista strettamente concettuale, questa soluzione soddisfa l'obbiettivo di interconnettere \texttt{WebGPU}
+con \texttt{OpenXR}, dimostrando che modi per farli comunicare ci sono.
+
+Ciononostante, il successo architetturale di questo ponte apre un interrogativo critico sul fronte delle prestazioni.
+L'obbligo di instradare flussi di dati ad altissima risoluzione lungo il bus della scheda madre introduce bottleneck
+che deviano dai requisiti di un'applicazione VR. Il peso effettivo di questo disaccoppiamento della memoria e la latenza
+complessiva saranno analisi del prossimo capitolo, al fine di emettere un verdetto definitivo sulla reale fattibilità
+applicativa e didattica.
+
+Per questo motivo la demo che utilizza la memoria principale come ponte non è sviluppata, in quanto sicuramente troppo
+poco performante per essere considerata come soluzione.
+
 \blankpage
 
 \chapter{Test e validazione}
 
 \section{Risultati}
+
+\section{Mancanza di \textit{Inter-Process Communication}}
+
+\section{PCIe Bottleneck}
+
+\section{Latenza}
 
 \chapter{Risultati}
 
