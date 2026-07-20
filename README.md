@@ -28,6 +28,12 @@ The vendored libraries include:
 * [GLFW](https://github.com/glfw/glfw) (Windowing)
 * [GLM](https://github.com/g-truc/glm) (Mathematics)
 
+> [!WARNING]
+> The project also needs the compiled libraries from the custom fork of [wgpu-native](https://github.com/lucamazzza/wgpu-native),
+> that must be compiled with the also custom fork [wgpu](https://github.com/lucamazzza/wgpu).
+>
+> The final compiled library is included but make sure it is there.
+
 ### System Requirements to Build
 
 * **CMake** (`v3.20` or higher)
