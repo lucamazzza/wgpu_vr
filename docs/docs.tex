@@ -529,7 +529,7 @@ vengono concepite le applicazioni immersive. Di seguito le principali divergenze
         del controllo rende estremamente complessa l'integrazione di API grafiche non ufficialmente supportate.
 \end{itemize}
 
-\newpage
+\pagebreak
 
 \section{L'emergere di \texttt{WebGPU}}
 
@@ -563,7 +563,7 @@ in contesti di realtà virtuale dove il computer ed il visore devono scambiarsi 
 memoria, \texttt{WebGPU} sembra nascondere tali funzionalità per mantenere la sicurezza alta.
 Questo scontro di paradigmi rappresenta la sfida principale.
 
-\newpage
+\pagebreak
 
 \section{Conclusione}
 
@@ -726,7 +726,7 @@ if (windowingSystem == "x11") {
 \end{listing}
 \vspace{-0.75cm}
 
-\newpage
+\pagebreak
 
 \subsubsection{macOS}
 
@@ -781,7 +781,7 @@ tramite la chiamata nativa dell'API.
 return wgpuInstanceCreateSurface(instance, &surfaceDesc);
 \end{minted}
 
-\newpage
+\pagebreak
 
 \subsection{Gestione Memoria e assets}
 
@@ -901,7 +901,7 @@ all'interno dell'Hardware Abstraction Layer, scritto in Rust. Ciò rende impossi
 \caption{Pezzi mancanti per WebGPU + OpenXR}
 \end{figure}
 
-\newpage
+\pagebreak
 
 \subsection{Rust \textit{FFI Injection}}
 
@@ -1009,7 +1009,45 @@ estensioni richieste.
 
 \subsection{Estensioni di \texttt{Vulkan}}
 
-\newpage
+Riprendendo il flusso di lavoro descritto nel punto precedente, l'aggiunta delle estensioni richiede la modifica di
+ulteriore codice sorgente di \texttt{WebGPU}, in questo caso direttamente nella repository dell'API.
+
+Sebbene solitamente l'attivazione di estensioni nel contesto di \texttt{Vulkan} sia complicato e tedioso, sembra che
+il W3C metta a disposizione un meccanismo di abilitazione di queste molto semplice da manipolare, anche se non è
+accessibile dall'API direttamente; esiste infatti una funzione, all'interno del file sorgente
+\texttt{adapter.rs}\footnote{\url{https://github.com/lucamazzza/wgpu/blob/v29h/wgpu-hal/src/vulkan/adapter.rs}}, che
+già si occupa di richiedere ed attivare le estensioni di \texttt{Vulkan} che sono necessarie per il corretto
+funzionamento di \texttt{WebGPU} e si possono aggiungere quelle necessarie all'inizio di questa (vedi listing
+\ref{listing:vkext}).
+
+\begin{listing}[!ht]
+\begin{minted}{rs}
+fn get_required_extensions(&self, requested_features: wgt::Features) -> Vec<&'static CStr> {
+    let mut extensions = Vec::new();
+
+    // Note that quite a few extensions depend on the `VK_KHR_get_physical_device_properties2` instance extension.
+    // We enable `VK_KHR_get_physical_device_properties2` unconditionally (if available).
+
+    // Add OpenXR required extensions to device
+    extensions.push(khr::external_memory::NAME);
+    extensions.push(khr::external_memory_win32::NAME);
+
+    // Require `VK_KHR_swapchain`
+    extensions.push(khr::swapchain::NAME);
+
+    if self.device_api_version < vk::API_VERSION_1_1 {
+    //... rest of the function ...
+}
+\end{minted}
+\vspace{-0.75cm}
+\caption{Abilitazione estensioni di \texttt{Vulkan}}
+\label{listing:vkext}
+\end{listing}
+
+Queste aggiunte sono state svolte solamente nel sorgente menzionato, in quanto entrambe
+\texttt{VK\_KHR\_external\_memory} e \texttt{VK\_KHR\_external\_memory\_win32} sono estensioni di tipo \textit{device}.
+
+\pagebreak
 
 \section{Passaggio a \texttt{Dawn}}
 
@@ -1055,8 +1093,6 @@ Procedendo con un tentativo di modifica diretta, tramite forking e patching del 
 richiede l'alterazione del processo di inizializzazione all'interno del file \texttt{dawn/native/vulkan/DeviceVK.cpp}
 \footnote{\url{https://github.com/google/dawn/blob/main/src/dawn/native/vulkan/DeviceVk.h}},
 per forzare l'inclusione delle estensioni richieste.
-
-\newpage
 
 \subsection{Conflitto filosofico con lo standard W3C}
 
@@ -1115,8 +1151,6 @@ dove gli studenti devono potersi concentrare sulla logica VR, e non il debugging
 In conclusione, il tentativo di utilizzare \texttt{WebGPU} come entità creatrice delle risorse native e modificarne il
 core per estrarle è formalmente abbandonato, in quanto le risorse necessarie per tale estrazione rendono il risultato
 inutilizzabile per il corso di realtà virtuale.
-
-\newpage
 
 \section{Inversion of Control (IoC)}
 
