@@ -108,6 +108,7 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
     XrSessionCreateInfo sessionInfo{XR_TYPE_SESSION_CREATE_INFO};
     sessionInfo.next = &m_vk->graphicsBinding;
     sessionInfo.systemId = xrSystemId;
+    sessionInfo.createFlags = 0;
     XrResult res = xrCreateSession(xrInstance, &sessionInfo, &m_xrSession);
     if (XR_FAILED(res)) {
         char errorStr[XR_MAX_RESULT_STRING_SIZE];
