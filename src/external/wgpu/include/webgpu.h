@@ -6742,7 +6742,8 @@ WGPU_EXPORT void wgpuTextureViewRelease(WGPUTextureView textureView) WGPU_FUNCTI
 WGPU_EXPORT void *wgpuInstanceGetD3D12Instance(WGPUInstance instance);
 WGPU_EXPORT void *wgpuAdapterGetD3D12PhysicalDevice(WGPUAdapter adapter);
 WGPU_EXPORT void *wgpuDeviceGetD3D12Device(WGPUDevice device);
-WGPU_EXPORT void *wgpuTextureGetD3D12Image(WGPUTexture texture);
+WGPU_EXPORT void* wgpuTextureGetD3D12Image(WGPUTexture texture);
+WGPU_EXPORT void* wgpuQueueGetD3D12CommandQueue(WGPUQueue queue);
 
 #endif  // !defined(WGPU_SKIP_DECLARATIONS)
 

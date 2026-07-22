@@ -13,10 +13,10 @@
 
 struct XrWGPUBridge::DX12Internals {
 #ifdef _WIN32
-    IDXGIAdapter *dxgiAdapter = nullptr;
-    ID3D12Device *d3d12Device = nullptr;
-    ID3D12CommandQueue *d3d12Queue = nullptr;
-    ID3D12Resource *d3d12RenderTarget = nullptr;
+    Microsoft::WRL::ComPtr<IDXGIAdapter> dxgiAdapter = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Device> d3d12Device = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12CommandQueue> d3d12Queue = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> d3d12RenderTarget = nullptr;
     XrGraphicsBindingD3D12KHR graphicsBinding{XR_TYPE_GRAPHICS_BINDING_D3D12_KHR};
     std::vector<XrSwapchainImageD3D12KHR> xrImages;
 #endif
@@ -26,51 +26,48 @@ XrWGPUBridge::XrWGPUBridge() : m_dx12(std::make_unique<DX12Internals>()) {}
 
 XrWGPUBridge::~XrWGPUBridge() {
 #ifdef _WIN32
+    if (m_dx12->dxgiAdapter != nullptr) {
+        m_dx12->dxgiAdapter = nullptr;
+    }
+    if (m_dx12->d3d12Device != nullptr) {
+        m_dx12->d3d12Device = nullptr;
+    }
     if (m_dx12->d3d12Queue != nullptr) {
-        m_dx12->d3d12Queue->Release();
         m_dx12->d3d12Queue = nullptr;
     }
 #endif
 }
 
-bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice, WGPUAdapter wgpuAdapter) {
+bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice, WGPUAdapter wgpuAdapter, WGPUQueue wgpuQueue) {
 #ifdef _WIN32
     m_wgpuDevice = wgpuDevice;
     std::cout << "[XrWGPUBridge]: Extracting D3D12 handles from WebGPU..." << std::endl;
 
-    auto dxgiFactory = static_cast<IDXGIFactory *>(wgpuInstanceGetD3D12Instance(wgpuInstance));
-    m_dx12->dxgiAdapter = static_cast<IDXGIAdapter *>(wgpuAdapterGetD3D12PhysicalDevice(wgpuAdapter));
-    m_dx12->d3d12Device = static_cast<ID3D12Device*>(wgpuDeviceGetD3D12Device(wgpuDevice));
+    auto dxgiFactory = static_cast<IDXGIFactory*>(wgpuInstanceGetD3D12Instance(wgpuInstance));
+    auto dxgiAdapter = static_cast<IDXGIAdapter*>(wgpuAdapterGetD3D12PhysicalDevice(wgpuAdapter));
+    auto d3d12Device = static_cast<ID3D12Device*>(wgpuDeviceGetD3D12Device(wgpuDevice));
+    auto d3d12Queue = static_cast<ID3D12CommandQueue*>(wgpuQueueGetD3D12CommandQueue(wgpuQueue));
+
+    m_dx12->dxgiAdapter.Attach(dxgiAdapter);
+    m_dx12->d3d12Device.Attach(d3d12Device);
+    m_dx12->d3d12Queue.Attach(d3d12Queue);
+
 
     if (m_dx12->d3d12Device == nullptr) {
         std::cerr << "[XrWGPUBridge]: fatal - D3D12 device pointer is nullptr" << std::endl;
         return false;
     }
 
-    D3D12_COMMAND_QUEUE_DESC queueDesc{};
-    queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-    queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-    queueDesc.NodeMask = 0;
-
-    m_dx12->d3d12Device->();
-    HRESULT queueRes = m_dx12->d3d12Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_dx12->d3d12Queue));
-    if (FAILED(queueRes)) {
-        std::cerr << "[XrWGPUBridge]: failed to create D3D12 command queue, HRESULT=0x"
-                  << std::hex << static_cast<uint32_t>(queueRes) << std::dec << std::endl;
-        return false;
-    }
-
-    std::memset(&m_dx12->graphicsBinding, 0, sizeof(XrGraphicsBindingD3D12KHR));
-    m_dx12->graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_D3D12_KHR;
-    m_dx12->graphicsBinding.device = m_dx12->d3d12Device;
-    m_dx12->graphicsBinding.queue = m_dx12->d3d12Queue;
+    m_dx12->graphicsBinding = {XR_TYPE_GRAPHICS_BINDING_D3D12_KHR};
+    m_dx12->graphicsBinding.next = nullptr;
+    m_dx12->d3d12Device.CopyTo(&m_dx12->graphicsBinding.device);
+    m_dx12->d3d12Queue.CopyTo(&m_dx12->graphicsBinding.queue);
 
     std::cout << "[XrWGPUBridge]: D3D12 handles ready." << std::endl;
     std::cout << "\tDXGI Factory: " << dxgiFactory << std::endl;
-    std::cout << "\tDXGI Adapter: " << m_dx12->dxgiAdapter << std::endl;
-    std::cout << "\tD3D12 Device: " << m_dx12->d3d12Device << std::endl;
-    std::cout << "\tD3D12 Queue:  " << m_dx12->d3d12Queue << std::endl;
+    std::cout << "\tDXGI Adapter: " << m_dx12->dxgiAdapter.Get() << std::endl;
+    std::cout << "\tD3D12 Device: " << m_dx12->d3d12Device.Get() << std::endl;
+    std::cout << "\tD3D12 Queue:  " << m_dx12->d3d12Queue.Get() << std::endl;
 
     return true;
 #else
@@ -85,10 +82,10 @@ bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDe
 XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xrSystemId) {
 #ifdef _WIN32
     std::cout << "[XrWGPUBridge]: Checking D3D12 pointers:" << std::endl;
-    std::cout << "\tDXGI adapter: " << m_dx12->dxgiAdapter << std::endl;
-    std::cout << "\tD3D12 device: " << m_dx12->d3d12Device << std::endl;
-    std::cout << "\tD3D12 queue:  " << m_dx12->d3d12Queue << std::endl;
-    if (m_dx12->d3d12Device == nullptr || m_dx12->d3d12Queue == nullptr) {
+    std::cout << "\tDXGI adapter: " << m_dx12->dxgiAdapter.Get() << std::endl;
+    std::cout << "\tD3D12 device: " << m_dx12->d3d12Device.Get() << std::endl;
+    std::cout << "\tD3D12 queue:  " << m_dx12->d3d12Queue.Get() << std::endl;
+    if (m_dx12->d3d12Device.Get() == nullptr || m_dx12->d3d12Queue.Get() == nullptr) {
         std::cerr << "[XrWGPUBridge]: fatal - D3D12 pointers are nullptr" << std::endl;
         return XR_NULL_HANDLE;
     }
@@ -112,10 +109,10 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
             std::cerr << "[XrWGPUBridge]: failed to query D3D12 graphics requirements: " << errorStr << std::endl;
             return XR_NULL_HANDLE;
         }
-
+        
         if (m_dx12->dxgiAdapter != nullptr) {
             DXGI_ADAPTER_DESC adapterDesc{};
-            if (SUCCEEDED(m_dx12->dxgiAdapter->GetDesc(&adapterDesc))) {
+            if (SUCCEEDED(m_dx12->dxgiAdapter.Get()->GetDesc(&adapterDesc))) {
                 const bool luidMatches =
                     adapterDesc.AdapterLuid.HighPart == graphicsRequirements.adapterLuid.HighPart &&
                     adapterDesc.AdapterLuid.LowPart == graphicsRequirements.adapterLuid.LowPart;
@@ -127,6 +124,7 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
         }
 
         std::cout << "[XrWGPUBridge]: D3D12 requirements are satisfied" << std::endl;
+        
     }
 
     XrSessionCreateInfo sessionInfo{XR_TYPE_SESSION_CREATE_INFO};
@@ -191,7 +189,8 @@ void XrWGPUBridge::xrwgpuCreateSwapchain(
     desc.sampleCount = 1;
     m_renderTarget = wgpuDeviceCreateTexture(m_wgpuDevice, &desc);
     m_renderTargetView = wgpuTextureCreateView(m_renderTarget, nullptr);
-    m_dx12->d3d12RenderTarget = static_cast<ID3D12Resource *>(wgpuTextureGetD3D12Image(m_renderTarget));
+    auto d3d12RenderTarget = static_cast<ID3D12Resource *>(wgpuTextureGetD3D12Image(m_renderTarget));
+    m_dx12->d3d12RenderTarget.Attach(d3d12RenderTarget);
     std::cout << "[XrWGPUBridge] Swapchain ready. ID3D12Resource extracted: " << m_dx12->d3d12RenderTarget << std::endl;
 #else
     (void)session;

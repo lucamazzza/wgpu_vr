@@ -122,7 +122,7 @@ int main() {
 
     // XrWGPUBridge
     XrWGPUBridge bridge;
-    if (!bridge.xrwgpuInitialize(instance, device, adapter)) {
+    if (!bridge.xrwgpuInitialize(instance, device, adapter, queue)) {
         return -1;
     }
     XrSession session = bridge.xrwgpuCreateSession(xrInstance, systemId);
