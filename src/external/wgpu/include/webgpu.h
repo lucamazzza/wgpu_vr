@@ -6739,10 +6739,10 @@ WGPU_EXPORT void wgpuTextureViewRelease(WGPUTextureView textureView) WGPU_FUNCTI
 /** @} */
 
 // NOTE: WGPU Vulkan native handles injected
-WGPU_EXPORT void *wgpuInstanceGetVulkanInstance(WGPUInstance instance);
-WGPU_EXPORT void *wgpuAdapterGetVulkanPhysicalDevice(WGPUAdapter adapter);
-WGPU_EXPORT void *wgpuDeviceGetVulkanDevice(WGPUDevice device);
-WGPU_EXPORT void *wgpuTextureGetVulkanImage(WGPUTexture texture);
+WGPU_EXPORT void *wgpuInstanceGetD3D12Instance(WGPUInstance instance);
+WGPU_EXPORT void *wgpuAdapterGetD3D12PhysicalDevice(WGPUAdapter adapter);
+WGPU_EXPORT void *wgpuDeviceGetD3D12Device(WGPUDevice device);
+WGPU_EXPORT void *wgpuTextureGetD3D12Image(WGPUTexture texture);
 
 #endif  // !defined(WGPU_SKIP_DECLARATIONS)
 

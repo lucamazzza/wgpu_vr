@@ -54,7 +54,7 @@ int main() {
     // WebGPU Base Initialization
     WGPUInstanceExtras instanceExtras = {};
     instanceExtras.chain.next = nullptr;
-    instanceExtras.chain.sType = WGPUSType_InstanceExtras;
+    instanceExtras.chain.sType = (WGPUSType) WGPUSType_InstanceExtras;
     instanceExtras.backends = WGPUInstanceBackend_DX12;
     WGPUInstanceDescriptor instDesc = {};
     instDesc.nextInChain = &instanceExtras.chain;

@@ -8,14 +8,8 @@
 #include <d3d12.h>
 #include <dxgi.h>
 #include <openxr/openxr_platform.h>
+#include <wrl/client.h>
 #endif
-
-extern "C" {
-void *wgpuInstanceGetD3D12Instance(WGPUInstance instance);
-void *wgpuAdapterGetD3D12PhysicalDevice(WGPUAdapter adapter);
-void *wgpuDeviceGetD3D12Device(WGPUDevice device);
-void *wgpuTextureGetD3D12Image(WGPUTexture texture);
-}
 
 struct XrWGPUBridge::DX12Internals {
 #ifdef _WIN32
@@ -44,9 +38,9 @@ bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDe
     m_wgpuDevice = wgpuDevice;
     std::cout << "[XrWGPUBridge]: Extracting D3D12 handles from WebGPU..." << std::endl;
 
-    void *dxgiFactory = wgpuInstanceGetD3D12Instance(wgpuInstance);
+    auto dxgiFactory = static_cast<IDXGIFactory *>(wgpuInstanceGetD3D12Instance(wgpuInstance));
     m_dx12->dxgiAdapter = static_cast<IDXGIAdapter *>(wgpuAdapterGetD3D12PhysicalDevice(wgpuAdapter));
-    m_dx12->d3d12Device = static_cast<ID3D12Device *>(wgpuDeviceGetD3D12Device(wgpuDevice));
+    m_dx12->d3d12Device = static_cast<ID3D12Device*>(wgpuDeviceGetD3D12Device(wgpuDevice));
 
     if (m_dx12->d3d12Device == nullptr) {
         std::cerr << "[XrWGPUBridge]: fatal - D3D12 device pointer is nullptr" << std::endl;
@@ -59,6 +53,7 @@ bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDe
     queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     queueDesc.NodeMask = 0;
 
+    m_dx12->d3d12Device->();
     HRESULT queueRes = m_dx12->d3d12Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_dx12->d3d12Queue));
     if (FAILED(queueRes)) {
         std::cerr << "[XrWGPUBridge]: failed to create D3D12 command queue, HRESULT=0x"
