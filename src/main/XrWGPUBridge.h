@@ -13,12 +13,12 @@ public:
     bool xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice, WGPUAdapter wgpuAdapter);
     XrSession xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xrSystemId);
     void xrwgpuCreateSwapchain(
-        XrSession session, WGPUTextureFormat wgpuFormat, int64_t vulkanFormat, uint32_t width, uint32_t height);
+        XrSession session, WGPUTextureFormat wgpuFormat, int64_t nativeFormat, uint32_t width, uint32_t height);
     WGPUTextureView xrwgpuAcquireNextImage();
     void present();
 private:
-    struct VKInternals;
-    std::unique_ptr<VKInternals> m_vk;
+    struct DX12Internals;
+    std::unique_ptr<DX12Internals> m_dx12;
     WGPUDevice m_wgpuDevice = nullptr;
     XrSession m_xrSession = XR_NULL_HANDLE;
     XrSwapchain m_xrSwapchain = XR_NULL_HANDLE;

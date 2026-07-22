@@ -14,7 +14,6 @@ add_executable(${TARGET_NAME}
 
 target_include_directories(${TARGET_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/external/vulkan/include
 )
 
 target_link_libraries(${TARGET_NAME} PRIVATE
@@ -22,11 +21,12 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     wgpu_native
     glfw
     glm::glm
-    ${CMAKE_SOURCE_DIR}/external/vulkan/lib/vulkan-1.lib
 )
 
 if(WIN32)
     target_link_libraries(${TARGET_NAME} PRIVATE
+        d3d12
+        dxgi
         ws2_32
         userenv
         bcrypt

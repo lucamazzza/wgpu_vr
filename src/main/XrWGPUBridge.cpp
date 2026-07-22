@@ -1,136 +1,172 @@
 #include "XrWGPUBridge.h"
-#include "openxr/openxr.h"
-#include "vulkan/vulkan_core.h"
+
 #include <iostream>
+#include <cstring>
 
-#define XR_USE_GRAPHICS_API_VULKAN
-#include <vulkan/vulkan.h>
+#ifdef _WIN32
+#define XR_USE_GRAPHICS_API_D3D12
+#include <d3d12.h>
+#include <dxgi.h>
 #include <openxr/openxr_platform.h>
+#endif
 
-struct XrWGPUBridge::VKInternals {
-    VkInstance vkInstance = VK_NULL_HANDLE;
-    VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
-    VkDevice vkDevice = VK_NULL_HANDLE;
-    uint32_t queueFamilyIndex = 0;
-    VkQueue vkQueue = VK_NULL_HANDLE;
-    VkCommandPool vkCmdPool = VK_NULL_HANDLE;
-    VkCommandBuffer vkCmdBuffer = VK_NULL_HANDLE;
-    VkImage vkRenderTargetImage = VK_NULL_HANDLE;
-    XrGraphicsBindingVulkanKHR graphicsBinding{XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR};
-    std::vector<XrSwapchainImageVulkanKHR> xrImages;
+extern "C" {
+void *wgpuInstanceGetD3D12Instance(WGPUInstance instance);
+void *wgpuAdapterGetD3D12PhysicalDevice(WGPUAdapter adapter);
+void *wgpuDeviceGetD3D12Device(WGPUDevice device);
+void *wgpuTextureGetD3D12Image(WGPUTexture texture);
+}
+
+struct XrWGPUBridge::DX12Internals {
+#ifdef _WIN32
+    IDXGIAdapter *dxgiAdapter = nullptr;
+    ID3D12Device *d3d12Device = nullptr;
+    ID3D12CommandQueue *d3d12Queue = nullptr;
+    ID3D12Resource *d3d12RenderTarget = nullptr;
+    XrGraphicsBindingD3D12KHR graphicsBinding{XR_TYPE_GRAPHICS_BINDING_D3D12_KHR};
+    std::vector<XrSwapchainImageD3D12KHR> xrImages;
+#endif
 };
 
-XrWGPUBridge::XrWGPUBridge() : m_vk(std::make_unique<VKInternals>()) {}
+XrWGPUBridge::XrWGPUBridge() : m_dx12(std::make_unique<DX12Internals>()) {}
 
-XrWGPUBridge::~XrWGPUBridge() {}
+XrWGPUBridge::~XrWGPUBridge() {
+#ifdef _WIN32
+    if (m_dx12->d3d12Queue != nullptr) {
+        m_dx12->d3d12Queue->Release();
+        m_dx12->d3d12Queue = nullptr;
+    }
+#endif
+}
 
 bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice, WGPUAdapter wgpuAdapter) {
+#ifdef _WIN32
     m_wgpuDevice = wgpuDevice;
-    std::cout << "[XrWGPUBridge]: Extracting Vulkan handles from WebGPU..." << std::endl;
-    m_vk->vkInstance = (VkInstance)wgpuInstanceGetVulkanInstance(wgpuInstance);
-    m_vk->vkDevice = (VkDevice)wgpuDeviceGetVulkanDevice(wgpuDevice);
-    m_vk->vkPhysicalDevice = (VkPhysicalDevice)wgpuAdapterGetVulkanPhysicalDevice(wgpuAdapter);
-    memset(&m_vk->graphicsBinding, 0, sizeof(XrGraphicsBindingVulkanKHR));
-    m_vk->graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR;
-    m_vk->graphicsBinding.instance = m_vk->vkInstance;
-    m_vk->graphicsBinding.physicalDevice = m_vk->vkPhysicalDevice;
-    m_vk->graphicsBinding.device = m_vk->vkDevice;
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(m_vk->vkPhysicalDevice, &queueFamilyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(m_vk->vkPhysicalDevice, &queueFamilyCount, queueFamilies.data());
-    uint32_t graphicsQueueIndex = 0;
-    bool queueFound = false;
-    for (uint32_t i = 0; i < queueFamilyCount; i++) {
-        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            graphicsQueueIndex = i;
-            queueFound = true;
-            break;
-        }
-    }
-    if (!queueFound) {
-        std::cerr << "[XrWGPUBridge]: No Graphics Queue found on GPU" << std::endl;
+    std::cout << "[XrWGPUBridge]: Extracting D3D12 handles from WebGPU..." << std::endl;
+
+    void *dxgiFactory = wgpuInstanceGetD3D12Instance(wgpuInstance);
+    m_dx12->dxgiAdapter = static_cast<IDXGIAdapter *>(wgpuAdapterGetD3D12PhysicalDevice(wgpuAdapter));
+    m_dx12->d3d12Device = static_cast<ID3D12Device *>(wgpuDeviceGetD3D12Device(wgpuDevice));
+
+    if (m_dx12->d3d12Device == nullptr) {
+        std::cerr << "[XrWGPUBridge]: fatal - D3D12 device pointer is nullptr" << std::endl;
         return false;
     }
-    std::cout << "[XrWGPUBridge]: Vulkan Graphics Queue found at index: " << graphicsQueueIndex << std::endl;
-    m_vk->graphicsBinding.queueFamilyIndex = graphicsQueueIndex;
-    m_vk->queueFamilyIndex = graphicsQueueIndex;
-    m_vk->graphicsBinding.queueIndex = 0;
-    vkGetDeviceQueue(m_vk->vkDevice, m_vk->queueFamilyIndex, 0, &m_vk->vkQueue);
-    VkCommandPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
-    poolInfo.queueFamilyIndex = m_vk->queueFamilyIndex;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    vkCreateCommandPool(m_vk->vkDevice, &poolInfo, nullptr, &m_vk->vkCmdPool);
-    VkCommandBufferAllocateInfo allocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-    allocInfo.commandPool = m_vk->vkCmdPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
-    vkAllocateCommandBuffers(m_vk->vkDevice, &allocInfo, &m_vk->vkCmdBuffer);
+
+    D3D12_COMMAND_QUEUE_DESC queueDesc{};
+    queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+    queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+    queueDesc.NodeMask = 0;
+
+    HRESULT queueRes = m_dx12->d3d12Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_dx12->d3d12Queue));
+    if (FAILED(queueRes)) {
+        std::cerr << "[XrWGPUBridge]: failed to create D3D12 command queue, HRESULT=0x"
+                  << std::hex << static_cast<uint32_t>(queueRes) << std::dec << std::endl;
+        return false;
+    }
+
+    std::memset(&m_dx12->graphicsBinding, 0, sizeof(XrGraphicsBindingD3D12KHR));
+    m_dx12->graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_D3D12_KHR;
+    m_dx12->graphicsBinding.device = m_dx12->d3d12Device;
+    m_dx12->graphicsBinding.queue = m_dx12->d3d12Queue;
+
+    std::cout << "[XrWGPUBridge]: D3D12 handles ready." << std::endl;
+    std::cout << "\tDXGI Factory: " << dxgiFactory << std::endl;
+    std::cout << "\tDXGI Adapter: " << m_dx12->dxgiAdapter << std::endl;
+    std::cout << "\tD3D12 Device: " << m_dx12->d3d12Device << std::endl;
+    std::cout << "\tD3D12 Queue:  " << m_dx12->d3d12Queue << std::endl;
+
     return true;
+#else
+    (void)wgpuInstance;
+    (void)wgpuDevice;
+    (void)wgpuAdapter;
+    std::cerr << "[XrWGPUBridge]: DX12 bridge is only supported on Windows." << std::endl;
+    return false;
+#endif
 }
 
 XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xrSystemId) {
-    std::cout << "[XrWGPUBridge]: Checking FFI WebGPU Pointers:" << std::endl;
-    std::cout << "\tvkInstance:       " << m_vk->vkInstance << std::endl;
-    std::cout << "\tvkPhysicalDevice: " << m_vk->vkPhysicalDevice << std::endl;
-    std::cout << "\tvkDevice:         " << m_vk->vkDevice << std::endl;
-    if (!m_vk->vkInstance || !m_vk->vkPhysicalDevice || !m_vk->vkDevice) {
-        std::cerr << "[XrWGPUBridge]: fatal - FFI Pointers are nullptr" << std::endl;
+#ifdef _WIN32
+    std::cout << "[XrWGPUBridge]: Checking D3D12 pointers:" << std::endl;
+    std::cout << "\tDXGI adapter: " << m_dx12->dxgiAdapter << std::endl;
+    std::cout << "\tD3D12 device: " << m_dx12->d3d12Device << std::endl;
+    std::cout << "\tD3D12 queue:  " << m_dx12->d3d12Queue << std::endl;
+    if (m_dx12->d3d12Device == nullptr || m_dx12->d3d12Queue == nullptr) {
+        std::cerr << "[XrWGPUBridge]: fatal - D3D12 pointers are nullptr" << std::endl;
         return XR_NULL_HANDLE;
     }
+
     {
-        PFN_xrGetVulkanGraphicsRequirementsKHR checkRequirements = nullptr;
-        xrGetInstanceProcAddr(xrInstance, "xrGetVulkanGraphicsRequirementsKHR",
-                              (PFN_xrVoidFunction*)&checkRequirements);
-        if (checkRequirements != nullptr) {
-            XrGraphicsRequirementsVulkanKHR graphicsRequirements{XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN_KHR};
-            checkRequirements(xrInstance, xrSystemId, &graphicsRequirements);
-            std::cout << "[XrWGPUBridge]: Vulkan Requirements are satisfied" << std::endl;
-        } else {
-            std::cerr << "[XrWGPUBridge]: function xrGetVulkanGraphicsRequirementsKHR not found" << std::endl;
+        PFN_xrGetD3D12GraphicsRequirementsKHR getRequirements = nullptr;
+        XrResult procRes = xrGetInstanceProcAddr(
+            xrInstance,
+            "xrGetD3D12GraphicsRequirementsKHR",
+            reinterpret_cast<PFN_xrVoidFunction *>(&getRequirements));
+        if (XR_FAILED(procRes) || getRequirements == nullptr) {
+            std::cerr << "[XrWGPUBridge]: function xrGetD3D12GraphicsRequirementsKHR not found" << std::endl;
+            return XR_NULL_HANDLE;
         }
-    }
-    {
-        PFN_xrGetVulkanGraphicsDeviceKHR getVulkanDeviceFunc = nullptr;
-        xrGetInstanceProcAddr(xrInstance, "xrGetVulkanGraphicsDeviceKHR", (PFN_xrVoidFunction*)&getVulkanDeviceFunc);
-        if (getVulkanDeviceFunc != nullptr) {
-            VkPhysicalDevice openxrRequestedDevice = VK_NULL_HANDLE;
-            XrResult devRes = getVulkanDeviceFunc(xrInstance, xrSystemId, m_vk->vkInstance, &openxrRequestedDevice);
-            if (XR_SUCCEEDED(devRes)) {
-                std::cout << "[XrWGPUBridge] OpenXR advises to use PhysicalDevice: " << openxrRequestedDevice << std::endl;
-                if (openxrRequestedDevice != m_vk->vkPhysicalDevice) {
-                    std::cerr << "[XrWGPUBridge] GPU Mismatch" << std::endl;
-                    std::cerr << "WebGPU is using: " << m_vk->vkPhysicalDevice << " but OpenXR wants: " << openxrRequestedDevice << std::endl;
+
+        XrGraphicsRequirementsD3D12KHR graphicsRequirements{XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR};
+        XrResult reqRes = getRequirements(xrInstance, xrSystemId, &graphicsRequirements);
+        if (XR_FAILED(reqRes)) {
+            char errorStr[XR_MAX_RESULT_STRING_SIZE];
+            xrResultToString(xrInstance, reqRes, errorStr);
+            std::cerr << "[XrWGPUBridge]: failed to query D3D12 graphics requirements: " << errorStr << std::endl;
+            return XR_NULL_HANDLE;
+        }
+
+        if (m_dx12->dxgiAdapter != nullptr) {
+            DXGI_ADAPTER_DESC adapterDesc{};
+            if (SUCCEEDED(m_dx12->dxgiAdapter->GetDesc(&adapterDesc))) {
+                const bool luidMatches =
+                    adapterDesc.AdapterLuid.HighPart == graphicsRequirements.adapterLuid.HighPart &&
+                    adapterDesc.AdapterLuid.LowPart == graphicsRequirements.adapterLuid.LowPart;
+                if (!luidMatches) {
+                    std::cerr << "[XrWGPUBridge]: GPU mismatch between WebGPU adapter and OpenXR-required adapter" << std::endl;
+                    return XR_NULL_HANDLE;
                 }
             }
         }
+
+        std::cout << "[XrWGPUBridge]: D3D12 requirements are satisfied" << std::endl;
     }
+
     XrSessionCreateInfo sessionInfo{XR_TYPE_SESSION_CREATE_INFO};
-    sessionInfo.next = &m_vk->graphicsBinding;
+    sessionInfo.next = &m_dx12->graphicsBinding;
     sessionInfo.systemId = xrSystemId;
     sessionInfo.createFlags = 0;
     XrResult res = xrCreateSession(xrInstance, &sessionInfo, &m_xrSession);
     if (XR_FAILED(res)) {
         char errorStr[XR_MAX_RESULT_STRING_SIZE];
         xrResultToString(xrInstance, res, errorStr);
-        std::cerr << "[XrWGPUBridge]: Failed to create OpenXR session with Vulkan binding" << std::endl;
+        std::cerr << "[XrWGPUBridge]: Failed to create OpenXR session with D3D12 binding" << std::endl;
         std::cerr << "\tCause: " << errorStr << std::endl;
         return XR_NULL_HANDLE;
     }
     return m_xrSession;
+#else
+    (void)xrInstance;
+    (void)xrSystemId;
+    std::cerr << "[XrWGPUBridge]: DX12 bridge is only supported on Windows." << std::endl;
+    return XR_NULL_HANDLE;
+#endif
 }
 
 void XrWGPUBridge::xrwgpuCreateSwapchain(
     XrSession session,
     WGPUTextureFormat wgpuFormat,
-    int64_t vulkanFormat,
+    int64_t nativeFormat,
     uint32_t width,
     uint32_t height
 ) {
+#ifdef _WIN32
     m_xrSession = session;
     XrSwapchainCreateInfo swapchainInfo{XR_TYPE_SWAPCHAIN_CREATE_INFO};
     swapchainInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
-    swapchainInfo.format = vulkanFormat;
+    swapchainInfo.format = nativeFormat;
     swapchainInfo.sampleCount = 1;
     swapchainInfo.width = width;
     swapchainInfo.height = height;
@@ -145,8 +181,12 @@ void XrWGPUBridge::xrwgpuCreateSwapchain(
     uint32_t imageCount = 0;
     xrEnumerateSwapchainImages(m_xrSwapchain, 0, &imageCount, nullptr);
     std::cout << "[XrWGPUBridge] Successfully created swapchain with " << imageCount << " images" << std::endl;
-    m_vk->xrImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR});
-    xrEnumerateSwapchainImages(m_xrSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*) m_vk->xrImages.data());
+    m_dx12->xrImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR});
+    xrEnumerateSwapchainImages(
+        m_xrSwapchain,
+        imageCount,
+        &imageCount,
+        reinterpret_cast<XrSwapchainImageBaseHeader *>(m_dx12->xrImages.data()));
     WGPUTextureDescriptor desc = {};
     desc.usage = WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_CopySrc;
     desc.dimension = WGPUTextureDimension_2D;
@@ -156,8 +196,15 @@ void XrWGPUBridge::xrwgpuCreateSwapchain(
     desc.sampleCount = 1;
     m_renderTarget = wgpuDeviceCreateTexture(m_wgpuDevice, &desc);
     m_renderTargetView = wgpuTextureCreateView(m_renderTarget, nullptr);
-    m_vk->vkRenderTargetImage = (VkImage)wgpuTextureGetVulkanImage(m_renderTarget);
-    std::cout << "[XrWGPUBridge] Swapchain ready. VkImage WebGPU extracted: " << m_vk->vkRenderTargetImage << std::endl;
+    m_dx12->d3d12RenderTarget = static_cast<ID3D12Resource *>(wgpuTextureGetD3D12Image(m_renderTarget));
+    std::cout << "[XrWGPUBridge] Swapchain ready. ID3D12Resource extracted: " << m_dx12->d3d12RenderTarget << std::endl;
+#else
+    (void)session;
+    (void)wgpuFormat;
+    (void)nativeFormat;
+    (void)width;
+    (void)height;
+#endif
 }
 
 WGPUTextureView XrWGPUBridge::xrwgpuAcquireNextImage() {
@@ -167,7 +214,8 @@ WGPUTextureView XrWGPUBridge::xrwgpuAcquireNextImage() {
     XrSwapchainImageWaitInfo waitInfo{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
     waitInfo.timeout = XR_INFINITE_DURATION;
     xrWaitSwapchainImage(m_xrSwapchain, &waitInfo);
-    return m_swapchainViews[imageIndex];
+    (void)imageIndex;
+    return m_renderTargetView;
 }
 
 void XrWGPUBridge::present() {

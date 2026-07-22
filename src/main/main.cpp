@@ -4,12 +4,16 @@
 #include "XrWGPUBridge.h"
 
 #include <chrono>
+#include <cstring>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <thread>
 #include <webgpu.h>
 #include <wgpu.h>
+#ifdef _WIN32
+#include <dxgiformat.h>
+#endif
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -42,13 +46,23 @@ struct LightMaterialUniforms {
 };
 
 int main() {
+#ifndef _WIN32
+    std::cerr << "This demo currently supports OpenXR + D3D12 only on Windows." << std::endl;
+    return -1;
+#endif
 
     // WebGPU Base Initialization
+    WGPUInstanceExtras instanceExtras = {};
+    instanceExtras.chain.next = nullptr;
+    instanceExtras.chain.sType = WGPUSType_InstanceExtras;
+    instanceExtras.backends = WGPUInstanceBackend_DX12;
     WGPUInstanceDescriptor instDesc = {};
+    instDesc.nextInChain = &instanceExtras.chain;
     WGPUInstance instance = wgpuCreateInstance(&instDesc);
 
     // Adapter Request (GPU)
     WGPURequestAdapterOptions adapterOpts = {};
+    adapterOpts.backendType = WGPUBackendType_D3D12;
     WGPUAdapter adapter = nullptr;
     WGPURequestAdapterCallbackInfo adapterCbInfo = {
         .nextInChain = nullptr,
@@ -89,8 +103,8 @@ int main() {
     XrInstanceCreateInfo xrInstanceInfo{XR_TYPE_INSTANCE_CREATE_INFO};
     strcpy(xrInstanceInfo.applicationInfo.applicationName, "MAIN_Demo");
     xrInstanceInfo.applicationInfo.apiVersion = XR_MAKE_VERSION(1, 0, 0);
-    // -- Enable Vulkan Extension
-    const char *extensions[] = {"XR_KHR_vulkan_enable"};
+    // -- Enable D3D12 Extension
+    const char *extensions[] = {"XR_KHR_D3D12_enable"};
     xrInstanceInfo.enabledExtensionCount = 1;
     xrInstanceInfo.enabledExtensionNames = extensions;
     XrInstance xrInstance;
@@ -115,7 +129,16 @@ int main() {
     if (session == XR_NULL_HANDLE) return -1;
     uint32_t width = 1440;
     uint32_t height = 1600;
-    bridge.xrwgpuCreateSwapchain(session, WGPUTextureFormat_BGRA8Unorm, 43 /* VK_FORMAT_B8G8R8A8_SRGB*/, width, height);
+    int64_t swapchainNativeFormat = 0;
+#ifdef _WIN32
+    swapchainNativeFormat = static_cast<int64_t>(DXGI_FORMAT_B8G8R8A8_UNORM);
+#endif
+    bridge.xrwgpuCreateSwapchain(
+        session,
+        WGPUTextureFormat_BGRA8Unorm,
+        swapchainNativeFormat,
+        width,
+        height);
     XrSessionActionSetsAttachInfo attachInfo{XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO};
     xrAttachSessionActionSets(session, &attachInfo);
     XrSessionBeginInfo beginInfo{XR_TYPE_SESSION_BEGIN_INFO};
