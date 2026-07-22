@@ -60,8 +60,8 @@ bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDe
 
     m_dx12->graphicsBinding = {XR_TYPE_GRAPHICS_BINDING_D3D12_KHR};
     m_dx12->graphicsBinding.next = nullptr;
-    m_dx12->d3d12Device.CopyTo(&m_dx12->graphicsBinding.device);
-    m_dx12->d3d12Queue.CopyTo(&m_dx12->graphicsBinding.queue);
+    m_dx12->graphicsBinding.device = m_dx12->d3d12Device.Get();
+    m_dx12->graphicsBinding.queue = m_dx12->d3d12Queue.Get();
 
     std::cout << "[XrWGPUBridge]: D3D12 handles ready." << std::endl;
     std::cout << "\tDXGI Factory: " << dxgiFactory << std::endl;
