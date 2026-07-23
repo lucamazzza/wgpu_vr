@@ -1047,9 +1047,120 @@ fn get_required_extensions(&self, requested_features: wgt::Features) -> Vec<&'st
 Queste aggiunte sono state svolte solamente nel sorgente menzionato, in quanto entrambe
 \texttt{VK\_KHR\_external\_memory} e \texttt{VK\_KHR\_external\_memory\_win32} sono estensioni di tipo \textit{device}.
 
+\section{Transizione a \texttt{DirectX12}}
+
+Durante la fase di sperimentazione empirica dell'integrazione tra \texttt{WebGPU} e \texttt{OpenXR} sul backend
+\gls{Vulkan}, sono emerse criticità bloccanti legate sia all'ecosistema dei driver che alle estensioni di memoria
+condivisa. Di seguito vengono analizzate le motivazioni che hanno imposto il passaggio al backend \texttt{Direct3D 12}
+(D3D12) e le soluzioni tecniche adottate.
+
+\subsection{Criticità del Backend Vulkan}
+
+L'adozione iniziale di \gls{Vulkan} come minimo comune denominatore si è scontrata con due problemi fondamentali:
+
+\begin{enumerate}
+    \item Sulle macchine di test dotate di architettura grafica ibrida o GPU integrate Intel, l'allocazione e la
+        condivisione inter-processo delle \texttt{VkImage} tramite l'estensione che serve per il funzionamento,
+        \texttt{VK\_KHR\_external\_memory\_win32} ha causato crash imprevedibili a livello di driver grafico.
+    \item Anche eseguendo l'applicazione di riferimento ufficiale Khronos, \texttt{helloxr}, configurata per utilizzare
+        il backend \gls{Vulkan}, il runtime OpenXR (es. SteamVR/Oculus) non è stato in grado di completare la creazione
+        della sessione o la presentazione della swapchain sull'ambiente di sviluppo.
+\end{enumerate}
+
+Poiché l'ambiente target primario è il sistema operativo Windows, si è scelto di effettuare un pivot architetturale
+verso DirectX12. D3D12 rappresenta l'API nativa d'elezione per i runtime OpenXR su Windows, garantendo stabilità
+nativa e bypassando le complicazioni legate all'esportazione manuale dei semafori e della memoria condivisibile di
+Vulkan.
+
+\subsection{Estrazione Handle D3D12 e ownership in \texttt{wgpu-native}}
+
+Per consentire l'interoperabilità tra \texttt{wgpu-native} e OpenXR, sono stati estesi i sorgenti Rust della libreria
+esponendo funzioni FFI dedicate all'estrazione degli oggetti COM sottostanti: \texttt{IDXGIFactory},
+\texttt{IDXGIAdapter}, \texttt{ID3D12Device} e \texttt{ID3D12CommandQueue}.
+
+Un errore critico iniziale durante la chiamata ad \texttt{xrCreateSession} provocava un'eccezione di violazione
+d'accesso nel loader OpenXR (\textit{invalid jump}).
+
+In ambiente Windows, gli oggetti dell'API Direct3D12 (come \texttt{ID3D12Device} e \texttt{ID3D12Image}) sono 
+oggetti COM (\textit{Component Object Model}). La loro memoria viene gestita attraverso il meccanismo del Reference
+Counting (conteggio dei riferimenti), regolato dai metodi dell'interfaccia \texttt{IUnknown}: \texttt{AddRef()}
+incrementa il contatore, mentre \texttt{Release()} lo decrementa. Quando il contatore raggiunge lo zero, l'oggetto viene
+deallocato autonomamente dalla memoria video.
+
+La violazione di accesso è dovuta proprio a questa necessità di contare i riferimenti e la necessità di introdurre la
+clonazione esplicita dell'interfaccia in Rust (\texttt{iface.clone()}) prima di esportare il puntatore grezzo deriva
+dal conflitto tra la gestione dell'ownership in C++ tramite \texttt{Microsoft::WRL::ComPtr} e quella del backend Rust
+di \texttt{wgpu-native}.
+
+
+\begin{listing}[!ht]
+\begin{minted}{rust}
+unsafe fn into_raw_ptr_addref<T: Interface>(iface: &T) -> *mut c_void {
+    let cloned = iface.clone();
+    cloned.into_raw() as *mut c_void
+}
+\end{minted}
+\vspace{-0.75cm}
+\caption{Reference Counting per il ritorno di Handle nativi}
+\label{listing:refcnt}
+\end{listing}
+
+Questa funzione helper viene poi utilizzata al ritorno degli handle per estenderne il lifetime e non lasciare che
+vengano distrutti prima che il codice di destinazione possa anche farne uso. Nel seguente listing \ref{listing:d3d12han}
+il getter per un esempio di handle nativo \texttt{D3D12} con utilizzo della funzione sovraccitata.
+
+\begin{listing}[!ht]
+\begin{minted}{rust}
+#[no_mangle]
+pub unsafe extern "C" fn wgpuTextureGetD3D12Image(
+    texture: native::WGPUTexture
+) -> *mut c_void {
+    #[cfg(all(any(target_os = "windows"), feature = "dx12"))]
+    {
+        let texture = texture.as_ref().expect("invalid texture");
+        let hal_texture =
+            texture.context.texture_as_hal::<hal::api::Dx12>(texture.id);
+        if let Some(hal_texture) = hal_texture {
+            let res = hal_texture.raw_resource();
+            return into_raw_ptr_addref(res);
+        }
+        std::ptr::null_mut()
+    }
+    #[cfg(not(all(any(target_os = "windows"), feature = "dx12")))]
+    {
+        std::ptr::null_mut()
+    }
+}
+\end{minted}
+\vspace{-0.75cm}
+\caption{Funzione di recupero degli handle D3D12}
+\label{listing:d3d12han}
+\end{listing}
+
+Il reference counting è anche implementato nella parte C++, nella quale ogni handle estratto viene salvato all'interno
+di un \texttt{microsoft::wrl::ComPtr}, mantenendo l'assegnazione corretta \textit{non-owning} dei puntatori a
+\texttt{OpenXR}.
+
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+m_dx12->graphicsBinding = {XR_TYPE_GRAPHICS_BINDING_D3D12_KHR};
+m_dx12->graphicsBinding.device = m_dx12->d3d12Device.Get();
+m_dx12->graphicsBinding.queue  = m_dx12->d3d12Queue.Get();<D-b>
+\end{minted}
+\vspace{-0.75cm}
+\caption{Assegnazione \textit{Non-Owning} di puntatori al Graphics Binding}
+\label{listing:nonown}
+\end{listing}
+
 \pagebreak
 
-\section{Passaggio a \texttt{Dawn}}
+\section{Altri tentativi}
+
+Durante lo sviluppo della demo, sono stati svolti altri tentativi che purtroppo non hanno portato ad alcun risultato,
+ma sono comunque meritevoli di nota, sia per documentare il lavoro svolto, sia per virarne alla larga in un eventuale
+ripresa del presente lavoro.
+
+\subsection{Passaggio a \texttt{Dawn}}
 
 Con scopi di ricerca, per dimostrare anche per quali motivi le vie alternative non siano percorribili, per evitare
 lavoro extra in futuro, si è provato a percorrere tali strade alternative; una di queste riguarda l'utilizzo
@@ -1069,7 +1180,7 @@ L'approccio iniziale prevede di mantenere \texttt{WebGPU} come driver dell'appli
 contesto grafico, creare il device logico e, successivamente, l'applicazione avrebbe dovuto estrarre questi handle
 nativi da passare ad \texttt{OpenXR}.
 
-\subsection{Analisi della superficie API Dawn}
+\subsubsection{Analisi della superficie API Dawn}
 
 L'analisi della codebase di \texttt{Dawn} rivela che, sebbene in passato esistessero funzioni per l'interoberabilità
 nativa, proprio come per \texttt{wgpu-native}, queste sono soggette a deprecazione; il design dell'API di Google
@@ -1094,7 +1205,7 @@ richiede l'alterazione del processo di inizializzazione all'interno del file \te
 \footnote{\url{https://github.com/google/dawn/blob/main/src/dawn/native/vulkan/DeviceVk.h}},
 per forzare l'inclusione delle estensioni richieste.
 
-\subsection{Conflitto filosofico con lo standard W3C}
+\subsubsection{Conflitto filosofico con lo standard W3C}
 
 Durante l'implementazione di tali modifiche sono emerse criticità architetturali insormontabili, non legate a bug o
 imperfezioni del codice, bensì alla filosofia stessa con cui \texttt{WebGPU} è concepita dal W3C.
@@ -1138,7 +1249,7 @@ bool ok = dawn::native::vulkan::ExportVulkanImage(
 \label{listing:eivconstructor}
 \end{listing}
 
-\subsection{Out-of-Scope}
+\subsubsection{Out-of-Scope}
 
 Alla luce dei risultati ottenuti, è apparso chiaro che proseguire su questa strada avrebbe significato deviare
 completamente dagli obbiettivi del presente progetto. Il mandato richiede uno studio di fattibilità
@@ -1152,7 +1263,7 @@ In conclusione, il tentativo di utilizzare \texttt{WebGPU} come entità creatric
 core per estrarle è formalmente abbandonato, in quanto le risorse necessarie per tale estrazione rendono il risultato
 inutilizzabile per il corso di realtà virtuale.
 
-\section{Inversion of Control (IoC)}
+\subsection{Inversion of Control (IoC)}
 
 Il fallimento descritto negli atti finali della sezione precedente evidenzia un'alternativa via percorribile per aprire
 il dialogo tra questi due mondi chiusi. Se risulta infattibile l'esposizione di risorse native create da \texttt{WebGPU}
@@ -1166,7 +1277,7 @@ istruzioni \texttt{Vulkan} native, per poi crearvi attorno gli oggetti di contes
 \caption{Approccio \textit{Inversion of Control}}
 \end{figure}
 
-\subsection{Limiti di esportazione memoria}
+\subsubsection{Limiti di esportazione memoria}
 
 L'indagine volta all'utilizzo di \texttt{WebGPU} come entità principale per la creazione del contesto grafico si è
 scontrata con limitazioni architetturali intrinseche al design dell'API. Come analizzato precedentemente, l'integrazione
@@ -1220,7 +1331,7 @@ complesso ciò che si sta provando a compiere. È evidente che le limitazioni ve
 filosofia di WebGPU.
 \end{quote}
 
-\subsection{Valutazione del debito tecnico}
+\subsubsection{Valutazione del debito tecnico}
 
 Per superare queste limitazioni si è valutata la possibilità di effettuare un fork del repository e alterarne il codice
 sorgente per forzare l'iniezione delle estensioni \texttt{Vulkan} richieste da \texttt{OpenXR} ed esporre deliberatamente
@@ -1230,7 +1341,7 @@ Come già menzionato nelle sezioni precedenti, tale approccio viola apertametne 
 per \texttt{WebGPU}, la quale nasce come \textit{API Sandboxed} orientata alla sicurezza ed all'isolamento.
 Ciò rende inutile anche pensare di aggirare il corrente problema con una modifica all'API per introdurre i tipi mancanti.
 
-\subsection{\textit{Zero-Copy} vs Workaround via RAM}
+\subsubsection{\textit{Zero-Copy} vs Workaround via RAM}
 
 Alla luce della documentata assenza delle primitive IPC per l'ambiente Windows, è emerso che qualsiasi approccio nativo
 sulla memoria GPU tra \texttt{Dawn} e \texttt{OpenXR} è precluso. L'unico approccio tecnicamente percorribile per
