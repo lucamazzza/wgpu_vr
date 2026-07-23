@@ -131,7 +131,7 @@ int main() {
     uint32_t height = 1600;
     int64_t swapchainNativeFormat = 0;
 #ifdef _WIN32
-    swapchainNativeFormat = static_cast<int64_t>(DXGI_FORMAT_B8G8R8A8_UNORM);
+    swapchainNativeFormat = static_cast<int64_t>(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB);
 #endif
     bridge.xrwgpuCreateSwapchain(
         session,
