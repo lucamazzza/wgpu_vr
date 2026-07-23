@@ -169,6 +169,7 @@ void XrWGPUBridge::xrwgpuCreateSwapchain(
     XrResult res = xrCreateSwapchain(m_xrSession, &swapchainInfo, &m_xrSwapchain);
     if (XR_FAILED(res)) {
         std::cerr << "[XrWGPUBridge] Cannot create OpenXR swapchain" << std::endl;
+		std::cerr << "\tCause: " << res << std::endl;
         return;
     }
     uint32_t imageCount = 0;
