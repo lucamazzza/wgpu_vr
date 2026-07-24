@@ -3,29 +3,24 @@
 #include <iostream>
 #include <cstring>
 
-#ifdef _WIN32
 #define XR_USE_GRAPHICS_API_D3D12
 #include <d3d12.h>
 #include <dxgi.h>
 #include <openxr/openxr_platform.h>
 #include <wrl/client.h>
-#endif
 
 struct XrWGPUBridge::DX12Internals {
-#ifdef _WIN32
     Microsoft::WRL::ComPtr<IDXGIAdapter> dxgiAdapter = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Device> d3d12Device = nullptr;
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> d3d12Queue = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> d3d12RenderTarget = nullptr;
     XrGraphicsBindingD3D12KHR graphicsBinding{XR_TYPE_GRAPHICS_BINDING_D3D12_KHR};
     std::vector<XrSwapchainImageD3D12KHR> xrImages;
-#endif
 };
 
 XrWGPUBridge::XrWGPUBridge() : m_dx12(std::make_unique<DX12Internals>()) {}
 
 XrWGPUBridge::~XrWGPUBridge() {
-#ifdef _WIN32
     if (m_dx12->dxgiAdapter != nullptr) {
         m_dx12->dxgiAdapter = nullptr;
     }
@@ -35,11 +30,9 @@ XrWGPUBridge::~XrWGPUBridge() {
     if (m_dx12->d3d12Queue != nullptr) {
         m_dx12->d3d12Queue = nullptr;
     }
-#endif
 }
 
 bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice, WGPUAdapter wgpuAdapter, WGPUQueue wgpuQueue) {
-#ifdef _WIN32
     m_wgpuDevice = wgpuDevice;
     std::cout << "[XrWGPUBridge]: Extracting D3D12 handles from WebGPU..." << std::endl;
 
@@ -70,17 +63,9 @@ bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDe
     std::cout << "\tD3D12 Queue:  " << m_dx12->d3d12Queue.Get() << std::endl;
 
     return true;
-#else
-    (void)wgpuInstance;
-    (void)wgpuDevice;
-    (void)wgpuAdapter;
-    std::cerr << "[XrWGPUBridge]: DX12 bridge is only supported on Windows." << std::endl;
-    return false;
-#endif
 }
 
 XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xrSystemId) {
-#ifdef _WIN32
     std::cout << "[XrWGPUBridge]: Checking D3D12 pointers:" << std::endl;
     std::cout << "\tDXGI adapter: " << m_dx12->dxgiAdapter.Get() << std::endl;
     std::cout << "\tD3D12 device: " << m_dx12->d3d12Device.Get() << std::endl;
@@ -140,12 +125,6 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
         return XR_NULL_HANDLE;
     }
     return m_xrSession;
-#else
-    (void)xrInstance;
-    (void)xrSystemId;
-    std::cerr << "[XrWGPUBridge]: DX12 bridge is only supported on Windows." << std::endl;
-    return XR_NULL_HANDLE;
-#endif
 }
 
 void XrWGPUBridge::xrwgpuCreateSwapchain(
@@ -155,7 +134,6 @@ void XrWGPUBridge::xrwgpuCreateSwapchain(
     uint32_t width,
     uint32_t height
 ) {
-#ifdef _WIN32
     m_xrSession = session;
     XrSwapchainCreateInfo swapchainInfo{XR_TYPE_SWAPCHAIN_CREATE_INFO};
     swapchainInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
@@ -193,13 +171,6 @@ void XrWGPUBridge::xrwgpuCreateSwapchain(
     auto d3d12RenderTarget = static_cast<ID3D12Resource *>(wgpuTextureGetD3D12Image(m_renderTarget));
     m_dx12->d3d12RenderTarget.Attach(d3d12RenderTarget);
     std::cout << "[XrWGPUBridge] Swapchain ready. ID3D12Resource extracted: " << m_dx12->d3d12RenderTarget << std::endl;
-#else
-    (void)session;
-    (void)wgpuFormat;
-    (void)nativeFormat;
-    (void)width;
-    (void)height;
-#endif
 }
 
 WGPUTextureView XrWGPUBridge::xrwgpuAcquireNextImage() {
