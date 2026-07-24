@@ -156,10 +156,11 @@ int main() {
     int64_t swapchainNativeFormat = static_cast<int64_t>(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB);
     bridge.xrwgpuCreateSwapchain(
         session,
-        WGPUTextureFormat_BGRA8Unorm,
+        WGPUTextureFormat_BGRA8UnormSrgb,
         swapchainNativeFormat,
         width,
-        height);
+        height,
+        2);
     XrSessionActionSetsAttachInfo attachInfo{XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO};
     xrAttachSessionActionSets(session, &attachInfo);
 
@@ -216,7 +217,7 @@ int main() {
         .usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst,
         .dimension = WGPUTextureDimension_2D,
         .size = {(uint32_t)texWidth, (uint32_t)texHeight, 1},
-        .format = WGPUTextureFormat_RGBA8Unorm,
+        .format = WGPUTextureFormat_BGRA8UnormSrgb,
         .mipLevelCount = 1,
         .sampleCount = 1
     };
@@ -238,7 +239,7 @@ int main() {
     };
     wgpuQueueWriteTexture(queue, &copyTex, paddedData.data(), paddedData.size(), &texLayout, &texDesc.size);
     WGPUTextureViewDescriptor viewDesc = {
-        .format = WGPUTextureFormat_RGBA8Unorm,
+        .format = WGPUTextureFormat_BGRA8UnormSrgb,
         .dimension = WGPUTextureViewDimension_2D,
         .mipLevelCount = 1,
         .arrayLayerCount = 1
@@ -256,7 +257,7 @@ int main() {
     WGPUTextureDescriptor depthTexDesc = {
         .usage = WGPUTextureUsage_RenderAttachment,
         .dimension = WGPUTextureDimension_2D,
-        .size = {800, 600, 1},
+        .size = {1440, 1600, 1},
         .format = WGPUTextureFormat_Depth24Plus,
         .mipLevelCount = 1,
         .sampleCount = 1,
@@ -291,7 +292,7 @@ int main() {
 
     // Fragment shader
     WGPUColorTargetState colorTarget = {
-        .format = WGPUTextureFormat_BGRA8Unorm,
+        .format = WGPUTextureFormat_BGRA8UnormSrgb,
         .writeMask = WGPUColorWriteMask_All
     };
     WGPUFragmentState fragmentState = {
@@ -393,7 +394,6 @@ int main() {
         std::vector<XrCompositionLayerProjectionView> compositionLayerProjectionViews = {};
 
         if (frameState.shouldRender) {
-            std::cout << "Coap" << std::endl;
             didRender = true;
 
             // 3D view
@@ -415,14 +415,13 @@ int main() {
                 WGPUCommandEncoderDescriptor encoderDesc = {};
                 WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, &encoderDesc);
 
-                const XrSwapchain& currentSwapchain = swapchains.at(viewIdx);
                 const XrView& currentView = views.at(viewIdx);
 
                 XrCompositionLayerProjectionView compositionLayerProjectionView = {};
                 compositionLayerProjectionView.type = XrStructureType::XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
                 compositionLayerProjectionView.pose = currentView.pose;
                 compositionLayerProjectionView.fov = currentView.fov;
-                compositionLayerProjectionView.subImage.swapchain = currentSwapchain;
+                compositionLayerProjectionView.subImage.swapchain = bridge.xrwgpuGetSwapchainHandle(viewIdx);
                 compositionLayerProjectionView.subImage.imageRect.offset.x = 0;
                 compositionLayerProjectionView.subImage.imageRect.offset.y = 0;
                 compositionLayerProjectionView.subImage.imageRect.extent.width = width;
@@ -462,7 +461,7 @@ int main() {
                 wgpuQueueWriteBuffer(queue, lightBuffer.get(), 0, &lightMat, sizeof(LightMaterialUniforms));
                 // lightBuffer.update(queue, &lightMat, sizeof(LightMaterialUniforms));
             
-                WGPUTextureView nextImage = bridge.xrwgpuAcquireNextImage();
+                WGPUTextureView nextImage = bridge.xrwgpuAcquireNextImage(viewIdx);
 
                 WGPURenderPassColorAttachment colorAttachment = {
                     .view = nextImage,
@@ -496,14 +495,14 @@ int main() {
                 WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDesc);
                 wgpuQueueSubmit(queue, 1, &command);
                 wgpuCommandBufferRelease(command);
-                bridge.present();
+                bridge.xrwgpuPresent(viewIdx);
             }
 
             compositionLayerProjection.viewCount = static_cast<uint32_t>(compositionLayerProjectionViews.size());
             compositionLayerProjection.views = compositionLayerProjectionViews.data();
 
             if (didRender) {
-                layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerProjectionViews));
+                layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerProjection));
             }
 
             XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
