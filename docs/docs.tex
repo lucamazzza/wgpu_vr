@@ -90,7 +90,7 @@
 % Code Snippets
 \usepackage{minted}
 \usepackage{xcolor}
-\usemintedstyle{emacs}
+\usemintedstyle{xcode}
 \setminted{
 numbersep=5pt,
 frame=lines,
@@ -1092,7 +1092,6 @@ clonazione esplicita dell'interfaccia in Rust (\texttt{iface.clone()}) prima di 
 dal conflitto tra la gestione dell'ownership in C++ tramite \texttt{Microsoft::WRL::ComPtr} e quella del backend Rust
 di \texttt{wgpu-native}.
 
-
 \begin{listing}[!ht]
 \begin{minted}{rust}
 unsafe fn into_raw_ptr_addref<T: Interface>(iface: &T) -> *mut c_void {
@@ -1145,12 +1144,122 @@ di un \texttt{microsoft::wrl::ComPtr}, mantenendo l'assegnazione corretta \texti
 \begin{minted}{cpp}
 m_dx12->graphicsBinding = {XR_TYPE_GRAPHICS_BINDING_D3D12_KHR};
 m_dx12->graphicsBinding.device = m_dx12->d3d12Device.Get();
-m_dx12->graphicsBinding.queue  = m_dx12->d3d12Queue.Get();<D-b>
+m_dx12->graphicsBinding.queue  = m_dx12->d3d12Queue.Get();
 \end{minted}
 \vspace{-0.75cm}
 \caption{Assegnazione \textit{Non-Owning} di puntatori al Graphics Binding}
 \label{listing:nonown}
 \end{listing}
+
+\subsection{Sincronizzazione e composizione}
+
+L'integrazione nativa tra l'API grafica e il runtime VR raggiunge la sua massima complessità all'interno del ciclo
+applicativo principale. Diversamente da approcci ad alto livello, l'utilizzo di una \textit{Render Hardware Interface}
+esplicita come WebGPU richiede un'orchestrazione manuale di ogni singola fase della pipeline, dalla sincronizzazione
+temporale al trasferimento dei dati in memoria video.
+
+\subsubsection{Ciclo di vita del frame}
+
+OpenXR impone un rigoroso \textit{frame pacing} per garantire che le immagini vengano presentate all'Head Mounte
+Display minimizzando la latenza \textit{motion-to-photon}. Il ciclo di vita di un singolo fotogramma stereoscopico si
+articola attraverso tre chiamate fondamentali dettate dal runtime:
+
+\begin{enumerate}
+    \item \texttt{xrWaitFrame}: Sincronizza il thread dell'applicazione con le tempistiche del compositor, mettendo il
+        processo in attesa fino al momento ottimale per iniziare l'elaborazione del frame successivo.
+    \item \texttt{xrBeginFrame}: Segnala formalmente al runtime l'inizio della composizione grafica.
+    \item \texttt{xrEndFrame}: Conclude il fotogramma, sottomettendo un array di livelli di composizione 
+        (\texttt{XrCompositionLayerBaseHeader}) al compositor per la visualizzazione finale.
+\end{enumerate}
+
+\subsubsection{Acquisizione pose}
+
+Una volta iniziato il frame, è necessario interrogare il sistema di tracciamento spaziale per ottenere la posizione e la
+rotazione precise dell'utente. Questo avviene tramite la chiamata \texttt{xrLocateViews}, che popola un array di
+strutture \texttt{XrView}, contenenti il campo visivo (FOV) e la posa per ogni occhio.
+
+L'infrastruttura sviluppata richiede la costruzione manuale delle matrici di trasformazione. I dati di tracking estratti
+(espressi come quaternioni per la rotazione e vettori per la traslazione) vengono convertiti e combinati per generare la
+matrice della telecamera. Per posizionare correttamente la geometria nel View Space di WebGPU, viene calcolata la
+matrice di Vista inversa ($M_{view} = M_{camera}^{-1}$), garantendo che la scena reagisca coerentemente ai movimenti
+fisici dell'HMD.
+
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+MatricesUniforms matrices = {};
+glm::quat eyeOrientation(
+    currentView.pose.orientation.w,
+    currentView.pose.orientation.x,
+    currentView.pose.orientation.y,
+    currentView.pose.orientation.z
+);
+glm::vec3 eyePosition(
+    currentView.pose.position.x,
+    currentView.pose.position.y,
+    currentView.pose.position.z
+);
+glm::mat4 rotation_matrix = glm::mat4_cast(eyeOrientation);
+glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), eyePosition);
+glm::mat4 eye_transform = translation_matrix * rotation_matrix;
+glm::mat4 view_matrix = glm::inverse(eye_transform);
+glm::mat4 model_matrix = glm::mat4(1.0f);
+\end{minted}
+\vspace{-0.75cm}
+\caption{Costruzione dinamica della matrice di View tramite dati OpenXR}
+\label{listing:viewmatrix}
+\end{listing}
+
+\pagebreak
+
+\subsubsection{Resource Barriers}
+
+L'utilizzo diretto di comandi hardware come \texttt{CopyResource} introduce una severa complessità legata alla rigida
+gestione degli stati di memoria imposta dalle API moderne come \texttt{Direct3D 12} e \gls{Vulkan}.
+
+\texttt{WebGPU}, al termine della codifica del suo \textit{Render Pass}, lascia la propria texture in uno stato
+designato alla scrittura (\texttt{D3D12\_RESOURCE\_STATE\_RENDER\_TARGET}). Al tempo stesso, \texttt{OpenXR} fornisce le
+immagini della sua swapchain preconfigurate in uno stato simile, attendendosi che l'applicazione le restituisca intatte.
+
+Affinché la copia a basso livello vada a buon fine senza causare un fallimento silenzioso della command queue (che si
+tradurrebbe in un output visivo nel visore completamente nero, nonostante la corretta sincronizzazione del loop e
+l'assenza di errori di compilazione), è imperativo inserire delle \textit{Resource Barrier}. Queste barriere indicano al
+driver di transire esplicitamente la texture sorgente e quella di destinazione negli stati \texttt{COPY\_SOURCE} e
+\texttt{COPY\_DEST}, per poi ripristinarle in sicurezza a copia ultimata.
+
+\begin{listing}[!ht]
+\begin{minted}{cpp}
+D3D12_RESOURCE_BARRIER preBarriers[2] = {};
+preBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+preBarriers[0].Transition.pResource = srcWebGPU;
+preBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+preBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+preBarriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+preBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+preBarriers[1].Transition.pResource = dstOpenXR;
+preBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+preBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+preBarriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+m_dx12->commandList->ResourceBarrier(2, preBarriers);
+m_dx12->commandList->CopyResource(dstOpenXR, srcWebGPU);
+\end{minted}
+\vspace{-0.75cm}
+\caption{Gestione degli stati di memoria tramite D3D12 Resource Barriers}
+\label{listing:resourcebarriers}
+\end{listing}
+
+\subsubsection{Gestione della Swapchain e Rendering Offscreen}
+
+Come analizzato precedentemente, l'assenza di primitive \textit{zero-copy} stabili per il wrapping diretto delle
+immagini di \texttt{OpenXR} in \texttt{WebGPU} ha imposto un approccio indiretto. L'architettura sviluppata all'interno
+della classe \texttt{XrWGPUBridge} delega a \texttt{OpenXR} la creazione della swapchain hardware nativa, ma alloca
+parallelamente una \texttt{WGPUTexture} \textit{offscreen} dedicata per ciascuna \textit{view} (occhio sinistro e occhio
+destro).
+
+Durante l'inizializzazione, per ogni immagine richiesta dal compositor, viene istanziata una texture \texttt{WebGPU}
+configurata esplicitamente con i flag \texttt{WGPUTextureUsage\_RenderAttachment} e \texttt{WGPUTextureUsage\_CopySrc}.
+Quest'ultimo flag è cruciale, in quanto permette al backend di autorizzare operazioni di copia a basso livello a valle
+del processo di rendering. Il puntatore D3D12 nativo di questa texture offscreen viene estratto e salvato nel contesto
+della swapchain per l'operazione finale di trasferimento.
 
 \pagebreak
 

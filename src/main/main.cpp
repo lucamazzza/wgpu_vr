@@ -460,7 +460,7 @@ int main() {
                 lightMat.lightPosition = matrices.modelview * glm::vec4(sin(time) * 50.0f, 20.0f, cos(time) * 50.0f, 1.0f);
                 wgpuQueueWriteBuffer(queue, lightBuffer.get(), 0, &lightMat, sizeof(LightMaterialUniforms));
                 // lightBuffer.update(queue, &lightMat, sizeof(LightMaterialUniforms));
-            
+
                 WGPUTextureView nextImage = bridge.xrwgpuAcquireNextImage(viewIdx);
 
                 WGPURenderPassColorAttachment colorAttachment = {
@@ -508,7 +508,7 @@ int main() {
             XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
             frameEndInfo.displayTime = frameState.predictedDisplayTime;
             frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
-			frameEndInfo.layerCount = static_cast<uint32_t>(layers.size());
+            frameEndInfo.layerCount = static_cast<uint32_t>(layers.size());
             frameEndInfo.layers = layers.data();
             xrEndFrame(session, &frameEndInfo);
             time += 0.016f;
