@@ -111,7 +111,7 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
             std::cerr << "[XrWGPUBridge]: failed to query D3D12 graphics requirements: " << errorStr << std::endl;
             return XR_NULL_HANDLE;
         }
-        
+
         if (m_dx12->dxgiAdapter != nullptr) {
             DXGI_ADAPTER_DESC adapterDesc{};
             if (SUCCEEDED(m_dx12->dxgiAdapter.Get()->GetDesc(&adapterDesc))) {
@@ -126,7 +126,7 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
         }
 
         std::cout << "[XrWGPUBridge]: D3D12 requirements are satisfied" << std::endl;
-        
+
     }
 
     XrSessionCreateInfo sessionInfo{XR_TYPE_SESSION_CREATE_INFO};

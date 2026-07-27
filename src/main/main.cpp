@@ -184,15 +184,15 @@ int main() {
     XrSessionActionSetsAttachInfo attachInfo{XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO};
     xrAttachSessionActionSets(session, &attachInfo);
 
-	std::vector<XrSwapchain> swapchains;
+    std::vector<XrSwapchain> swapchains;
 
-	// XrSpace Creation
+    // XrSpace Creation
     XrSpace space = XR_NULL_HANDLE;
     XrReferenceSpaceCreateInfo referenceSpaceInfo = {};
     referenceSpaceInfo.type = XrStructureType::XR_TYPE_REFERENCE_SPACE_CREATE_INFO;
     referenceSpaceInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_STAGE;
     referenceSpaceInfo.poseInReferenceSpace = {
-		{ 0.0f, 0.0f, 0.0f, 1.0f, }, // Orientation (Quaternion)
+        { 0.0f, 0.0f, 0.0f, 1.0f, }, // Orientation (Quaternion)
         { 0.0f, 0.0f, 0.0f },        // Position
     };
     if (XR_FAILED(xrCreateReferenceSpace(session, &referenceSpaceInfo, &space))) {
@@ -365,7 +365,7 @@ int main() {
     XrSessionState sessionState = XR_SESSION_STATE_UNKNOWN;
     while (isRunning) {
 
-		// Poll OpenXR events
+        // Poll OpenXR events
         XrEventDataBuffer eventData{ XR_TYPE_EVENT_DATA_BUFFER };
         while (xrPollEvent(xrInstance, &eventData) == XR_SUCCESS) {
             if (eventData.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) {
@@ -395,29 +395,29 @@ int main() {
             continue;
         }
 
-		// Wait for the next frame
+        // Wait for the next frame
         XrFrameWaitInfo frameWaitInfo{XR_TYPE_FRAME_WAIT_INFO};
         XrFrameState frameState{XR_TYPE_FRAME_STATE};
         xrWaitFrame(session, &frameWaitInfo, &frameState);
 
-		// Begin the frame
+        // Begin the frame
         XrFrameBeginInfo frameBeginInfo{XR_TYPE_FRAME_BEGIN_INFO};
         xrBeginFrame(session, &frameBeginInfo);
         std::vector<XrCompositionLayerBaseHeader*> layers = {};
-       
-		// Check if the session is active
+
+        // Check if the session is active
         const bool isSessionActive =
             sessionState == XrSessionState::XR_SESSION_STATE_SYNCHRONIZED ||
             sessionState == XrSessionState::XR_SESSION_STATE_VISIBLE ||
             sessionState == XrSessionState::XR_SESSION_STATE_FOCUSED;
         bool didRender = false;
 
-		// Create the projection layer for rendering
+        // Create the projection layer for rendering
         XrCompositionLayerProjection compositionLayerProjection = {};
         compositionLayerProjection.type = XrStructureType::XR_TYPE_COMPOSITION_LAYER_PROJECTION;
         compositionLayerProjection.layerFlags = 0;
         compositionLayerProjection.space = space;
-        compositionLayerProjection.viewCount = 0; // This will be filled up later.
+        compositionLayerProjection.viewCount = 0;   // This will be filled up later.
         compositionLayerProjection.views = nullptr; // This will be filled up later.
         std::vector<XrCompositionLayerProjectionView> compositionLayerProjectionViews = {};
 
@@ -433,7 +433,7 @@ int main() {
             viewLocateInfo.displayTime = frameState.predictedDisplayTime;
             viewLocateInfo.space = space;
 
-			// Get the number of views
+            // Get the number of views
             uint32_t viewCnt = 0;
             xrLocateViews(session, &viewLocateInfo, &viewState, 0, &viewCnt, nullptr);
             std::vector<XrView> views(viewCnt, { XrStructureType::XR_TYPE_VIEW });
@@ -534,7 +534,7 @@ int main() {
                 layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerProjection));
             }
 
-			// End the frame
+            // End the frame
             XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
             frameEndInfo.displayTime = frameState.predictedDisplayTime;
             frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
