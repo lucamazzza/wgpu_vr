@@ -1,3 +1,10 @@
+/*!
+ * \file shader.cpp
+ * \brief Implementation of the Shader class.
+ * 
+ * \author Luca Mazza
+ * \copyright 2026 Luca Mazza
+ */
 #include "shader.h"
 
 #include <fstream>

@@ -1,3 +1,10 @@
+/*!
+ * \file XrWGPUBridge.cpp
+ * \brief Bridge between OpenXR and WebGPU
+ *
+ * \author Luca Mazza
+ * \copyright 2026 Luca Mazza
+ */
 #include "XrWGPUBridge.h"
 
 #include <iostream>

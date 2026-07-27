@@ -1,24 +1,40 @@
+/*! 
+ * \file main.cpp
+ * \brief Main entry point for the application.
+ *
+ * \author Luca Mazza
+ * \copyright 2026 Luca Mazza
+ */
+
+// Internal includes
 #include "openxr/openxr.h"
 #include "shader.h"
 #include "buffer.h"
 #include "XrWGPUBridge.h"
 
-#include <chrono>
-#include <cstring>
+// Includes for GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <thread>
+#include <glm/gtc/quaternion.hpp>
+
+// Includes for WebGPU
 #include <webgpu.h>
 #include <wgpu.h>
+
+// Includes for DirectX 12
 #include <dxgiformat.h>
 
+// Include for stb_image
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+// Includes for standard libraries
+#include <chrono>
 #include <iostream>
 #include <string>
-#include <glm/gtc/quaternion.hpp>
+#include <thread>
+
 
 struct Vertex {
     glm::vec3 position;
@@ -44,6 +60,11 @@ struct LightMaterialUniforms {
     float padding[3];
 };
 
+// Source: https://openxr-tutorial.com/linux/opengl/_downloads/f4aef9ec726fccc71e105bc0830d4ff3/xr_linear_algebra.h
+// XrMatrix4x4f_CreateProjectionFov
+// XrMatrix4x4f_CreateProjection
+// We have to use a custom projection function because glm::projection does not handle
+// fov the way we need it to.
 static glm::mat4 createProjectionMatrix(const XrFovf fov, const float near_clipping_plane, const float far_clipping_plane) {
     const float tan_left = std::tanf(fov.angleLeft);
     const float tan_right = std::tanf(fov.angleRight);
@@ -76,7 +97,6 @@ static glm::mat4 createProjectionMatrix(const XrFovf fov, const float near_clipp
 }
 
 int main() {
-
     // WebGPU Base Initialization
     WGPUInstanceExtras instanceExtras = {};
     instanceExtras.chain.next = nullptr;
@@ -166,13 +186,14 @@ int main() {
 
 	std::vector<XrSwapchain> swapchains;
 
+	// XrSpace Creation
     XrSpace space = XR_NULL_HANDLE;
     XrReferenceSpaceCreateInfo referenceSpaceInfo = {};
     referenceSpaceInfo.type = XrStructureType::XR_TYPE_REFERENCE_SPACE_CREATE_INFO;
     referenceSpaceInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_STAGE;
     referenceSpaceInfo.poseInReferenceSpace = {
-        { 0.0f, 0.0f, 0.0f, 1.0f, },
-        { 0.0f, 0.0f, 0.0f }, // Position
+		{ 0.0f, 0.0f, 0.0f, 1.0f, }, // Orientation (Quaternion)
+        { 0.0f, 0.0f, 0.0f },        // Position
     };
     if (XR_FAILED(xrCreateReferenceSpace(session, &referenceSpaceInfo, &space))) {
         std::cerr << "Failed to create reference space!" << std::endl;
@@ -343,6 +364,8 @@ int main() {
     bool isSessionRunning = false;
     XrSessionState sessionState = XR_SESSION_STATE_UNKNOWN;
     while (isRunning) {
+
+		// Poll OpenXR events
         XrEventDataBuffer eventData{ XR_TYPE_EVENT_DATA_BUFFER };
         while (xrPollEvent(xrInstance, &eventData) == XR_SUCCESS) {
             if (eventData.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) {
@@ -371,26 +394,31 @@ int main() {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
+
+		// Wait for the next frame
         XrFrameWaitInfo frameWaitInfo{XR_TYPE_FRAME_WAIT_INFO};
         XrFrameState frameState{XR_TYPE_FRAME_STATE};
         xrWaitFrame(session, &frameWaitInfo, &frameState);
+
+		// Begin the frame
         XrFrameBeginInfo frameBeginInfo{XR_TYPE_FRAME_BEGIN_INFO};
         xrBeginFrame(session, &frameBeginInfo);
         std::vector<XrCompositionLayerBaseHeader*> layers = {};
-
+       
+		// Check if the session is active
         const bool isSessionActive =
             sessionState == XrSessionState::XR_SESSION_STATE_SYNCHRONIZED ||
             sessionState == XrSessionState::XR_SESSION_STATE_VISIBLE ||
             sessionState == XrSessionState::XR_SESSION_STATE_FOCUSED;
         bool didRender = false;
 
+		// Create the projection layer for rendering
         XrCompositionLayerProjection compositionLayerProjection = {};
         compositionLayerProjection.type = XrStructureType::XR_TYPE_COMPOSITION_LAYER_PROJECTION;
         compositionLayerProjection.layerFlags = 0;
         compositionLayerProjection.space = space;
         compositionLayerProjection.viewCount = 0; // This will be filled up later.
         compositionLayerProjection.views = nullptr; // This will be filled up later.
-
         std::vector<XrCompositionLayerProjectionView> compositionLayerProjectionViews = {};
 
         if (frameState.shouldRender) {
@@ -405,6 +433,7 @@ int main() {
             viewLocateInfo.displayTime = frameState.predictedDisplayTime;
             viewLocateInfo.space = space;
 
+			// Get the number of views
             uint32_t viewCnt = 0;
             xrLocateViews(session, &viewLocateInfo, &viewState, 0, &viewCnt, nullptr);
             std::vector<XrView> views(viewCnt, { XrStructureType::XR_TYPE_VIEW });
@@ -505,6 +534,7 @@ int main() {
                 layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerProjection));
             }
 
+			// End the frame
             XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
             frameEndInfo.displayTime = frameState.predictedDisplayTime;
             frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
