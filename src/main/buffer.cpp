@@ -1,10 +1,10 @@
-/*!
- * \file buffer.cpp
- * \brief A wrapper class for a WebGPU buffer.
- *
- * \author Luca Mazza
- * \copyright 2026 Luca Mazza
- */
+/**
+    \file buffer.cpp
+    \brief A wrapper class for a WebGPU buffer.
+
+    \author Luca Mazza
+    \copyright 2026 Luca Mazza
+*/
 #include "buffer.h"
 
 #include <iostream>

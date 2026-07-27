@@ -1,10 +1,10 @@
-/*! 
- * \file main.cpp
- * \brief Main entry point for the application.
- *
- * \author Luca Mazza
- * \copyright 2026 Luca Mazza
- */
+/**
+    \file main.cpp
+    \brief Main entry point for the application.
+
+    \author Luca Mazza
+    \copyright 2026 Luca Mazza
+*/
 
 // Internal includes
 #include "openxr/openxr.h"
