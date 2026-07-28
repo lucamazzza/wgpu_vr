@@ -10,8 +10,6 @@
 #include <webgpu.h>
 #include <wgpu.h>
 
-#include <shader.h>
-
 /**
     \brief A wrapper class for a WebGPU shader module.
 

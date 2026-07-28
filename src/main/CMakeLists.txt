@@ -7,6 +7,8 @@ add_executable(${TARGET_NAME}
     shader.cpp
     XrWGPUBridge.h
     XrWGPUBridge.cpp
+    XrBridge.h
+    XrBridge.cpp
     main.cpp
 
     stb_image.h

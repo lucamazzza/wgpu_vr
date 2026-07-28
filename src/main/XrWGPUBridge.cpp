@@ -16,6 +16,15 @@
 #include <openxr/openxr_platform.h>
 #include <wrl/client.h>
 
+#ifdef _DEBUG
+#define XRWGPU_BRIDGE_DEBUG_OUT( message ) { std::cerr << "[XrWGPUBridge][DEBUG] " << message << std::endl; }
+#else
+#define XRWGPU_BRIDGE_DEBUG_OUT( message ) {}
+#endif
+
+#define XRWGPU_BRIDGE_WARNING_OUT( message ) { std::cerr << "[XrWGPUBridge][WARNING] " << message << std::endl; }
+#define XRWGPU_BRIDGE_ERROR_OUT( message ) { std::cerr << "[XrWGPUBridge][ERROR] " << message << std::endl; }
+
 struct SwapchainContext {
     XrSwapchain handle;
     std::vector<XrSwapchainImageD3D12KHR> nativeXrImages;
@@ -51,7 +60,7 @@ XrWGPUBridge::~XrWGPUBridge() {
 
 bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice, WGPUAdapter wgpuAdapter, WGPUQueue wgpuQueue) {
     m_wgpuDevice = wgpuDevice;
-    std::cout << "[XrWGPUBridge]: Extracting D3D12 handles from WebGPU..." << std::endl;
+    XRWGPU_BRIDGE_DEBUG_OUT("Extracting D3D12 handles from WebGPU...");
 
     auto dxgiFactory = static_cast<IDXGIFactory*>(wgpuInstanceGetD3D12Instance(wgpuInstance));
     auto dxgiAdapter = static_cast<IDXGIAdapter*>(wgpuAdapterGetD3D12PhysicalDevice(wgpuAdapter));
@@ -64,7 +73,7 @@ bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDe
 
 
     if (m_dx12->d3d12Device == nullptr) {
-        std::cerr << "[XrWGPUBridge]: fatal - D3D12 device pointer is nullptr" << std::endl;
+        XRWGPU_BRIDGE_ERROR_OUT("fatal - D3D12 device pointer is nullptr");
         return false;
     }
 
@@ -73,22 +82,22 @@ bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDe
     m_dx12->graphicsBinding.device = m_dx12->d3d12Device.Get();
     m_dx12->graphicsBinding.queue = m_dx12->d3d12Queue.Get();
 
-    std::cout << "[XrWGPUBridge]: D3D12 handles ready." << std::endl;
-    std::cout << "\tDXGI Factory: " << dxgiFactory << std::endl;
-    std::cout << "\tDXGI Adapter: " << m_dx12->dxgiAdapter.Get() << std::endl;
-    std::cout << "\tD3D12 Device: " << m_dx12->d3d12Device.Get() << std::endl;
-    std::cout << "\tD3D12 Queue:  " << m_dx12->d3d12Queue.Get() << std::endl;
+    XRWGPU_BRIDGE_DEBUG_OUT("D3D12 handles ready.");
+    XRWGPU_BRIDGE_DEBUG_OUT("\tDXGI Factory: " << dxgiFactory);
+    XRWGPU_BRIDGE_DEBUG_OUT("\tDXGI Adapter: " << m_dx12->dxgiAdapter.Get());
+    XRWGPU_BRIDGE_DEBUG_OUT("\tD3D12 Device: " << m_dx12->d3d12Device.Get());
+    XRWGPU_BRIDGE_DEBUG_OUT("\tD3D12 Queue:  " << m_dx12->d3d12Queue.Get());
 
     return true;
 }
 
 XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xrSystemId) {
-    std::cout << "[XrWGPUBridge]: Checking D3D12 pointers:" << std::endl;
-    std::cout << "\tDXGI adapter: " << m_dx12->dxgiAdapter.Get() << std::endl;
-    std::cout << "\tD3D12 device: " << m_dx12->d3d12Device.Get() << std::endl;
-    std::cout << "\tD3D12 queue:  " << m_dx12->d3d12Queue.Get() << std::endl;
+    XRWGPU_BRIDGE_DEBUG_OUT("Checking D3D12 pointers:");
+    XRWGPU_BRIDGE_DEBUG_OUT("\tDXGI adapter: " << m_dx12->dxgiAdapter.Get());
+    XRWGPU_BRIDGE_DEBUG_OUT("\tD3D12 device: " << m_dx12->d3d12Device.Get());
+    XRWGPU_BRIDGE_DEBUG_OUT("\tD3D12 queue:  " << m_dx12->d3d12Queue.Get());
     if (m_dx12->d3d12Device.Get() == nullptr || m_dx12->d3d12Queue.Get() == nullptr) {
-        std::cerr << "[XrWGPUBridge]: fatal - D3D12 pointers are nullptr" << std::endl;
+        XRWGPU_BRIDGE_ERROR_OUT("fatal - D3D12 pointers are nullptr");
         return XR_NULL_HANDLE;
     }
 
@@ -99,7 +108,7 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
             "xrGetD3D12GraphicsRequirementsKHR",
             reinterpret_cast<PFN_xrVoidFunction *>(&getRequirements));
         if (XR_FAILED(procRes) || getRequirements == nullptr) {
-            std::cerr << "[XrWGPUBridge]: function xrGetD3D12GraphicsRequirementsKHR not found" << std::endl;
+            XRWGPU_BRIDGE_ERROR_OUT("function xrGetD3D12GraphicsRequirementsKHR not found");
             return XR_NULL_HANDLE;
         }
 
@@ -108,7 +117,7 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
         if (XR_FAILED(reqRes)) {
             char errorStr[XR_MAX_RESULT_STRING_SIZE];
             xrResultToString(xrInstance, reqRes, errorStr);
-            std::cerr << "[XrWGPUBridge]: failed to query D3D12 graphics requirements: " << errorStr << std::endl;
+            XRWGPU_BRIDGE_ERROR_OUT("failed to query D3D12 graphics requirements: " << errorStr);
             return XR_NULL_HANDLE;
         }
 
@@ -119,13 +128,12 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
                     adapterDesc.AdapterLuid.HighPart == graphicsRequirements.adapterLuid.HighPart &&
                     adapterDesc.AdapterLuid.LowPart == graphicsRequirements.adapterLuid.LowPart;
                 if (!luidMatches) {
-                    std::cerr << "[XrWGPUBridge]: GPU mismatch between WebGPU adapter and OpenXR-required adapter" << std::endl;
+                    XRWGPU_BRIDGE_ERROR_OUT("GPU mismatch between WebGPU adapter and OpenXR-required adapter");
                     return XR_NULL_HANDLE;
                 }
             }
         }
-
-        std::cout << "[XrWGPUBridge]: D3D12 requirements are satisfied" << std::endl;
+        XRWGPU_BRIDGE_DEBUG_OUT("D3D12 requirements are satisfied");
 
     }
 
@@ -137,8 +145,7 @@ XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xr
     if (XR_FAILED(res)) {
         char errorStr[XR_MAX_RESULT_STRING_SIZE];
         xrResultToString(xrInstance, res, errorStr);
-        std::cerr << "[XrWGPUBridge]: Failed to create OpenXR session with D3D12 binding" << std::endl;
-        std::cerr << "\tCause: " << errorStr << std::endl;
+        XRWGPU_BRIDGE_ERROR_OUT("Failed to create OpenXR session with D3D12 binding\n\tCause: " << errorStr);
         return XR_NULL_HANDLE;
     }
     return m_xrSession;
@@ -170,12 +177,12 @@ void XrWGPUBridge::xrwgpuCreateSwapchain(
         swapchainInfo.mipCount = 1;
         XrResult res = xrCreateSwapchain(m_xrSession, &swapchainInfo, &swc.handle);
         if (XR_FAILED(res)) {
-            std::cerr << "[XrWGPUBridge] Cannot create OpenXR swapchain for view " << i << "\n\tCause: " << res << std::endl;
+            XRWGPU_BRIDGE_ERROR_OUT("Cannot create OpenXR swapchain for view " << i << "\n\tCause: " << res);
             continue;
         }
         uint32_t imageCount = 0;
         xrEnumerateSwapchainImages(swc.handle, 0, &imageCount, nullptr);
-        std::cout << "[XrWGPUBridge] Successfully created swapchain " << i << " with " << imageCount << " images" << std::endl;
+        XRWGPU_BRIDGE_DEBUG_OUT("Successfully created swapchain " << i << " with " << imageCount << " images");
         swc.nativeXrImages.resize(imageCount, { XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR });
         xrEnumerateSwapchainImages(swc.handle, imageCount, &imageCount, reinterpret_cast<XrSwapchainImageBaseHeader*>(swc.nativeXrImages.data()));
         swc.wgpuTextures.resize(imageCount);
