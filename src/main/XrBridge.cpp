@@ -261,13 +261,13 @@ bool XrBridge::Render(const RenderFunction_t& renderFunction) {
             layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerProjection));
         }
 
-        // End the frame
-        XrFrameEndInfo frameEndInfo{ XR_TYPE_FRAME_END_INFO };
-        frameEndInfo.displayTime = frameState.predictedDisplayTime;
-        frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
-        frameEndInfo.layerCount = static_cast<uint32_t>(layers.size());
-        frameEndInfo.layers = layers.data();
-        xrEndFrame(m_session, &frameEndInfo);
     }
+    // End the frame
+    XrFrameEndInfo frameEndInfo{ XR_TYPE_FRAME_END_INFO };
+    frameEndInfo.displayTime = frameState.predictedDisplayTime;
+    frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
+    frameEndInfo.layerCount = static_cast<uint32_t>(layers.size());
+    frameEndInfo.layers = layers.data();
+    xrEndFrame(m_session, &frameEndInfo);
     return true;
 }
