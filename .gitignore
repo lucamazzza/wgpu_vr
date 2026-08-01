@@ -16,3 +16,4 @@ compile_commands.json
 # windows
 .vs
 CMakeSettings.json
+x64

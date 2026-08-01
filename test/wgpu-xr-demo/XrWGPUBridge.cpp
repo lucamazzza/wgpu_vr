@@ -1,0 +1,258 @@
+/**
+    \file XrWGPUBridge.cpp
+    \brief Bridge between OpenXR and WebGPU
+
+    \author Luca Mazza
+    \copyright 2026 Luca Mazza
+ */
+#include "XrWGPUBridge.h"
+
+#include <iostream>
+#include <cstring>
+
+#define XR_USE_GRAPHICS_API_D3D12
+#include <d3d12.h>
+#include <dxgi.h>
+#include <openxr/openxr_platform.h>
+#include <wrl/client.h>
+
+#ifdef _DEBUG
+#define XRWGPU_BRIDGE_DEBUG_OUT( message ) { std::cerr << "[XrWGPUBridge][DEBUG] " << message << std::endl; }
+#else
+#define XRWGPU_BRIDGE_DEBUG_OUT( message ) {}
+#endif
+
+#define XRWGPU_BRIDGE_WARNING_OUT( message ) { std::cerr << "[XrWGPUBridge][WARNING] " << message << std::endl; }
+#define XRWGPU_BRIDGE_ERROR_OUT( message ) { std::cerr << "[XrWGPUBridge][ERROR] " << message << std::endl; }
+
+struct SwapchainContext {
+    XrSwapchain handle;
+    std::vector<XrSwapchainImageD3D12KHR> nativeXrImages;
+    std::vector<WGPUTexture> wgpuTextures;
+    std::vector<WGPUTextureView> wgpuTextureViews;
+    std::vector<ID3D12Resource*> wgpuD3D12Resources;
+    uint32_t currentImageIndex = 0;
+};
+
+struct XrWGPUBridge::DX12Internals {
+    Microsoft::WRL::ComPtr<IDXGIAdapter> dxgiAdapter = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Device> d3d12Device = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12CommandQueue> d3d12Queue = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList = nullptr;
+    XrGraphicsBindingD3D12KHR graphicsBinding{ XR_TYPE_GRAPHICS_BINDING_D3D12_KHR };
+    std::vector<SwapchainContext> swapchains;
+};
+
+XrWGPUBridge::XrWGPUBridge() : m_dx12(std::make_unique<DX12Internals>()) {}
+
+XrWGPUBridge::~XrWGPUBridge() {
+    if (m_dx12->dxgiAdapter != nullptr) {
+        m_dx12->dxgiAdapter = nullptr;
+    }
+    if (m_dx12->d3d12Device != nullptr) {
+        m_dx12->d3d12Device = nullptr;
+    }
+    if (m_dx12->d3d12Queue != nullptr) {
+        m_dx12->d3d12Queue = nullptr;
+    }
+}
+
+bool XrWGPUBridge::xrwgpuInitialize(WGPUInstance wgpuInstance, WGPUDevice wgpuDevice, WGPUAdapter wgpuAdapter, WGPUQueue wgpuQueue) {
+    m_wgpuDevice = wgpuDevice;
+    XRWGPU_BRIDGE_DEBUG_OUT("Extracting D3D12 handles from WebGPU...");
+
+    auto dxgiFactory = static_cast<IDXGIFactory*>(wgpuInstanceGetD3D12Instance(wgpuInstance));
+    auto dxgiAdapter = static_cast<IDXGIAdapter*>(wgpuAdapterGetD3D12PhysicalDevice(wgpuAdapter));
+    auto d3d12Device = static_cast<ID3D12Device*>(wgpuDeviceGetD3D12Device(wgpuDevice));
+    auto d3d12Queue = static_cast<ID3D12CommandQueue*>(wgpuQueueGetD3D12CommandQueue(wgpuQueue));
+
+    m_dx12->dxgiAdapter.Attach(dxgiAdapter);
+    m_dx12->d3d12Device.Attach(d3d12Device);
+    m_dx12->d3d12Queue.Attach(d3d12Queue);
+
+
+    if (m_dx12->d3d12Device == nullptr) {
+        XRWGPU_BRIDGE_ERROR_OUT("fatal - D3D12 device pointer is nullptr");
+        return false;
+    }
+
+    m_dx12->graphicsBinding = {XR_TYPE_GRAPHICS_BINDING_D3D12_KHR};
+    m_dx12->graphicsBinding.next = nullptr;
+    m_dx12->graphicsBinding.device = m_dx12->d3d12Device.Get();
+    m_dx12->graphicsBinding.queue = m_dx12->d3d12Queue.Get();
+
+    XRWGPU_BRIDGE_DEBUG_OUT("D3D12 handles ready.");
+    XRWGPU_BRIDGE_DEBUG_OUT("\tDXGI Factory: " << dxgiFactory);
+    XRWGPU_BRIDGE_DEBUG_OUT("\tDXGI Adapter: " << m_dx12->dxgiAdapter.Get());
+    XRWGPU_BRIDGE_DEBUG_OUT("\tD3D12 Device: " << m_dx12->d3d12Device.Get());
+    XRWGPU_BRIDGE_DEBUG_OUT("\tD3D12 Queue:  " << m_dx12->d3d12Queue.Get());
+
+    return true;
+}
+
+XrSession XrWGPUBridge::xrwgpuCreateSession(XrInstance xrInstance, XrSystemId xrSystemId) {
+    XRWGPU_BRIDGE_DEBUG_OUT("Checking D3D12 pointers:");
+    XRWGPU_BRIDGE_DEBUG_OUT("\tDXGI adapter: " << m_dx12->dxgiAdapter.Get());
+    XRWGPU_BRIDGE_DEBUG_OUT("\tD3D12 device: " << m_dx12->d3d12Device.Get());
+    XRWGPU_BRIDGE_DEBUG_OUT("\tD3D12 queue:  " << m_dx12->d3d12Queue.Get());
+    if (m_dx12->d3d12Device.Get() == nullptr || m_dx12->d3d12Queue.Get() == nullptr) {
+        XRWGPU_BRIDGE_ERROR_OUT("fatal - D3D12 pointers are nullptr");
+        return XR_NULL_HANDLE;
+    }
+
+    {
+        PFN_xrGetD3D12GraphicsRequirementsKHR getRequirements = nullptr;
+        XrResult procRes = xrGetInstanceProcAddr(
+            xrInstance,
+            "xrGetD3D12GraphicsRequirementsKHR",
+            reinterpret_cast<PFN_xrVoidFunction *>(&getRequirements));
+        if (XR_FAILED(procRes) || getRequirements == nullptr) {
+            XRWGPU_BRIDGE_ERROR_OUT("function xrGetD3D12GraphicsRequirementsKHR not found");
+            return XR_NULL_HANDLE;
+        }
+
+        XrGraphicsRequirementsD3D12KHR graphicsRequirements{XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR};
+        XrResult reqRes = getRequirements(xrInstance, xrSystemId, &graphicsRequirements);
+        if (XR_FAILED(reqRes)) {
+            char errorStr[XR_MAX_RESULT_STRING_SIZE];
+            xrResultToString(xrInstance, reqRes, errorStr);
+            XRWGPU_BRIDGE_ERROR_OUT("failed to query D3D12 graphics requirements: " << errorStr);
+            return XR_NULL_HANDLE;
+        }
+
+        if (m_dx12->dxgiAdapter != nullptr) {
+            DXGI_ADAPTER_DESC adapterDesc{};
+            if (SUCCEEDED(m_dx12->dxgiAdapter.Get()->GetDesc(&adapterDesc))) {
+                const bool luidMatches =
+                    adapterDesc.AdapterLuid.HighPart == graphicsRequirements.adapterLuid.HighPart &&
+                    adapterDesc.AdapterLuid.LowPart == graphicsRequirements.adapterLuid.LowPart;
+                if (!luidMatches) {
+                    XRWGPU_BRIDGE_ERROR_OUT("GPU mismatch between WebGPU adapter and OpenXR-required adapter");
+                    return XR_NULL_HANDLE;
+                }
+            }
+        }
+        XRWGPU_BRIDGE_DEBUG_OUT("D3D12 requirements are satisfied");
+
+    }
+
+    XrSessionCreateInfo sessionInfo{XR_TYPE_SESSION_CREATE_INFO};
+    sessionInfo.next = &m_dx12->graphicsBinding;
+    sessionInfo.systemId = xrSystemId;
+    sessionInfo.createFlags = 0;
+    XrResult res = xrCreateSession(xrInstance, &sessionInfo, &m_xrSession);
+    if (XR_FAILED(res)) {
+        char errorStr[XR_MAX_RESULT_STRING_SIZE];
+        xrResultToString(xrInstance, res, errorStr);
+        XRWGPU_BRIDGE_ERROR_OUT("Failed to create OpenXR session with D3D12 binding\n\tCause: " << errorStr);
+        return XR_NULL_HANDLE;
+    }
+    return m_xrSession;
+}
+
+void XrWGPUBridge::xrwgpuCreateSwapchain(
+    XrSession session,
+    WGPUTextureFormat wgpuFormat,
+    int64_t nativeFormat,
+    uint32_t width,
+    uint32_t height,
+    uint32_t viewCount
+) {
+    m_xrSession = session;
+    m_dx12->swapchains.resize(viewCount);
+    m_dx12->d3d12Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_dx12->commandAllocator));
+    m_dx12->d3d12Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_dx12->commandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_dx12->commandList));
+    m_dx12->commandList->Close();
+    for (uint32_t i = 0; i < viewCount; ++i) {
+        auto& swc = m_dx12->swapchains[i];
+        XrSwapchainCreateInfo swapchainInfo{ XR_TYPE_SWAPCHAIN_CREATE_INFO };
+        swapchainInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
+        swapchainInfo.format = nativeFormat;
+        swapchainInfo.sampleCount = 1;
+        swapchainInfo.width = width;
+        swapchainInfo.height = height;
+        swapchainInfo.faceCount = 1;
+        swapchainInfo.arraySize = 1;
+        swapchainInfo.mipCount = 1;
+        XrResult res = xrCreateSwapchain(m_xrSession, &swapchainInfo, &swc.handle);
+        if (XR_FAILED(res)) {
+            XRWGPU_BRIDGE_ERROR_OUT("Cannot create OpenXR swapchain for view " << i << "\n\tCause: " << res);
+            continue;
+        }
+        uint32_t imageCount = 0;
+        xrEnumerateSwapchainImages(swc.handle, 0, &imageCount, nullptr);
+        XRWGPU_BRIDGE_DEBUG_OUT("Successfully created swapchain " << i << " with " << imageCount << " images");
+        swc.nativeXrImages.resize(imageCount, { XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR });
+        xrEnumerateSwapchainImages(swc.handle, imageCount, &imageCount, reinterpret_cast<XrSwapchainImageBaseHeader*>(swc.nativeXrImages.data()));
+        swc.wgpuTextures.resize(imageCount);
+        swc.wgpuTextureViews.resize(imageCount);
+        swc.wgpuD3D12Resources.resize(imageCount);
+        for (uint32_t j = 0; j < imageCount; ++j) {
+            WGPUTextureDescriptor desc = {};
+            desc.usage = WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_CopySrc;
+            desc.dimension = WGPUTextureDimension_2D;
+            desc.size = { width, height, 1 };
+            desc.format = wgpuFormat;
+            desc.mipLevelCount = 1;
+            desc.sampleCount = 1;
+            swc.wgpuTextures[j] = wgpuDeviceCreateTexture(m_wgpuDevice, &desc);
+            swc.wgpuTextureViews[j] = wgpuTextureCreateView(swc.wgpuTextures[j], nullptr);
+            swc.wgpuD3D12Resources[j] = static_cast<ID3D12Resource*>(wgpuTextureGetD3D12Image(swc.wgpuTextures[j]));
+        }
+    }
+}
+
+WGPUTextureView XrWGPUBridge::xrwgpuAcquireNextImage(uint32_t viewIdx) {
+    auto& swp = m_dx12->swapchains[viewIdx];
+    XrSwapchainImageAcquireInfo acquireInfo{ XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
+    xrAcquireSwapchainImage(swp.handle, &acquireInfo, &swp.currentImageIndex);
+
+    XrSwapchainImageWaitInfo waitInfo{ XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
+    waitInfo.timeout = XR_INFINITE_DURATION;
+    xrWaitSwapchainImage(swp.handle, &waitInfo);
+
+    return swp.wgpuTextureViews[swp.currentImageIndex];
+}
+
+void XrWGPUBridge::xrwgpuPresent(uint32_t viewIdx) {
+    auto& swc = m_dx12->swapchains[viewIdx];
+    m_dx12->commandAllocator->Reset();
+    m_dx12->commandList->Reset(m_dx12->commandAllocator.Get(), nullptr);
+    ID3D12Resource* srcWebGPU = swc.wgpuD3D12Resources[swc.currentImageIndex];
+    ID3D12Resource* dstOpenXR = swc.nativeXrImages[swc.currentImageIndex].texture;
+    D3D12_RESOURCE_BARRIER preBarriers[2] = {};
+    preBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    preBarriers[0].Transition.pResource = srcWebGPU;
+    preBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    preBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    preBarriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    preBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    preBarriers[1].Transition.pResource = dstOpenXR;
+    preBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    preBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+    preBarriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    m_dx12->commandList->ResourceBarrier(2, preBarriers);
+    m_dx12->commandList->CopyResource(dstOpenXR, srcWebGPU);
+    D3D12_RESOURCE_BARRIER postBarriers[2] = {};
+    postBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    postBarriers[0].Transition.pResource = srcWebGPU;
+    postBarriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    postBarriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    postBarriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    postBarriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    postBarriers[1].Transition.pResource = dstOpenXR;
+    postBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    postBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    postBarriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    m_dx12->commandList->ResourceBarrier(2, postBarriers);
+    m_dx12->commandList->Close();
+    ID3D12CommandList* cmdLists[] = { m_dx12->commandList.Get() };
+    m_dx12->d3d12Queue->ExecuteCommandLists(1, cmdLists);
+    XrSwapchainImageReleaseInfo releaseInfo{ XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
+    xrReleaseSwapchainImage(swc.handle, &releaseInfo);
+}
+
+XrSwapchain XrWGPUBridge::xrwgpuGetSwapchainHandle(uint32_t viewIdx) const {
+    return m_dx12->swapchains[viewIdx].handle;
+}

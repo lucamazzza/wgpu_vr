@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="wgpu-xr-demo/wgpu-xr-demo.vcxproj" Id="b7c32dd1-af4b-43ab-ac1e-3205b7af7f20" />
+</Solution>
