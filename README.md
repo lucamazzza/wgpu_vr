@@ -29,8 +29,7 @@ The vendored libraries include:
 * [GLM](https://github.com/g-truc/glm) (Mathematics)
 
 > [!WARNING]
-> The project also needs the compiled libraries from the custom fork of [wgpu-native](https://github.com/lucamazzza/wgpu-native),
-> that must be compiled with the also custom fork [wgpu](https://github.com/lucamazzza/wgpu).
+> The project also needs the compiled libraries from the custom fork of [wgpu-native](https://github.com/lucamazzza/wgpu-native)
 >
 > The final compiled library is included but make sure it is there.
 
