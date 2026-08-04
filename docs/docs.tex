@@ -13,6 +13,11 @@
 \newfontfamily\titlefont{Times New Roman}
 \usepackage[font=footnotesize]{caption}
 
+% Box Plots
+\usepackage{pgfplots}
+\usepgfplotslibrary{statistics}
+\pgfplotsset{compat=1.18}
+
 % Page Layout & Margins
 \usepackage[
     a4paper,
@@ -1582,9 +1587,9 @@ Questa complessità è ulteriormente amplificata nel dominio VR. L'infrastruttur
     \item L'utilizzo di binding C++ derivati da implementazioni Rust (\texttt{wgpu-native}) costringe la risoluzione
         manuale di librerie di sistema Windows a livello di linker (\texttt{Ws2\_32.lib}, \texttt{Bcrypt.lib}, ecc.),
         aggiungendo frizione nel setup dell'ambiente di sviluppo nativo.
-    \item L'assenza di un modello di illuminazione predefinito in \texttt{WebGPU} richiede la stesura manuale di
-        programmi \textit{Vertex} e \textit{Fragment} in linguaggio WGSL o SPIR-V, concetti che nei corsi tradizionali
-        vengono introdotti solo in fasi avanzate.
+    \item WebGPU si basa su un sistema rigoroso di validazione. Sbagliare un allineamento di memoria o un flag di
+        utilizzo (\textit{Usage Flag}) si traduce in log di errore granulari o, in assenza di una gestione asincrona
+        degli errori (\textit{Uncaptured Error Callback}), nel fallimento silenzioso del render pass.
 \end{enumerate}
 
 Tuttavia, questo sforzo ingegneristico restituisce un controllo assoluto sull'hardware, allineando le competenze
@@ -1592,6 +1597,121 @@ acquisite dagli studenti con l'architettura delle moderne API grafiche industria
 giustificando la complessità aggiuntiva per corsi di livello avanzato.
 
 \section{Performance}
+
+La seconda analisi valuta l'adeguatezza del sistema per l'utilizzo in Realtà Virtuale. Lo sviluppo VR impone
+tolleranze minime: il \gls{framerate} deve rimanere stabilmente ancorato alla frequenza di aggiornamento del visore e
+la latenza \textit{motion-to-photon} (il tempo che intercorre dal movimento della testa all'aggiornamento dei pixel)
+deve rimanere al di sotto dei $20$ millisecondi per prevenire fenomeni di \textit{motion sickness}.
+Anche se un requisito generale dei visori è la stabilità a $90$ FPS, i visori simulati da
+telefono cellulare, utilizzati durante questo progetto come il corso di realtà virtuale, sono spesso limitati (come nel
+mio caso) a $60$ FPS.
+
+I test sono stati condotti eseguendo la medesima scena 3D stereoscopica (con modelli poligonali e illuminazione
+dinamica) sia sull'infrastruttura OpenGL/OvVR sia sul prototipo WebGPU/OpenXR.
+
+\subsection{VRidge + iPhone}
+
+Questa serie di performance test è eseguita con il software \textit{VRidge} come supporto; questo permette di eseguire
+ed interagire con applicazioni di realtà virtuale, utilizzando il proprio telefono cellulare come HMD, utilizzando
+\textit{SteamVR} come runtime VR. Si noti che questo supporto introduce notevoli bottleneck, dovuti alla connessione
+poco stabile con i cellulari e la bassa capacità di refresh rate degli stessi.
+
+Queste performance hanno comunque validità per il corso, in quanto è il supporto principale utilizzato dallo studente,
+quindi il previsto utilizzo dei progetti di corso.
+
+\begin{table}[h]
+\centering
+\caption{Test FPS (\textit{VRRidge})}
+\begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
+\toprule
+\textbf{FPS}      & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+\textbf{Medi}     & $\sim90$                        & $\sim110$                       \\
+\textbf{Minimi}   & $\sim90$                        & $\sim110$                       \\
+\textbf{Massimi}  & $\sim90$                        & $\sim110$                       \\
+\textbf{99th\%}   & $\sim90$                        & $\sim110$                       \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%% TODO: Complete
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \begin{axis}[
+    boxplot/draw direction=y,
+    xtick={1, 2},
+    xticklabels={OpenGL+OpenVR, WebGPU+OpenXR},
+    ylabel={FPS}
+  ]
+    % OpenGL + OpenVR
+    \addplot[
+      boxplot prepared={
+        median=50,
+        upper quartile=65,
+        lower quartile=35,
+        upper whisker=85,
+        lower whisker=15
+      },
+      fill=blue!30
+    ] coordinates {
+        % Outliers
+    };
+
+    % WebGPU + OpenXR
+    \addplot[
+      boxplot prepared={
+        median=60,
+        upper quartile=75,
+        lower quartile=45,
+        upper whisker=90,
+        lower whisker=25
+      },
+      fill=violet!75
+    ] coordinates {
+        % Outliers
+    };
+  \end{axis}
+\end{tikzpicture}
+\caption{}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\caption{Test Frame Time (\textit{VRRidge})}
+\begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
+\toprule
+\textbf{Frame Time} & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+\textbf{Medio}      & $\sim90$                        & $\sim110$                       \\
+\textbf{Minimo}     & $\sim90$                        & $\sim110$                       \\
+\textbf{Massimo}    & $\sim90$                        & $\sim110$                       \\
+\textbf{99th\%}     & $\sim90$                        & $\sim110$                       \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Test Utilizzo CPU (\textit{VRRidge})}
+\begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
+\toprule
+\textbf{CPU \%}   & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+\textbf{Generale} & $\sim90$                        & $\sim110$                       \\
+\textbf{Per core} & $\sim90$                        & $\sim110$                       \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Test Utilizzo VRAM (\textit{VRRidge})}
+\begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
+\toprule
+\textbf{CPU \%}   & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+\textbf{Generale} & $\sim90$                        & $\sim110$                       \\
+\textbf{Per core} & $\sim90$                        & $\sim110$                       \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \blankpage
 
