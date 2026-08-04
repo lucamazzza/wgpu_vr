@@ -1535,6 +1535,33 @@ overhead e quanto le performance finali lo giustifichino.
 
 \chapter{Test e validazione}
 
+Questo capitolo presenta l'analisi empirica e la valutazione delle prestazioni dell'architettura \texttt{WebGPU-OpenXR}
+sviluppata nel corso del progetto. L'obiettivo primario di questa fase è verificare se l'elevata complessità di sviluppo
+e la rigorosa gestione esplicita delle risorse introdotta dalla nuova API portino a vantaggi misurabili o se, al
+contrario, evidenzino colli di bottiglia architetturali.
+
+Per condurre questa analisi, il prototipo basato su \texttt{WebGPU} verrà confrontato direttamente con le soluzioni
+tradizionali precedentemente impiegate nei corsi accademici della SUPSI, nello specifico quelle basate sull'integrazione
+tra \texttt{OpenGL} e \texttt{OpenVR}. Il confronto si articolerà su due direttrici fondamentali:
+
+\begin{itemize}
+    \item Verrà eseguita un'analisi critica della complessità intrinseca delle API, valutando la verbosità del codice,
+        la difficoltà nella gestione della memoria e la curva di apprendimento. Questi fattori sono determinanti per
+        stimare la reale sostenibilità didattica dell'adozione di \texttt{WebGPU} in un corso bachelor.
+    \item Verranno effettuate misurazioni oggettive focalizzandosi sui due parametri più critici nel dominio della
+        Realtà Virtuale: il frame rate (FPS) e la latenza \textit{motion-to-photon}. Garantire prestazioni ottimali in
+        questi due ambiti è essenziale per mantenere l'immersività e scongiurare fenomeni di \textit{motion sickness}.
+\end{itemize}
+
+I dati e le osservazioni raccolte in questo capitolo forniranno la base empirica necessaria per formulare, nelle
+conclusioni, un verdetto definitivo sulla fattibilità e l'adeguatezza di \texttt{WebGPU} come standard moderno per
+l'insegnamento della Realtà Virtuale.
+
+È anche da decidere, in che modo verrà poi sviluppato il motore da parte dello studente, quanto del codice ponte sia
+di sua responsabilità e quanto gli venga consegnato come blackbox.
+
+\newpage
+
 \section{Complessità e Overhead di Sviluppo}
 
 Il mandato del presente progetto richiede un confronto oggettivo tra l'approccio \texttt{WebGPU} e le soluzioni
@@ -1565,6 +1592,8 @@ acquisite dagli studenti con l'architettura delle moderne API grafiche industria
 giustificando la complessità aggiuntiva per corsi di livello avanzato.
 
 \section{Performance}
+
+\blankpage
 
 \chapter{Risultati}
 
