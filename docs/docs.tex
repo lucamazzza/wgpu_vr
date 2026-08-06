@@ -1619,96 +1619,150 @@ poco stabile con i cellulari e la bassa capacità di refresh rate degli stessi.
 Queste performance hanno comunque validità per il corso, in quanto è il supporto principale utilizzato dallo studente,
 quindi il previsto utilizzo dei progetti di corso.
 
+\subsubsection{\gls{framerate}}
+
 \begin{table}[h]
 \centering
 \caption{Test FPS (\textit{VRRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
 \textbf{FPS}      & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
-\textbf{Medi}     & $\sim90$                        & $\sim110$                       \\
-\textbf{Minimi}   & $\sim90$                        & $\sim110$                       \\
-\textbf{Massimi}  & $\sim90$                        & $\sim110$                       \\
-\textbf{99th\%}   & $\sim90$                        & $\sim110$                       \\
+\textbf{Medi}     &                                 & $\sim59$ FPS                    \\
+\textbf{Minimi}   &                                 & $\sim17$ FPS                    \\
+\textbf{Massimi}  &                                 & $\sim70$ FPS                    \\
+\textbf{99th\%}   &                                 & $\sim61$ FPS                    \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-%% TODO: Complete
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}
-  \begin{axis}[
-    boxplot/draw direction=y,
-    xtick={1, 2},
-    xticklabels={OpenGL+OpenVR, WebGPU+OpenXR},
-    ylabel={FPS}
-  ]
-    % OpenGL + OpenVR
-    \addplot[
-      boxplot prepared={
-        median=50,
-        upper quartile=65,
-        lower quartile=35,
-        upper whisker=85,
-        lower whisker=15
-      },
-      fill=blue!30
-    ] coordinates {
-        % Outliers
-    };
+%\begin{figure}[ht]
+%\centering
+%\begin{tikzpicture}
+%  \begin{axis}[
+%    width = 12cm,
+%    height = 8cm,
+%    axis y line*=left,
+%    axis x line*=bottom,
+%    boxplot/draw direction=y,
+%    xtick={1, 2},
+%    xticklabels={OpenGL+OpenVR, WebGPU+OpenXR},
+%    ylabel={FPS}
+%  ]
+%    % OpenGL + OpenVR
+%    \addplot[
+%      boxplot prepared={
+%        median=60,
+%        upper quartile=65,
+%        lower quartile=51,
+%        upper whisker=62,
+%        lower whisker=48
+%      },
+%      fill=blue!30
+%    ] coordinates {
+%    };
+%
+%    % WebGPU + OpenXR
+%    \addplot[
+%      boxplot prepared={
+%        median=60,
+%        upper quartile=68,
+%        lower quartile=59,
+%        upper whisker=70,
+%        lower whisker=55,
+%      },
+%      fill=violet!75
+%    ] coordinates {
+%        % Outliers
+%    };
+%  \end{axis}
+%\end{tikzpicture}
+%\caption{}
+%\end{figure}
 
-    % WebGPU + OpenXR
-    \addplot[
-      boxplot prepared={
-        median=60,
-        upper quartile=75,
-        lower quartile=45,
-        upper whisker=90,
-        lower whisker=25
-      },
-      fill=violet!75
-    ] coordinates {
-        % Outliers
-    };
-  \end{axis}
-\end{tikzpicture}
-\caption{}
-\end{figure}
+\subsubsection{Frame Time}
 
 \begin{table}[h]
 \centering
-\caption{Test Frame Time (\textit{VRRidge})}
+\caption{Test Frame Time (\textit{VRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
 \textbf{Frame Time} & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
-\textbf{Medio}      & $\sim90$                        & $\sim110$                       \\
-\textbf{Minimo}     & $\sim90$                        & $\sim110$                       \\
-\textbf{Massimo}    & $\sim90$                        & $\sim110$                       \\
-\textbf{99th\%}     & $\sim90$                        & $\sim110$                       \\
+\textbf{Medio}      &                                 & $\sim17.0$ms                    \\
+\textbf{Minimo}     &                                 & $\sim14.2$ms                    \\
+\textbf{Massimo}    &                                 & $\sim60.3$ms                    \\
+\textbf{99th\%}     &                                 & $\sim16.4$ms                    \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{table}[h]
+\subsubsection{Utilizzo CPU}
+
+\begin{table}[ht]
 \centering
-\caption{Test Utilizzo CPU (\textit{VRRidge})}
+\caption{Test Utilizzo CPU (\textit{VRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
 \textbf{CPU \%}   & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
-\textbf{Generale} & $\sim90$                        & $\sim110$                       \\
-\textbf{Per core} & $\sim90$                        & $\sim110$                       \\
+\textbf{Generale} &                                 &                                 \\
+\textbf{Per core} &                                 &                                 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\subsubsection{Utilizzo VRAM}
+
 \begin{table}[h]
 \centering
-\caption{Test Utilizzo VRAM (\textit{VRRidge})}
+\caption{Test Utilizzo VRAM (\textit{VRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
-\textbf{CPU \%}   & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
-\textbf{Generale} & $\sim90$                        & $\sim110$                       \\
-\textbf{Per core} & $\sim90$                        & $\sim110$                       \\
+\textbf{VRAM \%}  & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+\textbf{Generale} &                                 &                                 \\
+\textbf{Per core} &                                 &                                 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Frame "Droppati"}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+  \begin{axis}[
+    xbar,
+    y = 0.5cm,
+    enlarge y limits={abs=0.5cm},
+    width  = 8cm,
+    axis y line*=left,
+    hide x axis,
+    symbolic y coords={OpenGL+OpenVR,WebGPU+OpenXR},
+    ytick = {OpenGL+OpenVR,WebGPU+OpenXR},
+    nodes near coords, nodes near coords align={horizontal},
+  ]
+  \addplot[xbar, bar shift=0pt, fill=blue!30] coordinates {
+      (29,OpenGL+OpenVR)
+  };
+  \addplot[xbar, bar shift=0pt, fill=violet!75] coordinates {
+      (11,WebGPU+OpenXR)
+  };
+  \end{axis}
+\end{tikzpicture}
+\caption{Frame "Droppati" (\textit{VRidge})}
+\end{figure}
+
+\subsubsection{Comparativa finale}
+
+\begin{table}[h]
+\centering
+\caption{Comparativa finale (\textit{VRidge})}
+\begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
+\toprule
+\textbf{Metrica}                     & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+$\overline{\textbf{FPS}}$            &                                 &                                 \\
+$\overline{\textbf{Frame Time}}$     &                                 &                                 \\
+$\overline{\textbf{CPU Usage}}$      &                                 &                                 \\
+$\overline{\textbf{VRAM Usage}}$     &                                 &                                 \\
+$\overline{\textbf{Frame Droppati}}$ &                                 &                                 \\
 \bottomrule
 \end{tabular}
 \end{table}
