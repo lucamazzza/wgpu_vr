@@ -1621,12 +1621,24 @@ quindi il previsto utilizzo dei progetti di corso.
 
 \subsubsection{\gls{framerate}}
 
+Il \gls{framerate}, misurato in appunto fotogrammi per secondo, rappresenta la metrica prestazionale più immediata per
+valutare la fluidità di un'applicazione grafica. In realtà virtuale, mantenere un framerate elevato e costante è un
+requisito tecnico critico per garantire l'immersività e prevenire fenomeni di motion sickness.
+
+Questa sezione mette a confronto la stabilità di \gls{framerate} tra l'implementazione nativa in
+\texttt{OpenGL}+\texttt{OpenVR} ed il nuovo prototipo \texttt{WebGPU}+\texttt{OpenXR}, analizzando non solo la media
+generale, ma anche picchi minimi e massimi oltre al 99esimo percentile, con lo scopo di evidenziare eventuali cali di
+prestazione anomali.
+
 \begin{table}[h]
 \centering
 \caption{Test FPS (\textit{VRRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
-\textbf{FPS}      & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+\textbf{FPS} &
+\textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}} &
+\textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}} \\
+\midrule
 \textbf{Medi}     &                                 & $\sim59$ FPS                    \\
 \textbf{Minimi}   &                                 & $\sim17$ FPS                    \\
 \textbf{Massimi}  &                                 & $\sim70$ FPS                    \\
@@ -1635,58 +1647,25 @@ quindi il previsto utilizzo dei progetti di corso.
 \end{tabular}
 \end{table}
 
-%\begin{figure}[ht]
-%\centering
-%\begin{tikzpicture}
-%  \begin{axis}[
-%    width = 12cm,
-%    height = 8cm,
-%    axis y line*=left,
-%    axis x line*=bottom,
-%    boxplot/draw direction=y,
-%    xtick={1, 2},
-%    xticklabels={OpenGL+OpenVR, WebGPU+OpenXR},
-%    ylabel={FPS}
-%  ]
-%    % OpenGL + OpenVR
-%    \addplot[
-%      boxplot prepared={
-%        median=60,
-%        upper quartile=65,
-%        lower quartile=51,
-%        upper whisker=62,
-%        lower whisker=48
-%      },
-%      fill=blue!30
-%    ] coordinates {
-%    };
-%
-%    % WebGPU + OpenXR
-%    \addplot[
-%      boxplot prepared={
-%        median=60,
-%        upper quartile=68,
-%        lower quartile=59,
-%        upper whisker=70,
-%        lower whisker=55,
-%      },
-%      fill=violet!75
-%    ] coordinates {
-%        % Outliers
-%    };
-%  \end{axis}
-%\end{tikzpicture}
-%\caption{}
-%\end{figure}
-
 \subsubsection{Frame Time}
+
+Il frame time indica il tempo effettivo, misurato in millisecondi, impiegato dal sistema per elaborare e renderizzare
+un singolo fotogramma. A differenza del framerate, che rende nota una media al secondo, questo fornisce una visione
+molto più granulare della stabilità del motore grafico. In un'applicazione \texttt{OpenXR}, i picchi improvvisi di
+questa metrica possono causare la perdita della finestra di sincronizzazione con il \textit{compositor} del visore.
+
+La seguente tabella permette di concludere e valutare se l'architettura esplicita di \texttt{WebGPU} garantisce tempi
+di esecuzione più costanti rispetto alle euristiche dei driver \texttt{OpenGL}.
 
 \begin{table}[h]
 \centering
 \caption{Test Frame Time (\textit{VRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
-\textbf{Frame Time} & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+\textbf{Frame Time} &
+\textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}} &
+\textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}} \\
+\midrule
 \textbf{Medio}      &                                 & $\sim17.0$ms                    \\
 \textbf{Minimo}     &                                 & $\sim14.2$ms                    \\
 \textbf{Massimo}    &                                 & $\sim60.3$ms                    \\
@@ -1695,14 +1674,25 @@ quindi il previsto utilizzo dei progetti di corso.
 \end{tabular}
 \end{table}
 
+\newpage
+
 \subsubsection{Utilizzo CPU}
+
+L'utilizzo del processore è un indicatore fondamentale dell'overhead introdotto dalle chiamate alle API grafiche.
+Uno degli obbiettivi teorici delle librerie moderne come \texttt{WebGPU} è proprio la riduzione del carico sulla CPU,
+delegando la validazione dello stato alla fase di inizializzazione della pipeline grafica.
+Questa misurazione ha lo scopo di quantificare l'impatto sul processore durante il render loop stereoscopico, misurando
+soprattutto eventuali overhead computazionali di adattamento tra \texttt{WebGPU} e \texttt{OpenXR}.
 
 \begin{table}[ht]
 \centering
 \caption{Test Utilizzo CPU (\textit{VRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
-\textbf{CPU \%}   & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+\textbf{CPU \%} &
+\textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}} &
+\textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}} \\
+\midrule
 \textbf{Generale} &                                 &                                 \\
 \textbf{Per core} &                                 &                                 \\
 \bottomrule
@@ -1711,12 +1701,24 @@ quindi il previsto utilizzo dei progetti di corso.
 
 \subsubsection{Utilizzo VRAM}
 
+L'utilizzo e la corretta gestione della memoria video, detta anche VRAM, è essenziale per applicazioni VR complesse,
+soprattutto quando fanno uso di texture ad alta risoluzione e swapchain multiple. Come analizzato durante la fase di
+implementazione, WebGPU richiede un'allocazione esplicita e un rigoroso allineamento della memoria (ad esempio a 16 byte
+per le uniform).
+
+Questa sezione valuta l'impronta in memoria delle due diverse architetture, per determinare se le rigide specifiche di
+WebGPU e il layer di interoperabilità con OpenXR comportino un consumo di VRAM significativamente maggiore rispetto
+all'astrazione di alto livello fornita da OpenGL.
+
 \begin{table}[h]
 \centering
 \caption{Test Utilizzo VRAM (\textit{VRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
-\textbf{VRAM \%}  & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+\textbf{VRAM \%} &
+\textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}} &
+\textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}} \\
+\midrule
 \textbf{Generale} &                                 &                                 \\
 \textbf{Per core} &                                 &                                 \\
 \bottomrule
@@ -1724,6 +1726,12 @@ quindi il previsto utilizzo dei progetti di corso.
 \end{table}
 
 \subsubsection{Frame "Droppati"}
+
+I fotogrammi scartati o mancanti si verificano quando il motore di rendering non riesce a consegnare l'immagine finita
+alla swapchain di \texttt{OpenXR} entro il tempo limite richiesto dal refresh rate del visore. Quando ciò accade, il
+runtime VR è costretto a riproiettare il fotogramma precedente, causando un visibile artefatto visivo, detto
+\textit{stuttering}. Il grafico sottostante quantifica il numero assoluto di fotogrammi scartati durante le sessioni
+di test di egual durata, offrendo una misura diretta della stabilità del sistema.
 
 \begin{figure}[ht]
 \centering
@@ -1752,12 +1760,22 @@ quindi il previsto utilizzo dei progetti di corso.
 
 \subsubsection{Comparativa finale}
 
+Questa sezione propone una sintesi olistica di tutte le metriche raccolte durante la profilazione tramite
+\texttt{VRidge}. Aggregando i dati relativi a framerate, tempi di esecuzione, consumo di risorse e stabilità del
+fotogramma, si delineerà un quadro prestazionale completo. L'obiettivo di questo confronto finale è stabilire
+oggettivamente se il debito tecnico e la complessità architetturale introdotti da WebGPU siano giustificati da un
+miglioramento misurabile delle performance, determinando così la validità tecnica della sua potenziale adozione come
+standard didattico.
+
 \begin{table}[h]
 \centering
 \caption{Comparativa finale (\textit{VRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
-\textbf{Metrica}                     & \textbf{\texttt{OpenGL+OpenVR}} & \textbf{\texttt{WebGPU+OpenXR}} \\ \midrule
+\textbf{Metrica} &
+\textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}} &
+\textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}} \\
+\midrule
 $\overline{\textbf{FPS}}$            &                                 &                                 \\
 $\overline{\textbf{Frame Time}}$     &                                 &                                 \\
 $\overline{\textbf{CPU Usage}}$      &                                 &                                 \\
