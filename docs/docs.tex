@@ -1585,7 +1585,7 @@ Questa complessità è ulteriormente amplificata nel dominio VR. L'infrastruttur
         studenti, \texttt{WebGPU} obbliga lo sviluppatore a comprendere concetti avanzati come l'allineamento della
         memoria a 16 byte per le \texttt{struct} in C++ e le rigorose regole di validazione dei \textit{Bind Group}.
     \item L'utilizzo di binding C++ derivati da implementazioni Rust (\texttt{wgpu-native}) costringe la risoluzione
-        manuale di librerie di sistema Windows a livello di linker (\texttt{Ws2\_32.lib}, \texttt{Bcrypt.lib}, ecc.),
+        manuale di librerie di sistema Windows a livello di linker (\texttt{Ws2\_32}, \texttt{Bcrypt}, ecc.),
         aggiungendo frizione nel setup dell'ambiente di sviluppo nativo.
     \item WebGPU si basa su un sistema rigoroso di validazione. Sbagliare un allineamento di memoria o un flag di
         utilizzo (\textit{Usage Flag}) si traduce in log di errore granulari o, in assenza di una gestione asincrona
@@ -1593,8 +1593,8 @@ Questa complessità è ulteriormente amplificata nel dominio VR. L'infrastruttur
 \end{enumerate}
 
 Tuttavia, questo sforzo ingegneristico restituisce un controllo assoluto sull'hardware, allineando le competenze
-acquisite dagli studenti con l'architettura delle moderne API grafiche industriali (Vulkan, DirectX 12, Metal),
-giustificando la complessità aggiuntiva per corsi di livello avanzato.
+acquisite dagli studenti con l'architettura delle moderne API grafiche industriali, giustificando la complessità
+aggiuntiva per corsi di livello avanzato.
 
 \section{Performance}
 
@@ -1603,11 +1603,10 @@ tolleranze minime: il \gls{framerate} deve rimanere stabilmente ancorato alla fr
 la latenza \textit{motion-to-photon} (il tempo che intercorre dal movimento della testa all'aggiornamento dei pixel)
 deve rimanere al di sotto dei $20$ millisecondi per prevenire fenomeni di \textit{motion sickness}.
 Anche se un requisito generale dei visori è la stabilità a $90$ FPS, i visori simulati da
-telefono cellulare, utilizzati durante questo progetto come il corso di realtà virtuale, sono spesso limitati (come nel
-mio caso) a $60$ FPS.
+telefono cellulare, utilizzati durante questo progetto come il corso di realtà virtuale, sono spesso limitati a $60$ FPS.
 
-I test sono stati condotti eseguendo la medesima scena 3D stereoscopica (con modelli poligonali e illuminazione
-dinamica) sia sull'infrastruttura OpenGL/OvVR sia sul prototipo WebGPU/OpenXR.
+I test sono stati condotti eseguendo la medesima scena 3D stereoscopica sia sull'infrastruttura OpenGL/OvVR sia sul
+prototipo WebGPU/OpenXR.
 
 \subsection{VRidge + iPhone}
 
@@ -1615,7 +1614,6 @@ Questa serie di performance test è eseguita con il software \textit{VRidge} com
 ed interagire con applicazioni di realtà virtuale, utilizzando il proprio telefono cellulare come HMD, utilizzando
 \textit{SteamVR} come runtime VR. Si noti che questo supporto introduce notevoli bottleneck, dovuti alla connessione
 poco stabile con i cellulari e la bassa capacità di refresh rate degli stessi.
-
 Queste performance hanno comunque validità per il corso, in quanto è il supporto principale utilizzato dallo studente,
 quindi il previsto utilizzo dei progetti di corso.
 
@@ -1639,13 +1637,20 @@ prestazione anomali.
 \textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}} &
 \textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}} \\
 \midrule
-\textbf{Medi}     &                                 & $\sim59$ FPS                    \\
-\textbf{Minimi}   &                                 & $\sim17$ FPS                    \\
-\textbf{Massimi}  &                                 & $\sim70$ FPS                    \\
-\textbf{99th\%}   &                                 & $\sim61$ FPS                    \\
+\textbf{Medi}    & $\sim60$ FPS & $\sim60$ FPS         \\
+\textbf{Minimi}  & $\sim21$ FPS & $\sim17$ FPS         \\
+\textbf{Massimi} & $\sim60$ FPS & $\sim61$ FPS         \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Questi risultati sono presentati solamente per completezza, in quanto nell'ambiente corrente di test i frame al secondo
+sono limitati a $60$ da sistema, in quanto proiettati su schermi di cellulari i quali sono solitamente limitati a
+$60$Hz.
+
+Ciononostante, si può notare che la soluzione \textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}}, soprattutto
+durante la fase di inizializzazione, vede un calo di frame al secondo più elevato rispetto alla soluzione già presente.
+Entrambe le soluzioni hanno comunque praticamente gli stessi risultati in entrambi i casi.
 
 \subsubsection{Frame Time}
 
@@ -1666,13 +1671,17 @@ di esecuzione più costanti rispetto alle euristiche dei driver \texttt{OpenGL}.
 \textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}} &
 \textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}} \\
 \midrule
-\textbf{Medio}      &                                 & $\sim17.0$ms                    \\
-\textbf{Minimo}     &                                 & $\sim14.2$ms                    \\
-\textbf{Massimo}    &                                 & $\sim60.3$ms                    \\
-\textbf{99th\%}     &                                 & $\sim16.4$ms                    \\
+\textbf{Medio}   & $\sim14.5$ms  & $\sim 9.0$ms        \\
+\textbf{Minimo}  & $\sim12.1$ms  & $\sim 8.2$ms        \\
+\textbf{Massimo} & $\sim20.1$ms  & $\sim12.3$ms        \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+I risultati dimostrano come l'utilizzo di risorse moderne portino giovamento alle metriche di performance, soprattutto
+risultati dovuti probabilmente all'utilizzo delle euristiche di \texttt{OpenXR}. In conclusione, fatto intuibile anche
+senza scrivere una riga di codice, utilizzare \texttt{OpenXR} e \texttt{WebGPU}, con \texttt{DirectX12} come backend
+offre delle performance senza eguali con l'alternativa legacy di \texttt{OpenGL} e \texttt{OpenVR}.
 
 \newpage
 
@@ -1693,11 +1702,17 @@ soprattutto eventuali overhead computazionali di adattamento tra \texttt{WebGPU}
 \textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}} &
 \textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}} \\
 \midrule
-\textbf{Generale} &                                 &                                 \\
-\textbf{Per core} &                                 &                                 \\
+\textbf{Medio}   & $\sim2.30$\% & $\sim0.00$\%          \\
+\textbf{Minimo}  & $\sim1.70$\% & $\sim0.00$\%          \\
+\textbf{Massimo} & $\sim2.50$\% & $\sim0.10$\%          \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Sorprendentemente, escludendo la fase di avvio dell'applicazione, nella quale l'utilizzo della CPU è presente anche se
+in minima quantità, la soluzione sviluppata durante questo progetto NON utilizza alcuna risorsa del processore per
+funzionare, dove invece la soluzione correntemente utilizzata nel corso ne necessita una quantità considerevole per
+la sua semplicità.
 
 \subsubsection{Utilizzo VRAM}
 
@@ -1712,25 +1727,36 @@ all'astrazione di alto livello fornita da OpenGL.
 
 \begin{table}[h]
 \centering
-\caption{Test Utilizzo VRAM (\textit{VRidge})}
+\caption{Test Utilizzo RAM (\textit{VRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
-\textbf{VRAM \%} &
+\textbf{RAM \%} &
 \textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}} &
 \textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}} \\
 \midrule
-\textbf{Generale} &                                 &                                 \\
-\textbf{Per core} &                                 &                                 \\
+\textbf{Principale} & $0.9$GB & $0.4$GB                \\
+\textbf{Virtuale}   & $0.9$GB & $1.3$GB                \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+È da notare come, la presenza di diverse risorse di supporto aggiuntive rispetto alla soluzione
+\textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}}, portano ad un utilizzo maggiore (di ben $400$MB) della memoria
+video. Le risorse di interoperabilità tra i sistemi \texttt{WebGPU} e \texttt{OpenXR} introducono quindi ulteriore
+utilizzo dello spazio di memoria video, sicuramente da prendere in considerazione per applicazioni di maggiori
+dimensioni.
+
+Questo è comunque un utilizzo contenuto se comparato con le VRAM moderne che hanno gran quantità di spazio.
+L'utilizzo della memoria principale è invece ridotto per entrambe le soluzioni, anche per 
 
 \subsubsection{Frame "Droppati"}
 
 I fotogrammi scartati o mancanti si verificano quando il motore di rendering non riesce a consegnare l'immagine finita
 alla swapchain di \texttt{OpenXR} entro il tempo limite richiesto dal refresh rate del visore. Quando ciò accade, il
 runtime VR è costretto a riproiettare il fotogramma precedente, causando un visibile artefatto visivo, detto
-\textit{stuttering}. Il grafico sottostante quantifica il numero assoluto di fotogrammi scartati durante le sessioni
+\textit{stuttering}.
+
+Il grafico sottostante quantifica il numero assoluto di fotogrammi scartati durante le sessioni
 di test di egual durata, offrendo una misura diretta della stabilità del sistema.
 
 \begin{figure}[ht]
@@ -1740,18 +1766,18 @@ di test di egual durata, offrendo una misura diretta della stabilità del sistem
     xbar,
     y = 0.5cm,
     enlarge y limits={abs=0.5cm},
-    width  = 8cm,
     axis y line*=left,
     hide x axis,
     symbolic y coords={OpenGL+OpenVR,WebGPU+OpenXR},
     ytick = {OpenGL+OpenVR,WebGPU+OpenXR},
     nodes near coords, nodes near coords align={horizontal},
+    xmin = 0, xmax = 2,
   ]
   \addplot[xbar, bar shift=0pt, fill=blue!30] coordinates {
-      (29,OpenGL+OpenVR)
+      (1,OpenGL+OpenVR)
   };
   \addplot[xbar, bar shift=0pt, fill=violet!75] coordinates {
-      (11,WebGPU+OpenXR)
+      (2,WebGPU+OpenXR)
   };
   \end{axis}
 \end{tikzpicture}
@@ -1774,13 +1800,13 @@ standard didattico.
 \toprule
 \textbf{Metrica} &
 \textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}} &
-\textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}} \\
+\textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}}                       \\
 \midrule
-$\overline{\textbf{FPS}}$            &                                 &                                 \\
-$\overline{\textbf{Frame Time}}$     &                                 &                                 \\
-$\overline{\textbf{CPU Usage}}$      &                                 &                                 \\
-$\overline{\textbf{VRAM Usage}}$     &                                 &                                 \\
-$\overline{\textbf{Frame Droppati}}$ &                                 &                                 \\
+$\overline{\textbf{FPS}}$        & $\sim60$ FPS & $\sim60$ FPS               \\
+$\overline{\textbf{Frame Time}}$ & $\sim14.5$ms & $\sim9.0$ms                \\
+$\overline{\textbf{CPU Usage}}$  & $\sim1.70$\% & $\sim0.00$\%               \\
+$\textbf{Uso VRAM}$              & $0.9$GB      & $1.3$GB                    \\
+$\textbf{Frame Droppati}$        & $1$          & $2$                        \\
 \bottomrule
 \end{tabular}
 \end{table}
