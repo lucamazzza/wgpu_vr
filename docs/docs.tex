@@ -249,6 +249,7 @@ fontsize=\small,
 \begin{dedication}
     Vorrei qui ringraziare
     \textnormal{}\newline
+    per il supporto durante lo sviluppo di questa tesi
 \end{dedication}
 
 \blankpage
@@ -1554,8 +1555,9 @@ tra \texttt{OpenGL} e \texttt{OpenVR}. Il confronto si articolerà su due dirett
         la difficoltà nella gestione della memoria e la curva di apprendimento. Questi fattori sono determinanti per
         stimare la reale sostenibilità didattica dell'adozione di \texttt{WebGPU} in un corso bachelor.
     \item Verranno effettuate misurazioni oggettive focalizzandosi sui due parametri più critici nel dominio della
-        Realtà Virtuale: il frame rate (FPS) e la latenza \textit{motion-to-photon}. Garantire prestazioni ottimali in
-        questi due ambiti è essenziale per mantenere l'immersività e scongiurare fenomeni di \textit{motion sickness}.
+        Realtà Virtuale: il frame rate (FPS) ed il \textit{frame time}. Garantire prestazioni ottimali in questi due
+        ambiti è essenziale per mantenere l'immersività e scongiurare fenomeni di \textit{motion sickness}.
+        Oltre a ciò anche l'utilizzo di memoria \texttt{VRAM} e della \texttt{CPU} sono metriche importanti.
 \end{itemize}
 
 I dati e le osservazioni raccolte in questo capitolo forniranno la base empirica necessaria per formulare, nelle
@@ -1572,14 +1574,15 @@ di sua responsabilità e quanto gli venga consegnato come blackbox.
 Il mandato del presente progetto richiede un confronto oggettivo tra l'approccio \texttt{WebGPU} e le soluzioni
 tradizionali in termini di complessità di sviluppo.
 
-La transizione da un'API implicita come \texttt{OpenGL 1.1/2.0} a una \textit{Render Hardware Interface} esplicita come
-\texttt{WebGPU} introduce un debito tecnico iniziale significativo. Studi precedenti condotti sull'adozione di
+La transizione da un'API come \texttt{OpenGL} a una \textit{Render Hardware Interface} come \texttt{WebGPU} introduce 
+un debito tecnico iniziale significativo. Studi precedenti condotti sull'adozione di
 \texttt{WebGPU} per la computer grafica didattica hanno stimato che, per renderizzare una scena di base, il rapporto tra
 codice applicativo e codice di configurazione (\textit{boilerplate}) subisce un'inversione drastica.
 Se in \texttt{OpenGL} la logica applicativa copre circa l'80\% del codice e il setup il 20\%, in \texttt{WebGPU} il
 setup delle risorse (buffer, layout, pipeline) occupa fino al 70\% del codice, lasciando solo il 30\% alla logica.
 
-Questa complessità è ulteriormente amplificata nel dominio VR. L'infrastruttura sviluppata in questo progetto dimostra che:
+Questa complessità è ulteriormente amplificata nel dominio VR. L'infrastruttura sviluppata in questo progetto dimostra
+che:
 \begin{enumerate}
     \item A differenza di librerie preesistenti come \texttt{OvVR}, che nascondono i dettagli di basso livello agli
         studenti, \texttt{WebGPU} obbliga lo sviluppatore a comprendere concetti avanzati come l'allineamento della
@@ -1811,11 +1814,24 @@ $\textbf{Frame Droppati}$        & $1$          & $2$                        \\
 \end{tabular}
 \end{table}
 
+Da questi risultati possiamo trarre alcune conclusioni a proposito della soluzione proposta; questa infatti risulta
+tanto performante, se non ancor più performante, rispetto alla soluzione esistente sviluppata con \texttt{OpenGL}.
+Questo è comunque un miglioramento relativamente contenuto se si prende in considerazione la difficoltà e complessità
+maggiorata di sviluppo per lo studente, il quale si deve confrontare con concetti e nozioni più complesse, che
+richiedono più precisione durante lo sviluppo. Inoltre la stabilità del sistema non è garantita come per la soluzione
+classica.
+
+La modernità della soluzione è innegabile, e si nota nell'utilizzo nullo della CPU all'infuori del setup del contesto,
+il quale potrebbe essere un interessante spunto educativo per lo studente, rendendo possibile una futura transizione
+verso \texttt{Vulkan} e \texttt{OpenXR}, i quali sono il \textit{de facto} standard dell'industria.
+
 \blankpage
 
 \chapter{Risultati}
 
 \section{Manuale d'uso}
+
+\blankpage
 
 \chapter{Conclusioni}
 
@@ -1825,7 +1841,63 @@ $\textbf{Frame Droppati}$        & $1$          & $2$                        \\
 \pagenumbering{Roman}
 \printglossary[title=Glossario, toctitle=Glossario]
 
-\blankpage
+%\blankpage
 \printbibliography[heading=bibintoc, title=Sitografia]
+
+\blankpage
+
+\appendix
+\chapter{Protocollo di test della performance}
+
+\section{Preparazione}
+
+Chiudere tutte le applicazioni in background (Browser, Discord, ecc...) per assicurarsi di essere in un ambiente pulito.
+Ciò è importante soprattutto per i test di utilizzo della \texttt{CPU} e della Memoria Video \texttt{VRAM}.
+
+\section{Avvio \texttt{VRidge}}
+
+Connetti il cellulare e avvia l'applicativo \texttt{VRidge}. Una volta avviato e connesso il cellulare assicurarsi
+dell'avvio di \texttt{SteamVR}.
+
+Si consiglia l'utilizzo di una connessione via cavo, con un cavo \texttt{USB-C USB-C} che supporti il trasporto di dati
+ad alte performance.
+
+\section{Esecuzione demo \texttt{OpenGL}}
+
+Lanciare ora la demo \texttt{OpenGL}, tramite l'eseguibile compilata dal progetto.
+
+Assicurarsi che \texttt{SteamVR} sia attualmente in esecuzione prima di avviare la demo, per garantire il funzionamento.
+
+\section{"Guardarsi attorno"}\label{a3:lookaround}
+
+Per esattamente $60$ secondi, muoversi seguendo i seguenti movimenti:
+
+\begin{itemize}
+    \item Guardare lentamente a sinistra ($\sim10$s)
+    \item Guardare lentamente a destra ($\sim10$s)
+    \item Guardare lentamente in alto ($\sim10$s)
+    \item Guardare lentamente in basso ($\sim10$s)
+    \item Muovere la testa avanti e indietro ($\sim20$s)
+\end{itemize}
+
+\section{Annotare le metriche}\label{a4:notemetrics}
+
+Annotare, durante l'esecuzione del test, le metriche per:
+
+\begin{itemize}
+    \item FPS minimi, massimi, medi
+    \item Frame Time minimo, massimo, medio
+    \item Utilizzo CPU/VRAM dal task manager
+    \item Frame Droppati (dal performance tool di SteamVR)
+\end{itemize}
+
+\section{Cool down}
+
+Fermare la demo e lasciar riposare il sistema fino a riprendere l'idle. Ciò permette di ritornare nella stessa
+situazione iniziale per quanto riguarda lo stress dell'hardware.
+
+\section{Esecuzione demo \texttt{WebGPU}}
+
+Eseguire la demo \texttt{WebGPU}, ripetendo i punti \ref{a3:lookaround} e \ref{a4:notemetrics}.
 
 \end{document}
