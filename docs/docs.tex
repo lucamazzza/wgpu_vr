@@ -55,7 +55,7 @@
 \fancyhead[LO]{\includegraphics[height=0.3cm]{header_small_logo.png}}      % Left on Odd
 \fancyhead[RO, LE]{\thepage}                                               % Right on Odd
 \fancyhead[RE]{\nouppercase{\leftmark}}
-\fancyfoot[LO, RE]{\footnotesize \textit{Valutazione di \texttt{WebGPU} per applicazioni di Realtà Virtuale tramite integrazione con OpenXR/OpenVR}}
+\fancyfoot[LO, RE]{\footnotesize \textit{Valutazione di WebGPU per applicazioni di Realtà Virtuale tramite integrazione con OpenXR/OpenVR}}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0.4pt}
 \fancypagestyle{plain}{
@@ -63,7 +63,7 @@
     \fancyhead[LO]{\includegraphics[height=0.3cm]{header_small_logo.png}} 
     \fancyhead[RO, LE]{\thepage}
     \fancyhead[RE]{\nouppercase{\leftmark}}
-    \fancyfoot[LO, RE]{\footnotesize \textit{Valutazione di \texttt{WebGPU} per applicazioni di Realtà Virtuale tramite integrazione con OpenXR/OpenVR}}
+    \fancyfoot[LO, RE]{\footnotesize \textit{Valutazione di WebGPU per applicazioni di Realtà Virtuale tramite integrazione con OpenXR/OpenVR}}
     \renewcommand{\headrulewidth}{0.4pt}
     \renewcommand{\footrulewidth}{0.4pt}
 }
@@ -1930,8 +1930,7 @@ necessarie è bene che restino simili.
 \itshape
 Si consideri la complessità di sviluppo della shader in \textit{WebGPU Shading Language} all'infuori della valutazione,
 in quanto questa sarebbe troppo alta per lo studente nel suo percorso accademico; infatti questo linguaggio di shading
-è fortemente ispirato al Rust, sul quale si basa l'API del W3C, che sarebbe troppo complesso da imparare durante un
-corso di 10 settimane.
+è fortemente ispirato al Rust, sul quale si basa l'API del W3C.
 
 Come per la soluzione originale, le classi con la nomenclatura \texttt{Bridge} sono possibilmente prese in consegna
 dallo studente e riutilizzate senza dover essere nuovamente sviluppate.
@@ -1960,24 +1959,63 @@ WebGPU Shader   & \texttt{.wgsl} &  $1$ &   $63$ &   $7$ &   $0$ &  $56$ \\
 \end{table}
 
 I risultati sono molto chiari; risulta che la complessità per quanto riguarda la quantità di linee di codice rimane
-pressoché invariata, addirittura diminuendo leggermente. Ci si aggira infatti attorno ancora alle $\sim1000$ righe
-effettive di codice. Questo risultato è di vitale importanza, in quanto toglie molte preoccupazioni riguardanti la
-complessità del codice, la quale tra adattamenti e hacks sarebbe potuta aumentare a dismisura.
-
+pressoché invariata, addirittura diminuendo leggermente. Questo risultato è di vitale importanza, in quanto toglie molte
+preoccupazioni riguardanti la complessità del codice, la quale sarebbe potuta aumentare a dismisura.
 La stima di sforzo temporale infatti risulta di $3.42$ mesi, molto vicini a quelli della soluzione originale, quindi
-altresì azzeccati. Le risorse umane richieste sono $0.67$, ancora una volta vicini alla soluzione originale, quindi di
-nuovo il progetto è sostenibile anche da studenti singoli.
-
-La soluzione di partenza mostra una complessità ciclomatica di $89$, che risulta addirittura minore dell'originale,
+altresì azzeccati. Le risorse umane richieste sono $0.67$, ancora una volta vicini.
+La soluzione di partenza mostra una complessità di $89$, che risulta addirittura minore dell'originale,
 anche se poco vista la differenza dei concetti per lo studente.
 
-\section{Cross platform}
+\section{Conclusione}
+
+In conclusione possiamo determinare che la complessità di sviluppo per lo studente non è molto diversa da quella del
+puro \texttt{OpenGL}, si notano solamente delle frizioni per quanto riguarda la risoluzione delle librerie di sistema,
+alcuni concetti leggermente più avanzati e caratteristiche tecniche di \texttt{WebGPU}, che sono però pressoché
+trascurabili.
+
+Per quanto riguarda la performance non vi è invece alcun dubbio, questa è uguale se non migliore della soluzione
+originale, quasi dimezzando il Frame Time e riducendo all'osso l'utilizzo della CPU. Si esclude che questa possa
+presentare un limite in qualsiasi modo.
+
+Infine, la complessità della codebase si rivela ancora una volta uguale o migliore a quella della soluzione di base,
+risultando in un simile numero di righe di codice, una minor complessità ed una minore necessità di risorse organiche.
+
+Le classi che riguardano l'interconnessione tra \texttt{WebGPU}, \texttt{OpenXR} e il codice nativo \texttt{DirectX12}
+sarebbero quindi a disposizione dello studente, come era per la classe \texttt{ovr.h} per il vecchio progetto.
 
 \blankpage
 
 \chapter{Risultati}
 
-\section{Manuale d'uso}
+ASDd
+
+\newpage
+
+\section{Cross platform}
+
+Uno degli obbiettivi teorici principali nell'adozione di \texttt{WebGPU}, come specificato nei requisiti e nella
+precendente valutazione dei risultati, è la promessa del paradigma "Write once, Compile anywhere", che mira a svincolare
+il codice grafico dalle dipendenze del sistema operativo. Tuttavia i risultati di questo studio di fattibilità
+evidenziano che, nel dominio specifico della realtà virtuale, l'interoperabilità a basso livello rompe parzialmente
+questa astrazione.
+
+Come discusso nel Capitolo 4, l'implementazione iniziale prevedeva l'utilizzo di Vulkan come minimo comune denominatore
+cross-platform. Dal punto di vista teorico e concettuale, l'architettura basata su Vulkan è assolutamente valida per la
+condivisione della memoria con OpenXR.
+Il blocco non è derivato da un limite di WebGPU in sé, bensì dall'immaturità dell'ecosistema dei driver grafici:
+l'utilizzo dell'estensione \texttt{VK\_KHR\_external\_memory\_win32} su architetture ibride (nello specifico GPU
+integrate Intel) ha generato instabilità fatali a livello di driver.
+
+\subsection{Prospettive per Linux e macOS}
+
+La validazione teorica dell'approccio \texttt{Vulkan} conferma che il supporto per ambienti Linux non rappresenta un
+blocco insormontabile. Poiché OpenXR su Linux si appoggia nativamente a \texttt{Vulkan}, la logica di estrazione degli
+handle implementata potrebbe funzionare senza i conflitti visti sui driver Intel per Windows.
+Di conseguenza, il pieno supporto a Linux si configura come uno degli sviluppi futuri più immediati e promettenti,
+richiedendo unicamente un ambiente di test con driver Vulkan più maturi.
+
+Per quanto riguarda lo sviluppo stabile per macOS, questo è al momento totalmente precluso dall'assenza di un runtime
+di realtà virtuale che non sia quello dedicato allo sviluppo per \textit{Apple Vision Pro}.
 
 \blankpage
 
@@ -1995,6 +2033,12 @@ anche se poco vista la differenza dei concetti per lo studente.
 \blankpage
 
 \appendix
+\chapter{Manuale d'uso}
+
+\section{Prerequisiti}
+
+\blankpage
+
 \chapter{Protocollo di test della performance}
 
 \section{Preparazione}
