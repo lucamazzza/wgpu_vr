@@ -1655,6 +1655,9 @@ Ciononostante, si può notare che la soluzione \textcolor{violet!75}{\textbf{\te
 durante la fase di inizializzazione, vede un calo di frame al secondo più elevato rispetto alla soluzione già presente.
 Entrambe le soluzioni hanno comunque praticamente gli stessi risultati in entrambi i casi.
 
+I risultati evidenziano comunque che il sistema non ha problemi di framerate che farebbero ricadere in problemi anche
+in ambienti castrati e si nota che gli FPS non sono un problema in entrambe i casi.
+
 \subsubsection{Frame Time}
 
 Il frame time indica il tempo effettivo, misurato in millisecondi, impiegato dal sistema per elaborare e renderizzare
@@ -1717,13 +1720,16 @@ in minima quantità, la soluzione sviluppata durante questo progetto NON utilizz
 funzionare, dove invece la soluzione correntemente utilizzata nel corso ne necessita una quantità considerevole per
 la sua semplicità.
 
+È un successo vedere che una soluzione moderna utilizzando \texttt{WebGPU} e \texttt{OpenXR}, i quali abbiano bisogno di
+un layer di adattamento, all'infuori della fase di inizializzazione non vedano necessario un ulteriore utilizzo del
+processore centrale.
+
 \subsubsection{Utilizzo VRAM}
 
 L'utilizzo e la corretta gestione della memoria video, detta anche VRAM, è essenziale per applicazioni VR complesse,
 soprattutto quando fanno uso di texture ad alta risoluzione e swapchain multiple. Come analizzato durante la fase di
 implementazione, WebGPU richiede un'allocazione esplicita e un rigoroso allineamento della memoria (ad esempio a 16 byte
 per le uniform).
-
 Questa sezione valuta l'impronta in memoria delle due diverse architetture, per determinare se le rigide specifiche di
 WebGPU e il layer di interoperabilità con OpenXR comportino un consumo di VRAM significativamente maggiore rispetto
 all'astrazione di alto livello fornita da OpenGL.
@@ -1750,7 +1756,9 @@ utilizzo dello spazio di memoria video, sicuramente da prendere in considerazion
 dimensioni.
 
 Questo è comunque un utilizzo contenuto se comparato con le VRAM moderne che hanno gran quantità di spazio.
-L'utilizzo della memoria principale è invece ridotto per entrambe le soluzioni, anche per 
+L'utilizzo della memoria principale è invece ridotto per entrambe le soluzioni, anche per il fatto che si tratta
+di applicazioni grafiche sviluppate con le versioni moderne delle rispettive API, le quali si fanno fregio dell'utilizzo
+della VRAM come spazio di stoccaggio per i dati in gioco.
 
 \subsubsection{Frame "Droppati"}
 
@@ -1786,6 +1794,13 @@ di test di egual durata, offrendo una misura diretta della stabilità del sistem
 \end{tikzpicture}
 \caption{Frame "Droppati" (\textit{VRidge})}
 \end{figure}
+
+I risultati evidenziano un sostanziale pareggio tecnico tra l'implementazione tradizionale ed il nuovo prototipo.
+In un contesto di rendering continuo, uno scarto di un singolo frame o due sulla migliaia generata è statisticamente
+irrilevante e rientra nel margine di errore fisiologico, essendo probabilmente causati dalla pessima connessione con
+il cellulare. Tuttavia è evidente una conclusione rilevate dai risultati:
+Il fatto che il workaround, dato dal necessario trasferimento esplicito della memoria video con i comandi \texttt{D3D12}
+causi la perdita di solamente due frames su tutto l'arco del test dimostra che l'overhead computazionale è trascurabile.
 
 \subsubsection{Comparativa finale}
 
@@ -1824,6 +1839,54 @@ classica.
 La modernità della soluzione è innegabile, e si nota nell'utilizzo nullo della CPU all'infuori del setup del contesto,
 il quale potrebbe essere un interessante spunto educativo per lo studente, rendendo possibile una futura transizione
 verso \texttt{Vulkan} e \texttt{OpenXR}, i quali sono il \textit{de facto} standard dell'industria.
+
+\section{Linee di codice}
+
+\begin{table}[h]
+\centering
+\caption{Linee di codice \textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}}}
+\begin{tabular}{lp{2cm}lp{1cm}lp{2cm}lp{1cm}lp{1.3cm}lp{1cm}}
+\toprule
+\textbf{Linguaggio} &
+                    &
+\textbf{File}       &
+\textbf{Linee}      &
+\textbf{Vuote}      &
+\textbf{Commenti}   &
+\textbf{Codice}                                                      \\
+\midrule
+C++ Header      & \texttt{.h}    &  $5$ &  $317$ &  $37$ & $193$ &  $87$ \\
+C++ File        & \texttt{.cpp}  &  $4$ &  $975$ & $102$ &  $63$ & $810$ \\
+WebGPU Shader   & \texttt{.wgsl} &  $1$ &   $63$ &   $7$ &   $0$ &  $56$ \\
+\midrule
+\textbf{Totale} &                & $10$ & $1355$ & $146$ & $256$ & \textcolor{violet!75}{$953$} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Linee di codice \textcolor{blue!40}{\textbf{\texttt{OpenGL+OpenVR}}}}
+\begin{tabular}{lp{2cm}lp{1cm}lp{2cm}lp{1cm}lp{1.3cm}lp{1cm}}
+\toprule
+\textbf{Linguaggio} &
+                    &
+\textbf{File}       &
+\textbf{Linee}      &
+\textbf{Vuote}      &
+\textbf{Commenti}   &
+\textbf{Codice}                                                          \\
+\midrule
+C++ Header      & \texttt{.h}    &  $3$ &  $686$ & $133$ & $213$ & $340$ \\
+C++ File        & \texttt{.cpp}  &  $3$ & $1226$ & $218$ & $325$ & $683$ \\
+OpenGL Shader   & \texttt{.glsl} &  $0$ &    $0$ &   $0$ &   $0$ &   $0$ \\
+\midrule
+\textbf{Totale} &                &  $6$ & $1912$ & $351$ & $538$ & \textcolor{blue!40}{$1023$} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Cross platform}
 
 \blankpage
 
