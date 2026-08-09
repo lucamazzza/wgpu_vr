@@ -1031,7 +1031,7 @@ funzionamento di \texttt{WebGPU} e si possono aggiungere quelle necessarie all'i
 \ref{listing:vkext}).
 
 \begin{listing}[!ht]
-\begin{minted}{rs}
+\begin{minted}[highlightlines={8,9,10}]{rs}
 fn get_required_extensions(&self, requested_features: wgt::Features) 
 -> Vec<&'static CStr> {
     let mut extensions = Vec::new();
@@ -2017,6 +2017,13 @@ richiedendo unicamente un ambiente di test con driver Vulkan più maturi.
 Per quanto riguarda lo sviluppo stabile per macOS, questo è al momento totalmente precluso dall'assenza di un runtime
 di realtà virtuale che non sia quello dedicato allo sviluppo per \textit{Apple Vision Pro}.
 
+\newpage
+
+\section{Manuale d'uso}
+
+Il manuale d'uso è riportato nell'allegato in coda al documento, così da poter essere utilizzato come guida in caso
+di problemi o incertezze sulla natura del codice (\ref{annex:guide}).
+
 \blankpage
 
 \chapter{Conclusioni}
@@ -2033,7 +2040,7 @@ di realtà virtuale che non sia quello dedicato allo sviluppo per \textit{Apple 
 \blankpage
 
 \appendix
-\chapter{Manuale d'uso}
+\chapter{Manuale d'uso}\label{annex:guide}
 
 \section{Prerequisiti}
 
