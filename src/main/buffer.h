@@ -4,7 +4,7 @@
 
     \author Luca Mazza
     \copyright 2026 Luca Mazza
- */
+*/
 #pragma once
 
 #include <webgpu.h>
@@ -16,7 +16,7 @@
              destroying a WebGPU buffer.
              It manages the underlying WGPUBuffer and ensures proper alignment
              of the buffer size.
- */
+*/
 class WgpuBuffer {
 public:
 
@@ -24,14 +24,14 @@ public:
          \brief Constructor
 
          \details Initializes the WgpuBuffer instance.
-     */
+    */
     WgpuBuffer();
 
     /**
          \brief Destructor
 
          \details Cleans up the WgpuBuffer instance.
-     */
+    */
     ~WgpuBuffer();
 
     /**
@@ -45,7 +45,7 @@ public:
          \param size Size of the buffer in bytes
          \param usage Usage flags for the buffer
          \return true if the buffer was created successfully, false otherwise
-     */
+    */
     bool create(WGPUDevice device, WGPUQueue queue, const void *data, size_t size, WGPUBufferUsage usage);
 
     /**
@@ -57,14 +57,14 @@ public:
          \param data Pointer to the new data for the buffer
          \param size Size of the new data in bytes
          \param offset Offset in bytes where the new data should be written (default is 0)
-     */
+    */
     void update(WGPUQueue queue, const void *data, size_t size, size_t offset = 0);
 
     /**
          \brief Destroy the WebGPU buffer
 
          \details Destroys the WebGPU buffer and releases any associated resources.
-     */
+    */
     void destroy();
 
     /**
@@ -83,7 +83,7 @@ public:
                   rounded up to the nearest multiple of 256 bytes.
 
          \return The aligned size of the buffer in bytes
-     */
+    */
     size_t size() const { return m_alignedSize; }
 
 private:

@@ -1,3 +1,10 @@
+/**
+    \file XrBridge.cpp
+    \brief OpenXR bridge implementation
+
+    \author Luca Mazza
+    \copyright 2026 Luca Mazza
+*/
 #include "XrBridge.h"
 
 #include <glm/glm.hpp>
@@ -109,32 +116,32 @@ bool XrBridge::Init(WGPUInstance instance, WGPUDevice device, WGPUAdapter adapte
     };
     if (XR_FAILED(xrCreateReferenceSpace(m_session, &referenceSpaceInfo, &m_space))) {
         XRBRIDGE_ERROR_OUT("Failed to create reference space!");
-		return false;
+        return false;
     }
-	return true;
+    return true;
 }
 
 bool XrBridge::Free() {
-	if (m_space == XR_NULL_HANDLE && m_session == XR_NULL_HANDLE && m_instance == XR_NULL_HANDLE) {
+    if (m_space == XR_NULL_HANDLE && m_session == XR_NULL_HANDLE && m_instance == XR_NULL_HANDLE) {
         XRBRIDGE_ERROR_OUT("OpenXR resources are already freed!");
-		return true;
-	}
-	if (xrDestroySpace(m_space) != XR_SUCCESS) {
-		XRBRIDGE_ERROR_OUT("Failed to destroy reference space!");
-		return false;
-	}
-	if (xrDestroySession(m_session) != XR_SUCCESS) {
-		XRBRIDGE_ERROR_OUT("Failed to destroy OpenXR session!");
-		return false;
-	}
-	if (xrDestroyInstance(m_instance) != XR_SUCCESS) {
-		XRBRIDGE_ERROR_OUT("Failed to destroy OpenXR instance!");
-		return false;
-	}
-	m_space = XR_NULL_HANDLE;
-	m_session = XR_NULL_HANDLE;
-	m_instance = XR_NULL_HANDLE;
-	return true;
+        return true;
+    }
+    if (xrDestroySpace(m_space) != XR_SUCCESS) {
+        XRBRIDGE_ERROR_OUT("Failed to destroy reference space!");
+        return false;
+    }
+    if (xrDestroySession(m_session) != XR_SUCCESS) {
+        XRBRIDGE_ERROR_OUT("Failed to destroy OpenXR session!");
+        return false;
+    }
+    if (xrDestroyInstance(m_instance) != XR_SUCCESS) {
+        XRBRIDGE_ERROR_OUT("Failed to destroy OpenXR instance!");
+        return false;
+    }
+    m_space = XR_NULL_HANDLE;
+    m_session = XR_NULL_HANDLE;
+    m_instance = XR_NULL_HANDLE;
+    return true;
 }
 
 bool XrBridge::Update(bool& isSessionRunning) {
@@ -261,13 +268,13 @@ bool XrBridge::Render(const RenderFunction_t& renderFunction) {
             layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerProjection));
         }
 
+        // End the frame
+        XrFrameEndInfo frameEndInfo{ XR_TYPE_FRAME_END_INFO };
+        frameEndInfo.displayTime = frameState.predictedDisplayTime;
+        frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
+        frameEndInfo.layerCount = static_cast<uint32_t>(layers.size());
+        frameEndInfo.layers = layers.data();
+        xrEndFrame(m_session, &frameEndInfo);
     }
-    // End the frame
-    XrFrameEndInfo frameEndInfo{ XR_TYPE_FRAME_END_INFO };
-    frameEndInfo.displayTime = frameState.predictedDisplayTime;
-    frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
-    frameEndInfo.layerCount = static_cast<uint32_t>(layers.size());
-    frameEndInfo.layers = layers.data();
-    xrEndFrame(m_session, &frameEndInfo);
     return true;
 }

@@ -106,11 +106,10 @@ int main() {
 
     XrBridge bridge;
 
-    //std::vector<XrSwapchain> swapchains;
-	if (!bridge.Init(instance, device, adapter, queue)) {
-		std::cerr << "[ERROR] Failed to initialize OpenXR session." << std::endl;
-		return -1;
-	}
+    if (!bridge.Init(instance, device, adapter, queue)) {
+        std::cerr << "[ERROR] Failed to initialize OpenXR session." << std::endl;
+        return -1;
+    }
 
     // Shader Loading
     Shader shader;

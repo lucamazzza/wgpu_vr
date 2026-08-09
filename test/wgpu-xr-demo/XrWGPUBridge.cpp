@@ -4,7 +4,7 @@
 
     \author Luca Mazza
     \copyright 2026 Luca Mazza
- */
+*/
 #include "XrWGPUBridge.h"
 
 #include <iostream>
