@@ -25,7 +25,7 @@ The vendored libraries include:
 
 * [wgpu_native](https://github.com/gfx-rs/wgpu-native) (WebGPU implementation)
 * [OpenXR-SDK](https://github.com/KhronosGroup/OpenXR-SDK) (VR Runtime Loader)
-* [GLFW](https://github.com/glfw/glfw) (Windowing)
+* [GLFW](https://github.com/glfw/glfw) (Windowing, not needed for VR)
 * [GLM](https://github.com/g-truc/glm) (Mathematics)
 
 > [!WARNING]
@@ -66,6 +66,14 @@ cd src/build/openxr && ./demo_openxr
 # Test Main
 cd src/build/main && ./demo_main
 ```
+
+# Test Demo
+
+The final demo, the deliverable of the project, can be found in the [test](./test/) folder. Here the project is built using 
+Visual Studio 2026, using MSVC and managing dependencies and build in a different way.
+
+If you whish to use the final demo through windows and this build system, just double click on the `.slnx` file and
+follow the IDE's instructions.
 
 # License
 
