@@ -17,7 +17,7 @@ applications, replacing legacy OpenGL and OpenVR workflows.
 * **`src/webgpu/`**: A standalone WebGPU application to test graphics and windowing without VR overhead.
 * **`src/openxr/`**: A standalone OpenXR application to verify headset detection and runtime configuration without graphics overhead.
 * **`src/external/`**: Vendored dependencies (included in the repo for easy building).
-
+* **`test/`**: MSVC Demo.
 # Dependencies
 
 Most dependencies are vendored in the `src/external/` directory, meaning that you do not need to install them system-wide.
