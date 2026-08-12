@@ -29,7 +29,6 @@
     headheight=15pt
 ]{geometry}
 
-
 % Headers and Footers
 \setlength{\headheight}{15pt} % Fix warning about header height
 \usepackage{fancyhdr}
@@ -71,6 +70,7 @@
 % Chapter/Section Titles Styling
 \usepackage{titlesec}
 \usepackage{color}
+\usepackage[dvipsnames]{xcolor}
 
 % Chapter Format
 \titleformat{\chapter}[display]
@@ -165,6 +165,9 @@ fontsize=\small,
  \vspace{\stretch{3}}
  \clearpage
 }
+
+% Symbols fontawesome
+\usepackage{fontawesome5}
 
 \begin{document}
 
@@ -602,7 +605,7 @@ sostenibilità didattica e cross-platform per integrare i calcolatori di ogni st
 
 \blankpage
 
-\chapter{Design e implementazione}
+\chapter{Design e implementazione}\label{chp:impl}
 
 Questo capitolo descrive in dettaglio la fase di implementazione del motore di rendering, che funge da \textit{Proof of
 concept} per determinare la fattibilità dell'architettura sotto esame.
@@ -1703,7 +1706,7 @@ risultati dovuti probabilmente all'utilizzo delle euristiche di \texttt{\gls{Ope
 anche senza scrivere una riga di codice, utilizzare \texttt{\gls{OpenXR}} e \texttt{WebGPU}, con \texttt{DirectX12} come
 backend offre delle performance senza eguali con l'alternativa legacy di \texttt{OpenGL} e \texttt{OpenVR}.
 
-\newpage
+\pagebreak
 
 \subsubsection{Utilizzo CPU}
 
@@ -2013,6 +2016,48 @@ utilizzo ed applicazione dei temi trattati in questa tesi.
 
 \newpage
 
+\section{Requisiti}
+
+In fase di definizione del mandato sono stati stabiliti dei requisiti funzionali e prestazionali rigorosi (vedi tabella
+\ref{tab:req}) per determinare il successo dello studio.
+A livello consuntivo, il bilancio risulta ampiamente positivo e, sebbene con alcune limitazioni imposte dall'attuale
+stato di maturità e sicurezza delle tecnologie coinvolte, supera ampiamente le aspettative di successo poste all'inizio
+del lavoro.
+
+\begin{table}[h]
+\centering
+\caption{Risultati dei requisiti del progetto}
+\begin{tabular}{@{}lp{12cm}l@{}}
+\toprule
+\textbf{ID}   & \textbf{Descrizione}                                                                    &                                         \\ \midrule
+\texttt{R-00} & Deve presentare un backend \texttt{WebGPU}, con \texttt{wgpu\_native}, in \texttt{C++}  & \color{ForestGreen}\faCheckCircle       \\
+\texttt{R-01} & Deve presentare l'integrazione di \texttt{\gls{OpenXR}} per gestire funzionalità VR/XR  & \color{ForestGreen}\faCheckCircle       \\
+\texttt{R-02} & Deve acquisire i dati di tracciamento dell'\gls{HMD}                                    & \color{ForestGreen}\faCheckCircle       \\
+\texttt{R-03} & Deve gestire allocazione texture e submission duale con swapchains                      & \color{Dandelion}\faExclamationTriangle \\
+\texttt{R-04} & Deve gestire la sincronizzazione con il framerate runtime VR                            & \color{ForestGreen}\faCheckCircle       \\
+\texttt{R-05} & Deve presentare una demo completa di scena 3D, che utilizzi \texttt{WebGPU}             & \color{ForestGreen}\faCheckCircle       \\
+\texttt{R-06} & Deve essere compatibile con Windows e Linux                                             & \color{BrickRed}\faExclamationCircle    \\
+\texttt{R-07} & Deve includere analisi complessità, comparata alla soluzione \texttt{OpenGL}            & \color{ForestGreen}\faCheckCircle       \\
+\texttt{R-08} & Deve includere un'analisi della performance (benchmark)                                 & \color{ForestGreen}\faCheckCircle       \\
+\texttt{R-09} & Deve includere un verdetto finale e guida all'utilizzo                                  & \color{ForestGreen}\faCheckCircle       \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Il requisito principale di realizzare un backend grafico in \texttt{C++} nativo, tramite \texttt{wgpu-native}, integrato
+con le funzionalità VR di \texttt{\gls{OpenXR}} è stato soddisfatto con successo.
+Il prototipo è in grado di acquisire i dati di tracciamento dell'\gls{HMD}, gestire correttamente le swapchain
+stereoscopiche e sincronizzarsi in modo rigoroso con il \textit{frame pacing} dettato dal runtime di \texttt{\gls{OpenXR}}.
+Anche dal punto di vista prestazionale, i test hanno dimostrato che l'impiego di \texttt{WebGPU} non comporta alcun
+degrado rispetto alla soluzione basata su \texttt{OpenGL}; al contrario, il nuovo approccio ha restutuito tempi di
+esecuzione ottimali e un utilizzo pressoché nullo della CPU durante il render loop principale.
+
+Sebbene il risultato sia per la maggior parte dei requisiti positivo, uno di questi ha richiesto un adattamento in corso
+d'opera, che ha causato il fallimento di un altro. La condivisione della memoria \textit{zero-copy} tra le due API,
+originariamente ipotizzata tramite \texttt{\gls{Vulkan}}, ha rilevato instabilità critiche a livello di driver grafico.
+Ciò forza l'utilizzo di \texttt{\gls{DirectX}12} come backend di riferimento per l'estrazione degli handle nativi e come
+livello di interoperabilità, compatibile solamente con l'ambiente Windows.
+
 \section{Cross platform}
 
 Uno degli obbiettivi teorici principali nell'adozione di \texttt{WebGPU}, come specificato nei requisiti e nella
@@ -2021,9 +2066,10 @@ il codice grafico dalle dipendenze del sistema operativo. Tuttavia i risultati d
 evidenziano che, nel dominio specifico della realtà virtuale, l'interoperabilità a basso livello rompe parzialmente
 questa astrazione.
 
-Come discusso nel Capitolo 4, l'implementazione iniziale prevedeva l'utilizzo di Vulkan come minimo comune denominatore
-cross-platform. Dal punto di vista teorico e concettuale, l'architettura basata su Vulkan è assolutamente valida per la
-condivisione della memoria con OpenXR.
+Come discusso nel capitolo \ref{chp:impl}, l'implementazione iniziale prevedeva l'utilizzo di Vulkan come minimo comune
+denominatore cross-platform.
+Dal punto di vista teorico e concettuale, l'architettura basata su Vulkan è assolutamente valida per la condivisione
+della memoria con OpenXR.
 Il blocco non è derivato da un limite di WebGPU in sé, bensì dall'immaturità dell'ecosistema dei driver grafici:
 l'utilizzo dell'estensione \texttt{VK\_KHR\_external\_memory\_win32} su architetture ibride (nello specifico GPU
 integrate Intel) ha generato instabilità fatali a livello di driver.
@@ -2038,8 +2084,6 @@ richiedendo unicamente un ambiente di test con driver Vulkan più maturi.
 
 Per quanto riguarda lo sviluppo stabile per macOS, questo è al momento totalmente precluso dall'assenza di un runtime
 di realtà virtuale che non sia quello dedicato allo sviluppo per \textit{Apple Vision Pro}.
-
-\newpage
 
 \section{Manuale d'uso}
 
