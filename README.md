@@ -73,7 +73,7 @@ The final demo, the deliverable of the project, can be found in the [test](./tes
 Visual Studio 2026, using MSVC and managing dependencies and build in a different way.
 
 If you whish to use the final demo through windows and this build system, just double click on the `.slnx` file and
-follow the IDE's instructions.
+follow the IDE's instructions (ideally usable with Visual Studio 2022 and later)
 
 # License
 
