@@ -251,7 +251,7 @@ fontsize=\small,
 \showlogofalse
 \begin{dedication}
     Vorrei qui ringraziare i miei amici
-    \textnormal{Bruno, Lorenzo, Patrick, Andrea e Filippo}\newline
+    \textnormal{Bruno, Lorenzo, Patrick e \small{Andrea}}\newline
     per il supporto durante lo sviluppo di questa tesi.\newline
     Ringrazio oltretutto i miei amici
     \textnormal{Alessio e Sabrina}\newline
@@ -286,6 +286,12 @@ fontsize=\small,
 \blankpage
 
 \chapter{Introduzione}
+
+Questo capitolo è dedicato ad introdurre i concetti e macro-argomenti della presente tesi, fornendo il contesto
+necessario per comprendere la natura del compito ricevuto, dell'ambiente nel quale ci si muove e delle motivazioni
+per il quale si vuole svolgere il lavoro.
+
+\section{Introduzione}
 
 Negli ultimi anni, l'evoluzione delle API grafiche ha portato ad un progressivo allontanamento dagli standard
 tradizionali, come \texttt{OpenGL}\footnote{\url{https://opengl.org}}, in favore di soluzioni più moderne, che 
@@ -332,12 +338,34 @@ Virtuale.
 Con questo documento non si intende però produrre una guida dettagliata per quanto riguarda l'API di \texttt{WebGPU},
 e nemmeno all'utilizzo di \texttt{\gls{OpenXR}} o alle funzionalità VR, bensì saranno espliciti solamente i concetti
 essenziali alla comprensione di questo lavoro. Se si desidera apprendere i concetti riguardanti entrambe le API
-menzionate si può fare riferimento alla guida per i fondamentali di \texttt{WebGPU}\cite{webgpufundamentals} e a quella
-di \texttt{\gls{OpenXR}}\cite{openxrtutorial}.
+menzionate si può fare riferimento alla guida per i fondamentali di \texttt{WebGPU} \cite{webgpu-webgl} e a
+quella di \texttt{\gls{OpenXR}}.
 
 È anche da notare che questo documento non ha lo scopo di rendere noto ogni singolo dettaglio di codice sviluppato,
 bensì di accompagnare alla comprensione del problema, dei passi intrapresi per cercare di risolverlo e, se finalmente
 è fattibile sostituire l'approccio tradizionale con \texttt{WebGPU}.
+
+\section{Requisiti}
+
+\begin{table}[h]
+\centering
+\caption{Requisiti del progetto}\label{tab:req}
+\begin{tabular}{@{}lp{12cm}l@{}}
+\toprule
+\textbf{ID}   & \textbf{Descrizione}                                                                    & \textbf{Note}    \\ \midrule
+\texttt{R-00} & Deve presentare un backend \texttt{WebGPU}, con \texttt{wgpu\_native}, in \texttt{C++}  & < \texttt{C++20} \\
+\texttt{R-01} & Deve presentare l'integrazione di \texttt{\gls{OpenXR}} per gestire funzionalità VR/XR  & -                \\
+\texttt{R-02} & Deve acquisire i dati di tracciamento dell'\gls{HMD}                                    & -                \\
+\texttt{R-03} & Deve gestire allocazione texture e submission duale con swapchains                      & -                \\
+\texttt{R-04} & Deve gestire la sincronizzazione con il framerate runtime VR                            & -                \\
+\texttt{R-05} & Deve presentare una demo completa di scena 3D, che utilizzi \texttt{WebGPU}             & -                \\
+\texttt{R-06} & Deve essere compatibile con Windows e Linux                                             & -                \\
+\texttt{R-07} & Deve includere analisi complessità, comparata alla soluzione \texttt{OpenGL}            & -                \\
+\texttt{R-08} & Deve includere un'analisi della performance (benchmark)                                 & -                \\
+\texttt{R-09} & Deve includere un verdetto finale e guida all'utilizzo                                  & -                \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Pianificazione}
 
@@ -392,34 +420,9 @@ eventuali problemi o deviazioni dai mezzi discussi inizialmente.
 Essendo questo uno studio di fattibilità esplorativo, la pianificazione ha mantenuto un approccio iterativo.
 Come si vedrà nel capitolo 4, le rigidità architetturali incontrate richiedono dei "pivot" durante lo sviluppo,
 forzando la deviazione dal piano originale, verso l'esplorazione di pattern architetturali differenti.
-
-È anche necessario notare che sebbene ovvio, nel caso l'applicazione dei concetti non risultasse fattibile proprio
-dal punto di visto tecnico e non accademico, la valutazione dell'effort e le eventuali analisi delle performance
-risultano poco utili e tralasciabili.
 \end{quote}
 
 Questo rapporto è stato scritto durante tutta la durata del progetto, parallelamente a tutte le fasi descritte sopra.
-
-\section{Requisiti}
-\begin{table}[h]
-\centering
-\caption{Requisiti del progetto}\label{tab:req}
-\begin{tabular}{@{}lp{12cm}l@{}}
-\toprule
-\textbf{ID}   & \textbf{Descrizione}                                                                    & \textbf{Note}    \\ \midrule
-\texttt{R-00} & Deve presentare un backend \texttt{WebGPU}, con \texttt{wgpu\_native}, in \texttt{C++}  & < \texttt{C++20} \\
-\texttt{R-01} & Deve presentare l'integrazione di \texttt{\gls{OpenXR}} per gestire funzionalità VR/XR  & -                \\
-\texttt{R-02} & Deve acquisire i dati di tracciamento dell'\gls{HMD}                                    & -                \\
-\texttt{R-03} & Deve gestire allocazione texture e submission duale con swapchains                      & -                \\
-\texttt{R-04} & Deve gestire la sincronizzazione con il framerate runtime VR                            & -                \\
-\texttt{R-05} & Deve presentare una demo completa di scena 3D, che utilizzi \texttt{WebGPU}             & -                \\
-\texttt{R-06} & Deve essere compatibile con Windows e Linux                                             & -                \\
-\texttt{R-07} & Deve includere analisi complessità, comparata alla soluzione \texttt{OpenGL}            & -                \\
-\texttt{R-08} & Deve includere un'analisi della performance (benchmark)                                 & -                \\
-\texttt{R-09} & Deve includere un verdetto finale e guida all'utilizzo                                  & -                \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 \blankpage
 
@@ -459,6 +462,13 @@ macchina a stati finiti. Il suo successo decennale, specialmente nell'ambito acc
 apprendimento che risulta relativamente dolce; l'astrazione di alto livello utilizzata dagli sviluppatori risulta
 semplice, in quanto nasconde al programmatore la complessa gestione della memoria video, la sincronizzazione dei thread
 e la sottomissione dei comandi alla GPU.
+
+\begin{quote}
+\itshape
+Although OpenGL has its roots in scientific modeling and simulation, you don’t need to be a rocket scientist to master
+it. [...] Learning OpenGL is comparable to learning SQL for database programming. \cite{superbible}
+\end{quote}
+
 Tuttavia, questa astrazione ha un costo architetturale severo: i driver di \texttt{OpenGL} devono eseguire una massiccia
 mole di euristiche in background per tradurre le chiamate high level in istruzioni comprensibili per la scheda grafica,
 causando un notevole driver overhead e un'imprevedibilità delle prestazioni, soprattutto del frame stuttering, difetti
@@ -477,6 +487,13 @@ Questa soluzione costringerebbe il programmatore a rilasciare una nuova patch og
 visore o elemento periferico per il sistema VR viene rilasciato.
 Pur offrendo un'integrazione diretta e robusta con \texttt{OpenGL}, al momento si tratta di una tecnologia legacy,
 non più allineata con la traiettoria dell'industria moderna.
+
+\begin{quote}
+\itshape
+The standard SteamVR implements, named OpenVR, has been deprecated in favor of OpenXR and the Oculus SDK only supports
+hardware created by Meta. While both platforms provide a range of useful utilities [...] neither SteamVR nor the
+OculusSDK are ideal considering the current rapid proliferation of VR devices. \cite{dahl2023umuvr}
+\end{quote}
 
 \section{Frammentazione - \gls{Vulkan}, \gls{DirectX} \& \gls{Metal}}
 
@@ -508,7 +525,61 @@ Vi sono due fattori critici che rendono queste API problematiche per la didattic
         Linux o macOS.
 \end{enumerate}
 
-\section{Comparativa - \texttt{OpenVR} \& \texttt{\gls{OpenXR}}}
+\section{L'emergere di \texttt{WebGPU}}
+
+Per colmare il vuoto lasciato dalla deprecazione di \texttt{OpenGL} e dalla complessità proibitiva di \gls{Vulkan},
+il \textit{World Wide Web Consortium} (W3C) ha sviluppato \texttt{WebGPU}. Nata originariamente per succedere a
+\texttt{WebGL}, per i browser web, questa tecnologia è progettata con lo scopo di esporre le capacità delle API moderne
+garantendo sicurezza, portabilità ed un livello di astrazione ergonomico per lo sviluppatore.
+
+La vera rivoluzione per l'ambiente desktop, ed il fulcro tecnologico di questo progetto, è il porting nativo di questa
+API tramite implementazioni \texttt{C/C++}, come \textbf{\texttt{wgpu-native}} e \textbf{\texttt{Dawn}}, sviluppate
+rispettivamente da Mozilla, in \texttt{Rust} e da Google in \texttt{C++}.
+Queste librerie operano come \textit{Render Hardware Interface} (RHI) universale; lo sviluppatore scrive il codice
+relativo alla propria applicazione grafica, utilizzando l'API \texttt{WebGPU} standard e scrive gli shader.
+Il backend esegue poi automaticamente la traduzione \textit{just-in-time} e invia i comandi all'API nativa del sistema
+operativo.
+
+Anche rispetto a tecnologie che precedono \texttt{WebGPU}, come \texttt{WebGL}, il primo ha diversi vantaggi tecnici;
+è dotato di un livello più basso di API design, il quale permette un controllo più \textit{fine-grained} sulle risorse
+hardware, un supporto esplicito per il parallelismo ed il multithreaded e, grazie all'utilizzo di API native "sotto il
+cofano", è compatibile con l'hardware più moderno e le innovazioni del campo della computer grafica più recenti.
+
+\begin{quote}
+\itshape
+In summary, WebGPU's superior performance compared to WebGL can be attributed to its lower-level API design, explicit
+support for parallelism, compatibility with modern hardware, innovative optimizations, explicit resource management, and
+improved error handling capabilities. These factors collectively contribute to a more efficient and powerful graphics
+rendering engine. \cite{webgpu-new}
+\end{quote}
+
+Questi sono infatti gli argomenti di tesi di uno dei progetti di riferimento per il presente, il quale è il primo
+componente della serie di transizione verso l'utilizzo di \texttt{WebGPU} nell'ambito del corso di Grafica e di Realtà
+virtuale. Come analizzato da \textit{Forestieri, Lorenzo}: 
+
+\begin{quote}
+\itshape
+I risultati mostrano che WebGPU è un candidato credibile per sostituire OpenGL in un contesto accademico, soprattutto in
+corsi avanzati, pur richiedendo un maggiore investimento iniziale in termini di setup e materiale didattico. \cite{Forestieri_2025}
+\end{quote}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{webgpu.png}
+\caption{WebGPU Design}
+\end{figure}
+
+\texttt{WebGPU} nativo risolve quindi simultaneamente due problemi fondamentali: riduce il boilerplate necessario per
+controllare l'hardware grafico, sempre utilizzando le API grafiche più moderne, performanti, efficienti e ottimizzate,
+e garantisce una compatibilità cross-platform assoluta, aggirando le restrizioni e l'isolazionismo di Apple.
+
+Tuttavia, questa sicurezza e portabilità derivano da un rigoroso sandboxing dell'API; mentre le API grafiche
+tradizionali permettono facilmente la condivisione di risorse inter-process, un requisito fondamentale per lavorare
+in contesti di realtà virtuale dove il computer ed il visore devono scambiarsi fotogrammi senza costi aggiuntivi di
+memoria, \texttt{WebGPU} sembra nascondere tali funzionalità per mantenere la sicurezza alta.
+Questo scontro di paradigmi rappresenta la sfida principale.
+
+\section{\texttt{OpenVR} \& \texttt{\gls{OpenXR}}}
 
 La medesima frammentazione vissuta nel mercato delle API si è ripercossa su quello dell'hardware VR. Per risolvere
 questo problema, il \textit{Khronos Group}\footnote{\url{https://khronos.org}} ha rilasciato \texttt{\gls{OpenXR}},
@@ -542,41 +613,17 @@ vengono concepite le applicazioni immersive. Di seguito le principali divergenze
         del controllo rende estremamente complessa l'integrazione di API grafiche non ufficialmente supportate.
 \end{itemize}
 
-\pagebreak
+Come per l'utilizzo di \texttt{WebGPU} durante il corso di grafica, anche l'utilizzo di \texttt{OpenXR} durante il corso
+di Realtà Virtuale è già stato preso in analisi in un lavoro passato; è infatti il tema reggente della tesi edita da
+\textit{Piazza, Lorenzo}, il quale ha analizzato e sviluppato un "bridge" che possa far utilizzare in semplicità
+\texttt{OpenXR} come runtime per la gestione dell'\gls{HMD} per il corso sovraccitato.
 
-\section{L'emergere di \texttt{WebGPU}}
-
-Per colmare il vuoto lasciato dalla deprecazione di \texttt{OpenGL} e dalla complessità proibitiva di \gls{Vulkan},
-il \textit{World Wide Web Consortium} (W3C) ha sviluppato \texttt{WebGPU}. Nata originariamente per succedere a
-\texttt{WebGL}, per i browser web, questa tecnologia è progettata con lo scopo di esporre le capacità delle API moderne
-garantendo sicurezza, portabilità ed un livello di astrazione ergonomico per lo sviluppatore.
-
-La vera rivoluzione per l'ambiente desktop, ed il fulcro tecnologico di questo progetto, è il porting nativo di questa
-API tramite implementazioni \texttt{C/C++}, come \textbf{\texttt{wgpu-native}} e \textbf{\texttt{Dawn}}, sviluppate
-rispettivamente da Mozilla, in \texttt{Rust} e da Google in \texttt{C++}.
-Queste librerie operano come \textit{Render Hardware Interface} (RHI) universale; lo sviluppatore scrive il codice
-relativo alla propria applicazione grafica, utilizzando l'API \texttt{WebGPU} standard e scrive gli shader nel
-linguaggio \texttt{WGSL} (WebGPU Shading Language). Il backend esegue poi automaticamente la traduzione
-\textit{just-in-time} e invia i comandi all'API nativa del sistema operativo, quindi \texttt{\gls{Vulkan}/DirectX} per
-quanto riguarda Windows, \gls{Vulkan} per quanto riguarda Linux ed infine \gls{Metal} per macOS.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.4\textwidth]{webgpu.png}
-\caption{WebGPU Design}
-\end{figure}
-
-\texttt{WebGPU} nativo risolve quindi simultaneamente due problemi fondamentali: riduce il boilerplate necessario per
-controllare l'hardware grafico, sempre utilizzando le API grafiche più moderne, performanti, efficienti e ottimizzate,
-e garantisce una compatibilità cross-platform assoluta, aggirando le restrizioni e l'isolazionismo di Apple.
-
-Tuttavia, questa sicurezza e portabilità derivano da un rigoroso sandboxing dell'API; mentre le API grafiche
-tradizionali permettono facilmente la condivisione di risorse inter-process, un requisito fondamentale per lavorare
-in contesti di realtà virtuale dove il computer ed il visore devono scambiarsi fotogrammi senza costi aggiuntivi di
-memoria, \texttt{WebGPU} sembra nascondere tali funzionalità per mantenere la sicurezza alta.
-Questo scontro di paradigmi rappresenta la sfida principale.
-
-\pagebreak
+\begin{quote}
+\itshape
+L’obiettivo di XrBridge è quello di permettere a studenti e ricercatori di accedere ai benefici di OpenXR attraverso uno
+strumento che ne astrae significativamente le funzionalità, riducendo la curva di apprendimento e lo sforzo richiesto a
+livelli compatibili con i percorsi formativi SUPSI. \cite{Piazza_2024}
+\end{quote}
 
 \section{Conclusione}
 
@@ -920,7 +967,7 @@ all'interno dell'Hardware Abstraction Layer, scritto in Rust. Ciò rende impossi
 
 Per aggirare questa limitazione senza dover riscrivere interi moduli della libreria si è optato per una tecnica di
 iniezione di codice, tramite una tecnica chiamata \textit{\gls{FFI}}, direttamente nel codice sorgente
-di \texttt{wgpu-native}.
+di \texttt{wgpu-native}. \cite{schwager2024rust}
 
 Sfruttando le capacità di interoperabilità e esportazione in C di Rust, vengono iniettate delle funzioni custom, in
 grado di interrogare l'oggetto \texttt{context} all'interno di \texttt{WebGPU}.
@@ -1864,7 +1911,7 @@ quali è composta la codebase. Ciò permette di valutare la verbosità del codic
 \texttt{cloc}\footnote{\url{https://cloc.info}}, di valutare la complessità del codice e quanto tempo/risorse sono
 necessarie per lo sviluppo.
 
-La valutazione delle risorse utilizza il modello \textbf{COCOMO}\cite{gfgcocomo}, che sta per Constructive Cost Model,
+La valutazione delle risorse utilizza il modello \textbf{COCOMO} \cite{cocomo}, che sta per Constructive Cost Model,
 utilizzato per la valutazione del costo dei software capace di predirre sforzo, tempo e costo richiesto dallo sviluppo
 del software, sulla base della dimensione della codebase e la quantità di linee di codice.
 
@@ -2105,7 +2152,7 @@ di problemi o incertezze sulla natura del codice (\ref{annex:guide}).
 \printglossary[title=Glossario, toctitle=Glossario]
 
 %\blankpage
-\printbibliography[heading=bibintoc, title=Sitografia]
+\printbibliography[heading=bibintoc, title=Bibliografia]
 
 \blankpage
 
