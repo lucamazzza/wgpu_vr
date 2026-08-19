@@ -2221,14 +2221,36 @@ richiedendo unicamente un ambiente di test con driver Vulkan più maturi.
 Per quanto riguarda lo sviluppo stabile per macOS, questo è al momento totalmente precluso dall'assenza di un runtime
 di Realtà Virtuale che non sia quello dedicato allo sviluppo per \textit{Apple Vision Pro}.
 
-\section{Manuale d'uso}
+\section{Conclusioni}
+
+Alla luce dei dati raccolti e discussi in questo capitolo, è possibile trarre alcune conclusioni oggettive sull'esito
+dell'implementazione tecnica. Il prototipo dimostra con successo la reale fattibilità dell'interrogazione tra
+\texttt{WebGPU} e lo standard \texttt{OpenXR} in ambiente nativo, per il rendering stereoscopico.
+
+Si consolidano i seguenti punti salienti:
+
+\begin{itemize}
+    \item L'architettura sviluppata riesce a colmare il vuoto tecnologico per l'interoperazione tra le due API. Il
+        sistema permette l'acquisizione fluida delle pose, la gestione diretta della swapchain e la corretta
+        sincronizzazione dei frame imposta dalla rigorosa macchina a stati finiti
+    \item Sebbene WebGPU nasca con la promessa di un'assoluta portabilità su diversi sistemi operativi, i risultati
+        tecnici evidenziano che l'interoperabilità a bassissimo livello con OpenXR spezza parzialmente questa astrazione.
+        La necessità di condividere puntatori nativi per le immagini e di forzare l'abilitazione di specifiche estensioni
+        Vulkan o DirectX rende l'ambiente Windows il target primario e più stabile, richiedendo compromessi per garantire
+        il supporto su architetture Linux.
+    \item Il manuale d'utilizzo e la struttura del codice dimostrano che l'API può essere utilizzata con successo dallo
+        studente. Come già dimostrato con i metodi adottati nel corso, fornendo un modulo \textit{black-box} che
+        gestisca autonomamente l'inizializzazione del device e la negiziazione della swapchain, lo sviluppatore può
+        concentrarsi interamente sulla logica 3D e di interazione con il VR.
+\end{itemize}
+
+In sintesi i risultati empirici promuovono l'accoppiata \texttt{WebGPU} e \texttt{OpenXR} sotto il profilo della
+complessità, della performance e dal punto di vista ingegneristico, pur confermando una netta rigidità infrastrutturale.
+Questi esiti forniscono una base concreta su cui, nel capitolo successivo, viene formulato il verdetto definitivo
+riguardante la sostenibilità didattica a lungo termine per il corso di Realtà Virtuale.
 
 Il manuale d'uso è riportato nell'allegato in coda al documento, così da poter essere utilizzato come guida in caso
 di problemi o incertezze sulla natura del codice (\ref{annex:guide}).
-
-\section{Conclusioni}
-
-
 
 \blankpage
 
