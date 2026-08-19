@@ -380,15 +380,15 @@ eventuali problemi o deviazioni dai mezzi discussi inizialmente.
     \item \textbf{Analisi \texttt{\gls{OpenXR}}}: Analizzare l'approccio utilizzato nei progetti precedenti 
         (specialmente per quanto riguarda \textit{\texttt{XRBridge}}\footnote{\url{https://github.com/JollyCookie2000/xr-bridge}})
         per lo sviluppo di un'applicazione grafica che faccia utilizzo di \texttt{\gls{OpenXR}} per fornire funzionalità
-        per la realtà virtuale.
+        per la Realtà Virtuale.
     \item \textbf{Demo \texttt{WebGPU} indipendente}: Derivante dall'analisi riguardante l'API di \texttt{WebGPU},
         sviluppare una demo che possa rappresentare un punto di partenza per lo sviluppo della demo finale. Questa
         deve concentrarsi sulle funzionalità dell'API \texttt{WebGPU}. Questa demo deve rimanere semplice e ridurre la
-        complessità di integrazione di ulteriori funzionalità, specialmente quelle riguardanti la realtà virtuale.
+        complessità di integrazione di ulteriori funzionalità, specialmente quelle riguardanti la Realtà Virtuale.
     \item \textbf{Demo \texttt{\gls{OpenXR}} indipendente}: Derivante dall'analisi riguardante \texttt{\gls{OpenXR}},
         sviluppare una demo che possa rappresentare un punto di partenza per lo sviluppo della demo finale. Questa deve
-        concentrarsi sulle funzionalità di realtà virtuale. Questa demo deve essere imperativamente concentrata sui
-        requisiti del corso di realtà virtuale e concentrarsi ad adattare unicamente ciò che è necessario per il corso.
+        concentrarsi sulle funzionalità di Realtà Virtuale. Questa demo deve essere imperativamente concentrata sui
+        requisiti del corso di Realtà Virtuale e concentrarsi ad adattare unicamente ciò che è necessario per il corso.
         Ulteriormente, questa deve essere integrabile nell'ambiente \texttt{WebGPU}, deve quindi avere un approccio 
         modulare, il quale permetterà di rimuovere le funzionalità \texttt{OpenGL} e sostituirle con quelle di
         \texttt{WebGPU}.
@@ -472,12 +472,12 @@ it. [...] Learning OpenGL is comparable to learning SQL for database programming
 Tuttavia, questa astrazione ha un costo architetturale severo: i driver di \texttt{OpenGL} devono eseguire una massiccia
 mole di euristiche in background per tradurre le chiamate high level in istruzioni comprensibili per la scheda grafica,
 causando un notevole driver overhead e un'imprevedibilità delle prestazioni, soprattutto del frame stuttering, difetti
-critici nell'ambito della realtà virtuale, dove la latenza \textit{motion-to-photon} deve rimanere strettamente
+critici nell'ambito della Realtà Virtuale, dove la latenza \textit{motion-to-photon} deve rimanere strettamente
 inferiore ai 20 millisecondi.
 
 \textbf{\texttt{OpenVR}}\footnote{\url{https://github.com/ValveSoftware/openvr}}, sviluppato da Valve come SDK per la
 piattaforma \texttt{SteamVR}, è stata la prima API di successo commerciale a standardizzare l'accesso a device dedicati
-alla realtà virtuale \textit{PC-VR}.
+alla Realtà Virtuale \textit{PC-VR}.
 Nata in un periodo di forte sperimentazione, questa tecnologia è intrinsecamente legata all'ecosistema di Valve,
 soprattutto con i visori di produzione HTC, per i quali le due aziende hanno collaborato nella produzione.
 Si basa su un modello nel quale l'hardware sta al centro dell'attenzione; infatti il runtime costringe l'hardware
@@ -511,7 +511,7 @@ Vi sono due fattori critici che rendono queste API problematiche per la didattic
         manualmente la memoria, gestire i descriptor set, configurare le pipeline memory barrier e orchestrare le code
         di comandi. Realizzare il rendering di un singolo triangolo colorato utilizzando \gls{Vulkan} richiede la
         stesura di 1000-1500 righe di codice, che a confronto delle 50-100 di OpenGL risultano eccessive per un corso di
-        dieci settimane. Inoltre, un corso accademico focalizzato sulla realtà virtuale forzare gli studenti ad
+        dieci settimane. Inoltre, un corso accademico focalizzato sulla Realtà Virtuale forzare gli studenti ad
         apprendere quest'API significherebbe consumare l'intero semestre solo per inizializzare l'ambiente grafico.
         \begin{quote}
         \itshape
@@ -577,7 +577,7 @@ e garantisce una compatibilità cross-platform assoluta, aggirando le restrizion
 
 Tuttavia, questa sicurezza e portabilità derivano da un rigoroso sandboxing dell'API; mentre le API grafiche
 tradizionali permettono facilmente la condivisione di risorse inter-process, un requisito fondamentale per lavorare
-in contesti di realtà virtuale dove il computer ed il visore devono scambiarsi fotogrammi senza costi aggiuntivi di
+in contesti di Realtà Virtuale dove il computer ed il visore devono scambiarsi fotogrammi senza costi aggiuntivi di
 memoria, \texttt{WebGPU} sembra nascondere tali funzionalità per mantenere la sicurezza alta.
 Questo scontro di paradigmi rappresenta la sfida principale.
 
@@ -665,7 +665,7 @@ tecnologie in questione, e viene divisa in tre pilastri fondamentali, che verran
         esplicita ed autonoma, utilizzando l'API \texttt{wgpu\_native}. Questa fase risolve le critiche relative
         all'allineamento della memoria, alla gestione esplicita dello stato ed al caricamento degli assets.
     \item L'integrazione di \texttt{\gls{OpenXR}}, che vede l'implementazione di un'interfaccia indipendente
-        dall'hardware per comunicare con i visori di realtà virtuale, gestendo il tracciamento spaziale, gli stati della
+        dall'hardware per comunicare con i visori di Realtà Virtuale, gestendo il tracciamento spaziale, gli stati della
         sessione e l'acquisizione della swapchain.
     \item Il ciclo applicativo principale che fa da ponte tra i due sottosistemi, sincronizzando il rendering
         stereoscopico di \texttt{WebGPU} con i requisiti temporali di visualizzazione del compositor
@@ -680,7 +680,7 @@ prototipo funzionale, ottimizzato e possibilmente multipiattaforma.
 \section{\texttt{WebGPU}}
 
 La seguente sezione si concentra sulle funzionalità di \texttt{WebGPU} implementate, utili a raggiungere lo stesso
-risultato dimostrato nel tutorial ufficiale del corso di realtà virtuale.
+risultato dimostrato nel tutorial ufficiale del corso di Realtà Virtuale.
 
 È importante che la codebase, sebbene facente uso di un'API con struttura e filosofia radicalmente differenti, sia
 strutturata il più simile possibile a quella del corso, per rendere la comparazione il più semplice ed efficiente
@@ -1457,7 +1457,7 @@ dove gli studenti devono potersi concentrare sulla logica VR, e non il debugging
 
 In conclusione, il tentativo di utilizzare \texttt{WebGPU} come entità creatrice delle risorse native e modificarne il
 core per estrarle è formalmente abbandonato, in quanto le risorse necessarie per tale estrazione rendono il risultato
-inutilizzabile per il corso di realtà virtuale.
+inutilizzabile per il corso di Realtà Virtuale.
 
 \subsection{Inversion of Control (IoC)}
 
@@ -1671,15 +1671,71 @@ tolleranze minime: il \gls{framerate} deve rimanere stabilmente ancorato alla fr
 la latenza \textit{motion-to-photon} (il tempo che intercorre dal movimento della testa all'aggiornamento dei pixel)
 deve rimanere al di sotto dei $20$ millisecondi per prevenire fenomeni di \textit{motion sickness}.
 Anche se un requisito generale dei visori è la stabilità a $90$ FPS, i visori simulati da
-telefono cellulare, utilizzati durante questo progetto come il corso di realtà virtuale, sono spesso limitati a $60$ FPS.
+telefono cellulare, utilizzati durante questo progetto come il corso di Realtà Virtuale, sono spesso limitati a $60$ FPS.
 
 I test sono stati condotti eseguendo la medesima scena 3D stereoscopica sia sull'infrastruttura OpenGL/OvVR sia sul
 prototipo WebGPU/OpenXR.
 
+\subsection{Protocollo di test della performance}
+
+In questa sezione è descritto in modo molto lineare e pragmatico, quanto eseguito per tutti i test di performance, in
+modo da essere riproducibili nella stessa scala dei presenti risultati.
+
+\subsubsection{Preparazione}
+
+Chiudere tutte le applicazioni in background (Browser, Discord, ecc...) per assicurarsi di essere in un ambiente pulito.
+Ciò è importante soprattutto per i test di utilizzo della \texttt{CPU} e della Memoria Video \texttt{VRAM}.
+
+\subsubsection{Avvio \texttt{VRidge}}
+
+Connetti il cellulare e avvia l'applicativo \texttt{VRidge}. Una volta avviato e connesso il cellulare assicurarsi
+dell'avvio di \texttt{SteamVR}.
+
+Si consiglia l'utilizzo di una connessione via cavo, con un cavo \texttt{USB-C USB-C} che supporti il trasporto di dati
+ad alte performance.
+
+\subsubsection{Esecuzione demo \texttt{OpenGL}}
+
+Lanciare ora la demo \texttt{OpenGL}, tramite l'eseguibile compilata dal progetto.
+
+Assicurarsi che \texttt{SteamVR} sia attualmente in esecuzione prima di avviare la demo, per garantire il funzionamento.
+
+\subsubsection{"Guardarsi attorno"}\label{a3:lookaround}
+
+Per esattamente $60$ secondi, muoversi seguendo i seguenti movimenti:
+
+\begin{itemize}
+    \item Guardare lentamente a sinistra ($\sim10$s)
+    \item Guardare lentamente a destra ($\sim10$s)
+    \item Guardare lentamente in alto ($\sim10$s)
+    \item Guardare lentamente in basso ($\sim10$s)
+    \item Muovere la testa avanti e indietro ($\sim20$s)
+\end{itemize}
+
+\subsubsection{Annotare le metriche}\label{a4:notemetrics}
+
+Annotare, durante l'esecuzione del test, le metriche per:
+
+\begin{itemize}
+    \item FPS minimi, massimi, medi
+    \item Frame Time minimo, massimo, medio
+    \item Utilizzo CPU/VRAM dal task manager
+    \item Frame Droppati (dal performance tool di SteamVR)
+\end{itemize}
+
+\subsubsection{Cool down}
+
+Fermare la demo e lasciar riposare il sistema fino a riprendere l'idle. Ciò permette di ritornare nella stessa
+situazione iniziale per quanto riguarda lo stress dell'hardware.
+
+\subsubsection{Esecuzione demo \texttt{WebGPU}}
+
+Eseguire la demo \texttt{WebGPU}, ripetendo i punti \textit{"Guardarsi attorno"} e \textit{Annotare le metriche}.
+
 \subsection{VRidge + iPhone}
 
 Questa serie di performance test è eseguita con il software \textit{VRidge} come supporto; questo permette di eseguire
-ed interagire con applicazioni di realtà virtuale, utilizzando il proprio telefono cellulare come HMD, utilizzando
+ed interagire con applicazioni di Realtà Virtuale, utilizzando il proprio telefono cellulare come HMD, utilizzando
 \textit{SteamVR} come runtime VR. Si noti che questo supporto introduce notevoli bottleneck, dovuti alla connessione
 poco stabile con i cellulari e la bassa capacità di refresh rate degli stessi.
 Queste performance hanno comunque validità per il corso, in quanto è il supporto principale utilizzato dallo studente,
@@ -1688,7 +1744,7 @@ quindi il previsto utilizzo dei progetti di corso.
 \subsubsection{\gls{framerate}}
 
 Il \gls{framerate}, misurato in appunto fotogrammi per secondo, rappresenta la metrica prestazionale più immediata per
-valutare la fluidità di un'applicazione grafica. In realtà virtuale, mantenere un framerate elevato e costante è un
+valutare la fluidità di un'applicazione grafica. In Realtà Virtuale, mantenere un framerate elevato e costante è un
 requisito tecnico critico per garantire l'immersività e prevenire fenomeni di motion sickness.
 
 Questa sezione mette a confronto la stabilità di \gls{framerate} tra l'implementazione nativa in
@@ -1974,7 +2030,7 @@ di $108$, che risulta abbastanza contenuta.
 
 Questa valutazione si basa invece sulla soluzione sviluppata per il presente progetto, il quale è l'obbiettivo evolutivo
 del corso. Si mira ad una simile quantità di codice, con un'altresì simile complessità e risorse necessarie; infatti,
-soprattutto a causa della corta durata del corso di realtà virtuale di appena 10 settimane, le tempistiche e risorse
+soprattutto a causa della corta durata del corso di Realtà Virtuale di appena 10 settimane, le tempistiche e risorse
 necessarie è bene che restino simili.
 
 \begin{quote}
@@ -2016,6 +2072,38 @@ La stima di sforzo temporale infatti risulta di $3.42$ mesi, molto vicini a quel
 altresì azzeccati. Le risorse umane richieste sono $0.67$, ancora una volta vicini.
 La soluzione di partenza mostra una complessità di $89$, che risulta addirittura minore dell'originale,
 anche se poco vista la differenza dei concetti per lo studente.
+
+\section{Complessità di comprensione per lo studente}
+
+L'introduzione di \texttt{WebGPU} nel modulo di Realtà Virtuale comporta un cambio di paradigma rispetto alla soluzione
+attuale. Valutare oggettivamente la curva di apprendimento è fondamentale per determinare se l'API possa essere
+effettivamente assimilata nel breve tempo a disposizione per il corso.
+
+\subsection{Aspetti positivi}
+
+Gli aspetti che riducono la complessità si dividono principalmente su due fronti; il primo vede una maggiore prossimità
+ai paradigmi del C++ standard di \texttt{wgpu-native}, il quale a differenza di OpenGL presenta un'architettura più
+familiare e logica per uno studente che ha appreso da poco questo linguaggio, permettendo il ragionamento ingegneristico
+con poche eccezioni.
+
+Inoltre la struttura del codice è prevedibile e ripetitiva, rendendo l'interazione con il pattern estremamente metodica
+e costante; infatto per implementare la stragrande maggioranza delle funzionalità, il flusso logico si ripete invariato:
+si crea un struttura di dati specifica, la si popola con i parametri necessari (spesso la struttura creata
+precedentemente) e si invoca una singola funzione per inizializzare/sottomettere i dati appena creati. Ciò rende
+l'apprendimento meccanico ed efficiente.
+
+\subsection{Aspetti negativi}
+
+Gli aspetti che invece aumentano o peggiorano la complessità della soluzione sono altresì divisi su due argomenti;
+in primis, l'implementazione nativa di riferimento porta con sé un'infrastruttura profondamente legata al linguaggio
+Rust. Questo introduce notevoli frizioni per quanto riguarda la toolchain e la gestione delle librerie necessarie per
+lo sviluppo, soprattutto per studenti abituati allo sviluppo C++. È inoltre da notare che errori, warning e altre
+notifiche a livello API sono presentate direttamente dal runtime Rust, e risultano quindi poco comprensibili per chi
+del linguaggio non ne sa nulla.
+
+Il secondo punto riguarda sempre il linguaggio Rust, il quale ha ispirato pesantemente il linguaggio WGSL (WebGPU
+Shading Language), unico linguaggio di shading compatibile con la soluzione. Nemmeno la compatibilità con SPIR-V
+abbassa di troppo la complessità su questo fronte, visto che richiede compilazione in un momento separato.
 
 \section{Conclusione}
 
@@ -2111,7 +2199,7 @@ livello di interoperabilità, compatibile solamente con l'ambiente Windows.
 Uno degli obbiettivi teorici principali nell'adozione di \texttt{WebGPU}, come specificato nei requisiti e nella
 precendente valutazione dei risultati, è la promessa del paradigma "Write once, Compile anywhere", che mira a svincolare
 il codice grafico dalle dipendenze del sistema operativo. Tuttavia i risultati di questo studio di fattibilità
-evidenziano che, nel dominio specifico della realtà virtuale, l'interoperabilità a basso livello rompe parzialmente
+evidenziano che, nel dominio specifico della Realtà Virtuale, l'interoperabilità a basso livello rompe parzialmente
 questa astrazione.
 
 Come discusso nel capitolo \ref{chp:impl}, l'implementazione iniziale prevedeva l'utilizzo di Vulkan come minimo comune
@@ -2131,7 +2219,7 @@ Di conseguenza, il pieno supporto a Linux si configura come uno degli sviluppi f
 richiedendo unicamente un ambiente di test con driver Vulkan più maturi.
 
 Per quanto riguarda lo sviluppo stabile per macOS, questo è al momento totalmente precluso dall'assenza di un runtime
-di realtà virtuale che non sia quello dedicato allo sviluppo per \textit{Apple Vision Pro}.
+di Realtà Virtuale che non sia quello dedicato allo sviluppo per \textit{Apple Vision Pro}.
 
 \section{Manuale d'uso}
 
@@ -2161,60 +2249,5 @@ di problemi o incertezze sulla natura del codice (\ref{annex:guide}).
 \chapter{Manuale d'uso}\label{annex:guide}
 
 \section{Prerequisiti}
-
-\blankpage
-
-\chapter{Protocollo di test della performance}
-
-\section{Preparazione}
-
-Chiudere tutte le applicazioni in background (Browser, Discord, ecc...) per assicurarsi di essere in un ambiente pulito.
-Ciò è importante soprattutto per i test di utilizzo della \texttt{CPU} e della Memoria Video \texttt{VRAM}.
-
-\section{Avvio \texttt{VRidge}}
-
-Connetti il cellulare e avvia l'applicativo \texttt{VRidge}. Una volta avviato e connesso il cellulare assicurarsi
-dell'avvio di \texttt{SteamVR}.
-
-Si consiglia l'utilizzo di una connessione via cavo, con un cavo \texttt{USB-C USB-C} che supporti il trasporto di dati
-ad alte performance.
-
-\section{Esecuzione demo \texttt{OpenGL}}
-
-Lanciare ora la demo \texttt{OpenGL}, tramite l'eseguibile compilata dal progetto.
-
-Assicurarsi che \texttt{SteamVR} sia attualmente in esecuzione prima di avviare la demo, per garantire il funzionamento.
-
-\section{"Guardarsi attorno"}\label{a3:lookaround}
-
-Per esattamente $60$ secondi, muoversi seguendo i seguenti movimenti:
-
-\begin{itemize}
-    \item Guardare lentamente a sinistra ($\sim10$s)
-    \item Guardare lentamente a destra ($\sim10$s)
-    \item Guardare lentamente in alto ($\sim10$s)
-    \item Guardare lentamente in basso ($\sim10$s)
-    \item Muovere la testa avanti e indietro ($\sim20$s)
-\end{itemize}
-
-\section{Annotare le metriche}\label{a4:notemetrics}
-
-Annotare, durante l'esecuzione del test, le metriche per:
-
-\begin{itemize}
-    \item FPS minimi, massimi, medi
-    \item Frame Time minimo, massimo, medio
-    \item Utilizzo CPU/VRAM dal task manager
-    \item Frame Droppati (dal performance tool di SteamVR)
-\end{itemize}
-
-\section{Cool down}
-
-Fermare la demo e lasciar riposare il sistema fino a riprendere l'idle. Ciò permette di ritornare nella stessa
-situazione iniziale per quanto riguarda lo stress dell'hardware.
-
-\section{Esecuzione demo \texttt{WebGPU}}
-
-Eseguire la demo \texttt{WebGPU}, ripetendo i punti \ref{a3:lookaround} e \ref{a4:notemetrics}.
 
 \end{document}
