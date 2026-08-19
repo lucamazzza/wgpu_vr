@@ -357,7 +357,7 @@ bensì di accompagnare alla comprensione del problema, dei passi intrapresi per 
 \texttt{R-01} & Deve presentare l'integrazione di \texttt{\gls{OpenXR}} per gestire funzionalità VR/XR  & -                \\
 \texttt{R-02} & Deve acquisire i dati di tracciamento dell'\gls{HMD}                                    & -                \\
 \texttt{R-03} & Deve gestire allocazione texture e submission duale con swapchains                      & -                \\
-\texttt{R-04} & Deve gestire la sincronizzazione con il framerate runtime VR                            & -                \\
+\texttt{R-04} & Deve gestire la sincronizzazione con il \gls{framerate} runtime VR                      & -                \\
 \texttt{R-05} & Deve presentare una demo completa di scena 3D, che utilizzi \texttt{WebGPU}             & -                \\
 \texttt{R-06} & Deve essere compatibile con Windows e Linux                                             & -                \\
 \texttt{R-07} & Deve includere analisi complessità, comparata alla soluzione \texttt{OpenGL}            & -                \\
@@ -452,10 +452,10 @@ la transizione architetturale verso nuovi standard aperti, come \texttt{\gls{Ope
 
 \newpage
 
-\section{Standard didattico - \texttt{OpenGL} \& \texttt{OpenVR}}
+\section{Standard didattico - \texttt{OpenGL} \& \texttt{\gls{OpenVR}}}
 
 Nel contesto accademico e della formazione in computer grafica, il corso di Realtà Virtuale ha fatto affidamento
-sull'utilizzo di \texttt{OpenGL} per il rendering e \texttt{OpenVR} per l'interfacciamento con gli HMD.
+sull'utilizzo di \texttt{OpenGL} per il rendering e \texttt{\gls{OpenVR}} per l'interfacciamento con gli HMD.
 
 \textbf{\texttt{OpenGL}}\footnote{\url{https://opengl.org}}, introdotto nel 1992, è un'API implicita basata su una
 macchina a stati finiti. Il suo successo decennale, specialmente nell'ambito accademico, deriva dalla curva di
@@ -475,9 +475,9 @@ causando un notevole driver overhead e un'imprevedibilità delle prestazioni, so
 critici nell'ambito della Realtà Virtuale, dove la latenza \textit{motion-to-photon} deve rimanere strettamente
 inferiore ai 20 millisecondi.
 
-\textbf{\texttt{OpenVR}}\footnote{\url{https://github.com/ValveSoftware/openvr}}, sviluppato da Valve come SDK per la
-piattaforma \texttt{SteamVR}, è stata la prima API di successo commerciale a standardizzare l'accesso a device dedicati
-alla Realtà Virtuale \textit{PC-VR}.
+\textbf{\texttt{\gls{OpenVR}}}\footnote{\url{https://github.com/ValveSoftware/openvr}}, sviluppato da Valve come SDK per
+la piattaforma \texttt{SteamVR}, è stata la prima API di successo commerciale a standardizzare l'accesso a device
+dedicati alla Realtà Virtuale \textit{PC-VR}.
 Nata in un periodo di forte sperimentazione, questa tecnologia è intrinsecamente legata all'ecosistema di Valve,
 soprattutto con i visori di produzione HTC, per i quali le due aziende hanno collaborato nella produzione.
 Si basa su un modello nel quale l'hardware sta al centro dell'attenzione; infatti il runtime costringe l'hardware
@@ -581,43 +581,44 @@ in contesti di Realtà Virtuale dove il computer ed il visore devono scambiarsi 
 memoria, \texttt{WebGPU} sembra nascondere tali funzionalità per mantenere la sicurezza alta.
 Questo scontro di paradigmi rappresenta la sfida principale.
 
-\section{\texttt{OpenVR} \& \texttt{\gls{OpenXR}}}
+\section{\texttt{\gls{OpenVR}} \& \texttt{\gls{OpenXR}}}
 
 La medesima frammentazione vissuta nel mercato delle API si è ripercossa su quello dell'hardware VR. Per risolvere
 questo problema, il \textit{Khronos Group}\footnote{\url{https://khronos.org}} ha rilasciato \texttt{\gls{OpenXR}},
 l'attuale standard industriale open-source per lo spatial computing, adottato universalmente da tutti i principali
-produttori, inclusa Valve stessa, che ha attivamente incoraggiato l'abbandono di \texttt{OpenVR}
+produttori, inclusa Valve stessa, che ha attivamente incoraggiato l'abbandono di \texttt{\gls{OpenVR}}
 \footnote{\url{https://windowscentral.com/steamvr-gets-open-source-upgrade-valve-transitions-openxr-api}}.
 
 Le differenze architetturali tra le due API sono profonde e rappresentano una rivoluzione concettuale nel modo in cui
 vengono concepite le applicazioni immersive. Di seguito le principali divergenze
 
 \begin{itemize}
-    \item \textbf{Gestione Input (Hardware-Centric/Action-Based)}: in \texttt{OpenVR}, il programmatore interroga
+    \item \textbf{Gestione Input (Hardware-Centric/Action-Based)}: in \texttt{\gls{OpenVR}}, il programmatore interroga
         direttamente l'hardware; questo approccio lo obbliga a riscrivere il codice ogni volta che un nuovo visore o una
         nuova periferica viene rilasciata sul mercato. In risposta a questo problema, \texttt{\gls{OpenXR}} introduce un
         sistema \textbf{Action-Based}. Qui, lo sviluppatore definisce in modo astratto delle azioni logiche, per poi
         passarle al Runtime, il quale si occupa di mapparle sull'hardware utilizzato correntemente dall'utente in base a
         profili di interazione.
-    \item \textbf{Gestione Spazi/Tracking}: \texttt{OpenVR} restituisce le matrici di posizionamento (\textit{Poses})
+    \item \textbf{Gestione Spazi/Tracking}: \texttt{\gls{OpenVR}} restituisce le matrici di posizionamento (\textit{Poses})
         basate su un sistema di coordinate cablato. \texttt{\gls{OpenXR}} invece introduce il concetto id
         \texttt{XrSpace}\footnote{\url{https://registry.khronos.org/OpenXR/specs/1.1/man/html/XrSpace.html}}, dove ogni
         elemento, che si tratti del visore, del controller o della zona di gioco, è codificato come "Spazio".
         Al suo interno, la posizione di un oggetto viene calcolata interrogando il runtime, chiedendogli di localizzare
         uno spazio rispetto ad un altro, provvedendo a fornire anche stime sulle velocità lineari e angolari basate su
         complessi algoritmi di predizione.
-    \item \textbf{Architettura Swapchain}: per quanto riguarda \texttt{OpenVR}, l'applicazione grafica ha il compito
-        di generare le texture e di provvederle al visore, tramite la funzione \texttt{Submit}. Al contrario, per quanto
-        riguarda \texttt{\gls{OpenXR}}, l'architettura è pensata all'inverso; è il runtime a possedere e allocare le
-        immagini della Swapchain, garantendo ottimizzazione per l'hardware. L'applicazione deve quindi implementare un
-        Graphic Binding esplicito, richiedendo al runtime i puntatori di memoria per poi disegnarci sopra. L'inversione
-        del controllo rende estremamente complessa l'integrazione di API grafiche non ufficialmente supportate.
+    \item \textbf{Architettura Swapchain}: per quanto riguarda \texttt{\gls{OpenVR}}, l'applicazione grafica ha il
+        compito di generare le texture e di provvederle al visore, tramite la funzione \texttt{Submit}. Al contrario,
+        per quanto riguarda \texttt{\gls{OpenXR}}, l'architettura è pensata all'inverso; è il runtime a possedere e
+        allocare le immagini della Swapchain, garantendo ottimizzazione per l'hardware. L'applicazione deve quindi
+        implementare un Graphic Binding esplicito, richiedendo al runtime i puntatori di memoria per poi disegnarci
+        sopra. L'inversione del controllo rende estremamente complessa l'integrazione di API grafiche non ufficialmente
+        supportate.
 \end{itemize}
 
-Come per l'utilizzo di \texttt{WebGPU} durante il corso di grafica, anche l'utilizzo di \texttt{OpenXR} durante il corso
-di Realtà Virtuale è già stato preso in analisi in un lavoro passato; è infatti il tema reggente della tesi edita da
-\textit{Piazza, Lorenzo}, il quale ha analizzato e sviluppato un "bridge" che possa far utilizzare in semplicità
-\texttt{OpenXR} come runtime per la gestione dell'\gls{HMD} per il corso sovraccitato.
+Come per l'utilizzo di \texttt{WebGPU} durante il corso di grafica, anche l'utilizzo di \texttt{\gls{OpenXR}} durante il
+corso di Realtà Virtuale è già stato preso in analisi in un lavoro passato; è infatti il tema reggente della tesi edita
+da \textit{Piazza, Lorenzo}, il quale ha analizzato e sviluppato un "bridge" che possa far utilizzare in semplicità
+\texttt{\gls{OpenXR}} come runtime per la gestione dell'\gls{HMD} per il corso sovraccitato.
 
 \begin{quote}
 \itshape
@@ -801,7 +802,7 @@ Il processo, consultabile nel listing \ref{listing:macwinctx}, si occupa di estr
 rendering dedicato, chiamato \texttt{CAMetalLayer}.
 Inoltre, durante questa fase, viene esplicitamenet disabilitata la proprietà \texttt{displaySyncEnabled} del layer
 \gls{Metal}; questo è un passaggio fondamentale per aggirare la sincronizzazione verticale forzata in modo aggressivo
-dal \textit{Window Server} di macOS, permettendo all'applicazione di sbloccare il framerate per una migliore
+dal \textit{Window Server} di macOS, permettendo all'applicazione di sbloccare il \gls{framerate} per una migliore
 profilazione delle performance.
 Il livello così configurato viene finalmente passato al descrittore \texttt{WGPUSurfaceSourceMetalLayer}.
 
@@ -1109,7 +1110,7 @@ fn get_required_extensions(&self, requested_features: wgt::Features)
 Queste aggiunte sono state svolte solamente nel sorgente menzionato, in quanto entrambe
 \texttt{VK\_KHR\_external\_memory} e \texttt{VK\_KHR\_external\_memory\_win32} sono estensioni di tipo \textit{device}.
 
-\section{Transizione a \texttt{DirectX12}}
+\section{Transizione a \texttt{\gls{DirectX}12}}
 
 Durante la fase di sperimentazione empirica dell'integrazione tra \texttt{WebGPU} e \texttt{\gls{OpenXR}} sul backend
 \gls{Vulkan}, sono emerse criticità bloccanti legate sia all'ecosistema dei driver che alle estensioni di memoria
@@ -1239,8 +1240,8 @@ finché la finestra è attiva. Al contrario, \texttt{\gls{OpenXR}} implementa un
 runtime VR (es. SteamVR) a dettare le tempistiche e la necessità effettiva di generare un nuovo fotogramma, al fine di
 garantire un'esperienza priva di \textit{stuttering} e minimizzare la latenza.
 
-Come documentato in implementazioni precedenti basate su \texttt{OpenVR}, l'utente aveva la responsabilità di creare i
-framebuffer e inviarli al runtime.
+Come documentato in implementazioni precedenti basate su \texttt{\gls{OpenVR}}, l'utente aveva la responsabilità di
+creare i framebuffer e inviarli al runtime.
 \texttt{\gls{OpenXR}} inverte questo paradigma: l'applicazione deve richiedere le immagini e sottostare allo stato della
 sessione.
 Durante l'esecuzione, lo stato della sessione può transitare da \texttt{XR\_SESSION\_STATE\_FOCUSED} a
@@ -1486,8 +1487,8 @@ L'analisi dei sorgenti di \texttt{Dawn} ha rivelato che le funzioni sperimenali 
 \texttt{ExportVulkanImage} sono soggette a forti instabilità e mancano di simmetrie tra le piattaforme backend.
 In generale si nota che piattaforme supportate da molteplici sistemi operativi, come \texttt{\gls{Vulkan}}, sono
 lasciate in secondo piano e viene rimossa la possibilità di interoperare direttamente, in favore di piattaforme native
-che sono usualmente il "default" per il sistema operativo (\texttt{Metal} per macOS, \texttt{DirectX} per Windows e
-\textit{File Descriptors} per Linux).
+che sono usualmente il "default" per il sistema operativo (\texttt{\gls{Metal}} per macOS, \texttt{\gls{DirectX}} per
+Windows e \textit{File Descriptors} per Linux).
 Nello specifico, si è constatato che tipi di dato, come per esempio l'enum \texttt{ExternalImageType}, necessario
 per la dichiarazione dei tipi di handle del sistema operativo da esportare per i \textit{semaphores} di
 \texttt{\gls{Vulkan}}, supporta nativamente i descrittori per \textit{Android}, \textit{macOS}, \textit{Linux}, ma non
@@ -1516,10 +1517,10 @@ copy} tra \texttt{WebGPU} e \texttt{\gls{OpenXR}} in ambiente Windows, senza ric
 sorgente delle librerie grafiche.
 
 Questa mancanza oltretutto non è una svista, ma deriva dalle priorità di sviluppo del backend di Google:
-su Windows, \texttt{Dawn} predilige l'interoperabilità tramite \texttt{DirectX}, mentre riserva l'integrazione nativa
-\texttt{\gls{Vulkan}} (e la relativa esportazione di \textit{File Descriptors}) principalmente agli ambienti Linux e
-Android. Di conseguenza, il ponte \texttt{\gls{Vulkan}}-Windows risulta essere un caso d'uso non ancora supportato,
-bloccando di fatto la condivisione Zero-Copy.
+su Windows, \texttt{Dawn} predilige l'interoperabilità tramite \texttt{\gls{DirectX}}, mentre riserva l'integrazione
+nativa \texttt{\gls{Vulkan}} (e la relativa esportazione di \textit{File Descriptors}) principalmente agli ambienti
+Linux e Android. Di conseguenza, il ponte \texttt{\gls{Vulkan}}-Windows risulta essere un caso d'uso non ancora
+supportato, bloccando di fatto la condivisione Zero-Copy.
 
 \begin{quote}
 \itshape
@@ -1579,7 +1580,7 @@ evidenziato nelle analisi dell'API; l'utilizzo mirato dell'infrastruttura sottos
 architetturale.
 
 Rispetto alle architetture didattiche precedentemente impiegate nel corso, basate sull'accoppiata \texttt{OpenGL} e
-\texttt{OpenVR}, il nuovo motore grafico impone un cambio di paradigma.
+\texttt{\gls{OpenVR}}, il nuovo motore grafico impone un cambio di paradigma.
 Si abbandona il tradizionale stile di programmazione unico ad \texttt{OpenGL}, per passare ad uno più conforme al
 moderno \texttt{\gls{Vulkan}}, come d'altronde da intenzione dei creatori.
 L'overhead di questo cambiamento è però relativo, in quanto anche se le risorse da istanziare sono molteplici e va
@@ -1596,8 +1597,8 @@ il frame pacing imposti dal runtime \texttt{\gls{OpenXR}}.
 
 Avendo stabilito e validato un'infrastruttura di rendering solida e funzionante, il prototipo fornisce la base ideale
 per procedere nel prossimo capitolo, con la fase di profilazione. In questa fase infatti verranno analizzate le
-prestazioni del sistema, misurando oggettivamente le latenze ed i framerate per determinare l'importanza dell'eventuale
-overhead e quanto le performance finali lo giustifichino.
+prestazioni del sistema, misurando oggettivamente le latenze ed i \gls{framerate} per determinare l'importanza
+dell'eventuale overhead e quanto le performance finali lo giustifichino.
 
 \blankpage
 
@@ -1610,7 +1611,7 @@ contrario, evidenzino colli di bottiglia architetturali.
 
 Per condurre questa analisi, il prototipo basato su \texttt{WebGPU} verrà confrontato direttamente con le soluzioni
 tradizionali precedentemente impiegate nei corsi accademici della SUPSI, nello specifico quelle basate sull'integrazione
-tra \texttt{OpenGL} e \texttt{OpenVR}. Il confronto si articolerà su due direttrici fondamentali:
+tra \texttt{OpenGL} e \texttt{\gls{OpenVR}}. Il confronto si articolerà su due direttrici fondamentali:
 
 \begin{itemize}
     \item Verrà eseguita un'analisi critica della complessità intrinseca delle API, valutando la verbosità del codice,
@@ -1744,13 +1745,13 @@ quindi il previsto utilizzo dei progetti di corso.
 \subsubsection{\gls{framerate}}
 
 Il \gls{framerate}, misurato in appunto fotogrammi per secondo, rappresenta la metrica prestazionale più immediata per
-valutare la fluidità di un'applicazione grafica. In Realtà Virtuale, mantenere un framerate elevato e costante è un
-requisito tecnico critico per garantire l'immersività e prevenire fenomeni di motion sickness.
+valutare la fluidità di un'applicazione grafica. In Realtà Virtuale, mantenere un \gls{framerate} elevato e costante è
+un requisito tecnico critico per garantire l'immersività e prevenire fenomeni di motion sickness.
 
 Questa sezione mette a confronto la stabilità di \gls{framerate} tra l'implementazione nativa in
-\texttt{OpenGL}+\texttt{OpenVR} ed il nuovo prototipo \texttt{WebGPU}+\texttt{\gls{OpenXR}}, analizzando non solo la
-media generale, ma anche picchi minimi e massimi oltre al 99esimo percentile, con lo scopo di evidenziare eventuali cali
-di prestazione anomali.
+\texttt{OpenGL}+\texttt{\gls{OpenVR}} ed il nuovo prototipo \texttt{WebGPU}+\texttt{\gls{OpenXR}}, analizzando non solo
+la media generale, ma anche picchi minimi e massimi oltre al 99esimo percentile, con lo scopo di evidenziare eventuali
+cali di prestazione anomali.
 
 \begin{table}[h]
 \centering
@@ -1776,15 +1777,16 @@ Ciononostante, si può notare che la soluzione \textcolor{violet!75}{\textbf{\te
 durante la fase di inizializzazione, vede un calo di frame al secondo più elevato rispetto alla soluzione già presente.
 Entrambe le soluzioni hanno comunque praticamente gli stessi risultati in entrambi i casi.
 
-I risultati evidenziano comunque che il sistema non ha problemi di framerate che farebbero ricadere in problemi anche
-in ambienti castrati e si nota che gli FPS non sono un problema in entrambe i casi.
+I risultati evidenziano comunque che il sistema non ha problemi di \gls{framerate} che farebbero ricadere in problemi
+anche in ambienti castrati e si nota che gli FPS non sono un problema in entrambe i casi.
 
 \subsubsection{Frame Time}
 
 Il frame time indica il tempo effettivo, misurato in millisecondi, impiegato dal sistema per elaborare e renderizzare
-un singolo fotogramma. A differenza del framerate, che rende nota una media al secondo, questo fornisce una visione
-molto più granulare della stabilità del motore grafico. In un'applicazione \texttt{\gls{OpenXR}}, i picchi improvvisi di
-questa metrica possono causare la perdita della finestra di sincronizzazione con il \textit{compositor} del visore.
+un singolo fotogramma. A differenza del \gls{framerate}, che rende nota una media al secondo, questo fornisce
+una visione molto più granulare della stabilità del motore grafico. In un'applicazione \texttt{\gls{OpenXR}}, i picchi
+improvvisi di questa metrica possono causare la perdita della finestra di sincronizzazione con il \textit{compositor}
+del visore.
 
 La seguente tabella permette di concludere e valutare se l'architettura esplicita di \texttt{WebGPU} garantisce tempi
 di esecuzione più costanti rispetto alle euristiche dei driver \texttt{OpenGL}.
@@ -1807,8 +1809,8 @@ di esecuzione più costanti rispetto alle euristiche dei driver \texttt{OpenGL}.
 
 I risultati dimostrano come l'utilizzo di risorse moderne portino giovamento alle metriche di performance, soprattutto
 risultati dovuti probabilmente all'utilizzo delle euristiche di \texttt{\gls{OpenXR}}. In conclusione, fatto intuibile
-anche senza scrivere una riga di codice, utilizzare \texttt{\gls{OpenXR}} e \texttt{WebGPU}, con \texttt{DirectX12} come
-backend offre delle performance senza eguali con l'alternativa legacy di \texttt{OpenGL} e \texttt{OpenVR}.
+anche senza scrivere una riga di codice, utilizzare \texttt{\gls{OpenXR}} e \texttt{WebGPU}, con \texttt{\gls{DirectX}12}
+come backend offre delle performance senza eguali con l'alternativa legacy di \texttt{OpenGL} e \texttt{\gls{OpenVR}}.
 
 \pagebreak
 
@@ -1926,7 +1928,7 @@ causi la perdita di solamente due frames su tutto l'arco del test dimostra che l
 \subsubsection{Comparativa finale}
 
 Questa sezione propone una sintesi olistica di tutte le metriche raccolte durante la profilazione tramite
-\texttt{VRidge}. Aggregando i dati relativi a framerate, tempi di esecuzione, consumo di risorse e stabilità del
+\texttt{VRidge}. Aggregando i dati relativi a \gls{framerate}, tempi di esecuzione, consumo di risorse e stabilità del
 fotogramma, si delineerà un quadro prestazionale completo. L'obiettivo di questo confronto finale è stabilire
 oggettivamente se il debito tecnico e la complessità architetturale introdotti da WebGPU siano giustificati da un
 miglioramento misurabile delle performance, determinando così la validità tecnica della sua potenziale adozione come
@@ -2119,8 +2121,9 @@ presentare un limite in qualsiasi modo.
 Infine, la complessità della codebase si rivela ancora una volta uguale o migliore a quella della soluzione di base,
 risultando in un simile numero di righe di codice, una minor complessità ed una minore necessità di risorse organiche.
 
-Le classi che riguardano l'interconnessione tra \texttt{WebGPU}, \texttt{OpenXR} e il codice nativo \texttt{DirectX12}
-sarebbero quindi a disposizione dello studente, come era per la classe \texttt{ovr.h} per il vecchio progetto.
+Le classi che riguardano l'interconnessione tra \texttt{WebGPU}, \texttt{\gls{OpenXR}} e il codice nativo
+\texttt{\gls{DirectX}12} sarebbero quindi a disposizione dello studente, come era per la classe \texttt{ovr.h} per il
+vecchio progetto.
 
 \blankpage
 
@@ -2128,7 +2131,7 @@ sarebbero quindi a disposizione dello studente, come era per la classe \texttt{o
 
 Il presente capitolo ha lo scopo di tirare le somme dell'intero lavoro, soprattutto di confrontare la fase di
 implementazione e validazione, con la fase di analisi iniziale, consolidando i punti raccolti per formulare un verdetto
-oggettivo sulla fattibilità dell'interoperazione tra \texttt{WebGPU} e \texttt{OpenXR}.
+oggettivo sulla fattibilità dell'interoperazione tra \texttt{WebGPU} e \texttt{\gls{OpenXR}}.
 
 Dopo aver analizzato le complessità architetturali ed aver misurato empiricamente le performance del prototipo, è
 fondamentale confrontare le aspettative iniziali del progetto con i risultati conseguiti in effettivo, confronto
@@ -2170,7 +2173,7 @@ del lavoro.
 \texttt{R-01} & Deve presentare l'integrazione di \texttt{\gls{OpenXR}} per gestire funzionalità VR/XR  & \color{ForestGreen}\faCheckCircle       \\
 \texttt{R-02} & Deve acquisire i dati di tracciamento dell'\gls{HMD}                                    & \color{ForestGreen}\faCheckCircle       \\
 \texttt{R-03} & Deve gestire allocazione texture e submission duale con swapchains                      & \color{Dandelion}\faExclamationTriangle \\
-\texttt{R-04} & Deve gestire la sincronizzazione con il framerate runtime VR                            & \color{ForestGreen}\faCheckCircle       \\
+\texttt{R-04} & Deve gestire la sincronizzazione con il \gls{framerate} runtime VR                      & \color{ForestGreen}\faCheckCircle       \\
 \texttt{R-05} & Deve presentare una demo completa di scena 3D, che utilizzi \texttt{WebGPU}             & \color{ForestGreen}\faCheckCircle       \\
 \texttt{R-06} & Deve essere compatibile con Windows e Linux                                             & \color{BrickRed}\faExclamationCircle    \\
 \texttt{R-07} & Deve includere analisi complessità, comparata alla soluzione \texttt{OpenGL}            & \color{ForestGreen}\faCheckCircle       \\
@@ -2183,7 +2186,8 @@ del lavoro.
 Il requisito principale di realizzare un backend grafico in \texttt{C++} nativo, tramite \texttt{wgpu-native}, integrato
 con le funzionalità VR di \texttt{\gls{OpenXR}} è stato soddisfatto con successo.
 Il prototipo è in grado di acquisire i dati di tracciamento dell'\gls{HMD}, gestire correttamente le swapchain
-stereoscopiche e sincronizzarsi in modo rigoroso con il \textit{frame pacing} dettato dal runtime di \texttt{\gls{OpenXR}}.
+stereoscopiche e sincronizzarsi in modo rigoroso con il \textit{frame pacing} dettato dal runtime di
+\texttt{\gls{OpenXR}}.
 Anche dal punto di vista prestazionale, i test hanno dimostrato che l'impiego di \texttt{WebGPU} non comporta alcun
 degrado rispetto alla soluzione basata su \texttt{OpenGL}; al contrario, il nuovo approccio ha restutuito tempi di
 esecuzione ottimali e un utilizzo pressoché nullo della CPU durante il render loop principale.
@@ -2212,9 +2216,9 @@ integrate Intel) ha generato instabilità fatali a livello di driver.
 
 \subsection{Prospettive per Linux e macOS}
 
-La validazione teorica dell'approccio \texttt{Vulkan} conferma che il supporto per ambienti Linux non rappresenta un
-blocco insormontabile. Poiché OpenXR su Linux si appoggia nativamente a \texttt{Vulkan}, la logica di estrazione degli
-handle implementata potrebbe funzionare senza i conflitti visti sui driver Intel per Windows.
+La validazione teorica dell'approccio \texttt{\gls{Vulkan}} conferma che il supporto per ambienti Linux non rappresenta
+un blocco insormontabile. Poiché OpenXR su Linux si appoggia nativamente a \texttt{\gls{Vulkan}}, la logica di
+estrazione degli handle implementata potrebbe funzionare senza i conflitti visti sui driver Intel per Windows.
 Di conseguenza, il pieno supporto a Linux si configura come uno degli sviluppi futuri più immediati e promettenti,
 richiedendo unicamente un ambiente di test con driver Vulkan più maturi.
 
@@ -2225,7 +2229,7 @@ di Realtà Virtuale che non sia quello dedicato allo sviluppo per \textit{Apple 
 
 Alla luce dei dati raccolti e discussi in questo capitolo, è possibile trarre alcune conclusioni oggettive sull'esito
 dell'implementazione tecnica. Il prototipo dimostra con successo la reale fattibilità dell'interrogazione tra
-\texttt{WebGPU} e lo standard \texttt{OpenXR} in ambiente nativo, per il rendering stereoscopico.
+\texttt{WebGPU} e lo standard \texttt{\gls{OpenXR}} in ambiente nativo, per il rendering stereoscopico.
 
 Si consolidano i seguenti punti salienti:
 
@@ -2235,16 +2239,16 @@ Si consolidano i seguenti punti salienti:
         sincronizzazione dei frame imposta dalla rigorosa macchina a stati finiti
     \item Sebbene WebGPU nasca con la promessa di un'assoluta portabilità su diversi sistemi operativi, i risultati
         tecnici evidenziano che l'interoperabilità a bassissimo livello con OpenXR spezza parzialmente questa astrazione.
-        La necessità di condividere puntatori nativi per le immagini e di forzare l'abilitazione di specifiche estensioni
-        Vulkan o DirectX rende l'ambiente Windows il target primario e più stabile, richiedendo compromessi per garantire
-        il supporto su architetture Linux.
+        La necessità di condividere puntatori nativi per le immagini e di forzare l'abilitazione di specifiche
+        estensioni Vulkan o DirectX rende l'ambiente Windows il target primario e più stabile, richiedendo compromessi
+        per garantire il supporto su architetture Linux.
     \item Il manuale d'utilizzo e la struttura del codice dimostrano che l'API può essere utilizzata con successo dallo
         studente. Come già dimostrato con i metodi adottati nel corso, fornendo un modulo \textit{black-box} che
         gestisca autonomamente l'inizializzazione del device e la negiziazione della swapchain, lo sviluppatore può
         concentrarsi interamente sulla logica 3D e di interazione con il VR.
 \end{itemize}
 
-In sintesi i risultati empirici promuovono l'accoppiata \texttt{WebGPU} e \texttt{OpenXR} sotto il profilo della
+In sintesi i risultati empirici promuovono l'accoppiata \texttt{WebGPU} e \texttt{\gls{OpenXR}} sotto il profilo della
 complessità, della performance e dal punto di vista ingegneristico, pur confermando una netta rigidità infrastrutturale.
 Questi esiti forniscono una base concreta su cui, nel capitolo successivo, viene formulato il verdetto definitivo
 riguardante la sostenibilità didattica a lungo termine per il corso di Realtà Virtuale.
@@ -2256,8 +2260,35 @@ di problemi o incertezze sulla natura del codice (\ref{annex:guide}).
 
 \chapter{Conclusioni}
 
+Il presente progetto ha quindi adempito al suo scopo di valutare la fattibilità di adottare \texttt{WebGPU} in
+combinazione con \texttt{\gls{OpenXR}}, in ambiente nativo, per lo sviluppo di applicazioni di Realtà Virtuale.
+L'obbiettivo ultimo di determinare se questo stack tecnologico potesse sostituire in modo efficace l'approccio
+tradizionale basato su \texttt{OpenGL} e \texttt{OpenGL} all'interno del corso accademico si considera raggiunto con
+successo.
+
+I risultati ottenuti confermano che l'integrazione è tecnicamente fattibile e rappresenta un salto generazionale in
+termini di architettura del software e prestazioni. Come evidenziato anche nei precedenti studi \cite{Forestieri_2025}
+il passaggio da una macchina a stati globale come quella di \texttt{OpenGL} ad un'API esplicita richiede un notevole
+cambio di paradigma. Questa complessità è ulteriormente amplificata dalle rigide specifiche dello standard aperto di
+\texttt{\gls{OpenXR}}, che impone che sia il runtime a creare e gestire le immagini della swapchain, invertendo di fatto
+il controllo rispetto a \texttt{\gls{OpenVR}}.
+
+L'implementazione tuttavia dimostra che il debito tecnico iniziale è ampiamente ripagato; sfruttando un'architettura a
+basso livello si è ottenuto un motore di rendering capace di abbattere drasticamente i tempi di esecuzione del frame
+e di azzerare virtualmente l'overhead sulla CPU.
+
+Dal punto di vista didattico, sebbene \texttt{WebGPU} si confermi un candidato eccellente per avvicinare gli studenti ai
+concetti delle API moderne in corsi avanzati, la sua verbosità unita alla complessità di \texttt{\gls{OpenXR}} rischia
+di saturare il breve tempo a disposizione del modulo. La soluzione ideale consiste quindi nel fornire questa
+infrastruttura sottoforma di libreria \textit{black-box}, seguendo la filosofia di astrazione adottata precedentemente
+con \textit{XrBridge} \cite{Piazza_2024}, permettendo agli studenti di concentrarsi sulla logica immersiva e sullo
+sviluppo della logica grafica.
+
+\newpage
+
 \section{Sviluppi futuri}
 
+\blankpage
 \blankpage
 \pagenumbering{Roman}
 \printglossary[title=Glossario, toctitle=Glossario]
