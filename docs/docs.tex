@@ -279,9 +279,45 @@ fontsize=\small,
 \pagenumbering{arabic}
 \chapter{Abstract}
 
-\vspace{0.5cm}
+L’evoluzione delle API grafiche ha determinato un cambiamento di paradigma verso un controllo esplicito e di basso
+livello dell’hardware.
+\texttt{WebGPU}, inizialmente progettata per il web, sta consolidando sempre più la propria posizione negli ambienti di
+sviluppo nativi.
+
+Questo progetto valuta la fattibilità dell’utilizzo di \texttt{WebGPU} nativa come backend di rendering primario per le
+applicazioni VR, indagando in particolare la complessità della sua integrazione con lo standard OpenXR.
+Il fulcro di questo studio riguarda la progettazione e l’implementazione di un prototipo funzionale in 3D stereoscopico.
+Ciò richiede la creazione di un livello di integrazione personalizzato per coordinare le fasi critiche della pipeline VR,
+in particolare una rigorosa sincronizzazione dei fotogrammi.
+
+Confrontando le rigidità architetturali di \texttt{WebGPU} con i requisiti hardware espliciti di \texttt{OpenXR},
+questa ricerca analizza gli ostacoli tecnici relativi alla compatibilità delle API e alla gestione della memoria.
+L’architettura WebGPU risultante viene quindi confrontata con la tradizionale soluzione \texttt{OpenGL}, per misurare lo
+sforzo di sviluppo relativo, la verbosità delle API e le metriche di prestazione in fase di esecuzione, quali il
+\gls{framerate} e la latenza.
+In definitiva, questo studio fornisce linee guida concrete riguardo ai limiti e alla sostenibilità didattica
+dell’adozione di \texttt{WebGPU} nativa come alternativa moderna per l’insegnamento della realtà virtuale.
+
+\vspace{0.25cm}
 \noindent\rule{\textwidth}{0.5pt}
-\vspace{0.5cm}
+\vspace{0.25cm}
+
+\noindent The evolution of graphics APIs has driven a paradigm shift toward explicit, low-level hardware control.
+\texttt{WebGPU}, initially engineered for the web, is increasingly solidifying its position in native development
+environments.
+
+This project evaluates the feasibility of using native \texttt{WebGPU} as the primary rendering backend for VR
+applications, specifically investigating the complexity of its integration with the \texttt{\gls{OpenXR}} standard.
+The core of this study involves the design and implementation of a functional stereoscopic 3D prototype.
+This requires the creation of a custom integration layer to orchestrate critical VR pipeline stages, especially a
+rigorous frame synchronization.
+
+By confronting the architectural rigidities of \texttt{WebGPU} with the explicit hardware requirements of \texttt{OpenXR}
+this research analyzes the technical hurdles surrounding API compatibility and memory management.
+The resulting \texttt{WebGPU} architecture is then compared against the traditional \texttt{OpenGL} solution, to measure
+the relative development effort, API verbosity and runtime performance metrics such as \gls{framerate} and latency.
+Ultimately, this study provides concrete guidelines regarding the technical limits and educational sustainability of
+adopting native \texttt{WebGPU} as a modern alternative for teaching Virtual Reality.
 
 \blankpage
 
@@ -2287,6 +2323,20 @@ sviluppo della logica grafica.
 \newpage
 
 \section{Sviluppi futuri}
+
+Sebbene il prototipo sia funzionale e performante, la natura esplorativa di questo studio apre la via per diversi
+possibili miglioramenti successivi; di seguito alcuni esempi:
+
+\begin{itemize}
+    \item Attualmente, le instabilità dell'estensione di condivisione della memoria di \texttt{\gls{Vulkan}} su Windows
+        hanno forzato l'utilizzo del backend \texttt{\gls{DirectX}12}.
+        Sviluppi futuri dovranno concentrarsi sulla stabilizzazione del bridge \texttt{\gls{Vulkan}} per garantire la
+        compatibilità nativa su distribuzioni Linux.
+    \item L'attuale interazione si è concentrata esclusivamente sulla pipeline di rendering e sul tracciamento spaziale
+        del visore. La gestione dell'input su \texttt{\gls{OpenXR}} si è dimostrata complessa e richiede uno sforzo di
+        implementazione notevole.
+        Sarà necessario sviluppare un modulo dedicato per mappare azioni logiche sui controller fisici dell'utente.
+\end{itemize}
 
 \blankpage
 \blankpage
