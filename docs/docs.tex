@@ -17,6 +17,7 @@
 \usepackage{pgfplots}
 \usepgfplotslibrary{statistics}
 \pgfplotsset{compat=1.18}
+\usepackage{dirtreex}
 
 % Page Layout & Margins
 \usepackage[
@@ -2351,6 +2352,67 @@ possibili miglioramenti successivi; di seguito alcuni esempi:
 \appendix
 \chapter{Manuale d'uso}\label{annex:guide}
 
+Guida rapida per l'utilizzo della demo Windows, compilata con \texttt{MSVC}, pronta all'utilizzo tramite Visual Studio.
+
 \section{Prerequisiti}
+
+\begin{itemize}
+    \item Visual Studio (2022+ / 2026 consigliato) con toolset MSVC.
+    \item Runtime OpenXR attivo (SteamVR, Quest Link, Monado su Windows se supportato).
+    \item Driver GPU aggiornati.
+\end{itemize}
+
+\section{Struttura}
+
+\begin{dirtreex}
+    \dir{}{Root del progetto}{
+        \dir{dependencies}{Dipendenze necessarie per la compilazione}{
+            \dir{glm}{}{}
+            \dir{openxr}{}{}
+            \dir{webgpu}{}{
+                \dir{include}{}{}
+                \dir{lib}{}{
+                    \file{wgpu\_native.dll}{Libreria dinamica ricompilata dal fork}
+                    \file{wgpu\_native.dll.lib}{}
+                    \file{wgpu\_native.lib}{}
+                    \file{wgpu\_native.pdb}{}
+                }
+            }
+        }
+        \dir{wgpu-xr-demo}{Sorgenti}{
+            \file{XrBridge.h}{Gestione risorse \texttt{OpenXR} (header)}
+            \file{XrBridge.cpp}{Gestione risorse \texttt{OpenXR} (source)}
+            \file{XrWGPUBridge.cpp}{Gestione interoperazione \texttt{WebGPU-OpenXR} (header)}
+            \file{XrWGPUBridge.h}{Gestione interoperazione \texttt{WebGPU-OpenXR} (source)}
+            \file{buffer.h}{Gestione dei buffer di memoria (header)}
+            \file{buffer.cpp}{Gestione dei buffer di memoria (source)}
+            \file{main.cpp}{Punto d'entrata}
+            \file{shader.cpp}{Gestione programmi shader (header)}
+            \file{shader.h}{Gestione programmi shader (source)}
+            \file{shader.wgsl}{Programma shader}
+        }
+        \file{wgpu-xr-demo.slnx}{File di soluzione}
+    }
+\end{dirtreex}
+
+\section{Compilazione ed esecuzione}
+
+\begin{enumerate}
+    \item Aprire test/wgpu-xr-demo.slnx in Visual Studio.
+    \item Selezionare la configurazione (Debug/Release) e la piattaforma (\texttt{x64}).
+    \item \texttt{Build > Build Solution}.
+\end{enumerate}
+
+Gli eseguibili appaiono nelle cartelle di output (es. Debug\ o Release).
+
+\section{Note utili}
+
+\begin{itemize}
+    \item Se manca il runtime \texttt{OpenXR} l'applicazione non rileverà headset: installare/attivare SteamVR o altro
+        runtime.
+    \item Verificare che le librerie custom (\texttt{wgpu-native} fork) presenti in \texttt{dependencies/wgpu/lib} o
+        referenziate dalla soluzione siano linkabili; altrimenti compilare il fork\footnote{\url{https://github.com/lucamazzza/wgpu-native}}
+        e posizionare i binari nella cartella sovraccitata.
+\end{itemize}
 
 \end{document}
