@@ -336,7 +336,7 @@ forniscono più controllo direttamente sull'hardware delle unità grafiche dei c
 In questo panorama, \texttt{WebGPU}\footnote{\url{https://webgpu.org}} si è imposta non solo come nuova generazione di
 API grafiche per il Web, ma anche come una solida alternativa per contesti nativi, grazie ai kit di sviluppo che la
 rendono compatibile con diversi linguaggi a basso livello, come \texttt{C++} e \texttt{Rust}.
-Un progetto precedentemente sviluppato ha già analizzato e dimostrato l'efficacia della transizione da \texttt{OpenGL} a
+Un progetto precedentemente sviluppato ha analizzato e dimostrato l'efficacia della transizione da \texttt{OpenGL} a
 \texttt{WebGPU} per corsi introduttivi alla computer grafica.
 
 Lo scopo del presente progetto è di estendere tale studio di fattibilità in un settore con ancora maggiori esigenze,
@@ -406,7 +406,7 @@ bensì di accompagnare alla comprensione del problema, dei passi intrapresi per 
 
 \section{Pianificazione}
 
-Di seguito sono descritte le differenti fasi atte allo sviluppo del progetto. In quanto la natura del progetto sia
+Di seguito sono descritte le differenti fasi atte allo sviluppo del progetto. In quanto la natura del progetto è
 sperimentale, ed infine l'obbiettivo sia quello di verificare la fattibilità di utilizzo, il piano di lavoro non eccede
 nei dettagli o nei vincoli ma risulta completo, garantendo la flessibilità necessaria e l'immediata risposta ad
 eventuali problemi o deviazioni dai mezzi discussi inizialmente.
@@ -432,7 +432,7 @@ eventuali problemi o deviazioni dai mezzi discussi inizialmente.
     \item \textbf{Swapchain condivisa}: Sviluppare una swapchain, condivisa tra \texttt{WebGPU} e \texttt{\gls{OpenXR}},
         che permetta di condividere le texture da mostrare tramite gli occhi dell'headset, tra l'API \texttt{WebGPU} e
         quella di \texttt{\gls{OpenXR}}. Ciò si riduce nella produzione di una libreria bridge, che utilizzi uno dei
-        "minimi comun denominatori\footnote{WebGPU si interfaccia direttamente con l'API di sistema per la
+        "minimi comuni denominatori\footnote{WebGPU si interfaccia direttamente con l'API di sistema per la
         rappresentazione nativa di immagini grafiche.}" tra le due tecnologie, in questo caso una tra
         \texttt{\gls{Vulkan}}, \texttt{\gls{DirectX}} o \texttt{\gls{Metal}}.
     \item \textbf{Sincronizzazione \& Rendering Stereoscopico}: Integrare la sincronizzazione del loop di
@@ -465,9 +465,9 @@ Questo rapporto è stato scritto durante tutta la durata del progetto, parallela
 
 \chapter{Stato dell'arte}
 
-Negli ultimi dieci anni, l'ecosistema dello sviluppo di applicazioni grafiche interattive ha visto intercorrere una
-trasformazione radicale. L'industria si è pian piano allontanata dai paradigmi tradizionali, basati su macchine a stati
-globali, per abbracciare interfacce di programmazione dal carattere esplicito, progettate per rispecchiare fedelmente
+Negli ultimi dieci anni, l'ecosistema dello sviluppo di applicazioni grafiche interattive ha subito una trasformazione
+radicale. L'industria si è pian piano allontanata dai paradigmi tradizionali, basati su macchine a stati globali, per
+abbracciare interfacce di programmazione dal carattere esplicito, progettate per rispecchiare fedelmente
 l'architettura delle GPU multi-core. Ciò ha portato le API, contrariamente al trend seguito dalla maggior parte
 dell'ingegneria del software che si muove verso API di alto livello e astrazioni più vicine allo sviluppatore, a
 scendere sempre più di livello, avvicinandosi alla programmazione diretta dell'hardware grafico.
@@ -480,8 +480,8 @@ quale ha poi visto un rapido declino, dovuto a diversi fattori, ma principalment
 produttori; specialmente lo spostamento dei settori di ricerca e sviluppo dei maggiori esponenti, come Microsoft e Meta,
 nel settore dell'Intelligenza Artificiale, in maniera affrettata (e poco considerata, visti i risultati ad oggi) ha
 posto fine all'evoluzione dei prodotti commerciali.
-Anche se il rilascio di un nuovo prodotto Apple nel settore, il prezzo imposto dalla casa di Cupertino non ha aiutato
-il mercato a rendere la tecnologia attrattiva.
+Anche se il rilascio di un nuovo prodotto Apple nel settore abbia generato interesse nella community, il prezzo imposto
+dalla casa di Cupertino non ha aiutato il mercato a rendere la tecnologia attrattiva.
 
 Questo capitolo analizza le tecnologie attualmente impiegate in ambito didattico e industriale, evidenziando la
 crescente trasformazione dell'ecosistema grafico, le limitazioni e "l'invecchiamento" degli approcci tradizionali e
@@ -508,8 +508,8 @@ it. [...] Learning OpenGL is comparable to learning SQL for database programming
 
 Tuttavia, questa astrazione ha un costo architetturale severo: i driver di \texttt{OpenGL} devono eseguire una massiccia
 mole di euristiche in background per tradurre le chiamate high level in istruzioni comprensibili per la scheda grafica,
-causando un notevole driver overhead e un'imprevedibilità delle prestazioni, soprattutto del frame stuttering, difetti
-critici nell'ambito della Realtà Virtuale, dove la latenza \textit{motion-to-photon} deve rimanere strettamente
+causando un notevole driver overhead e un'imprevedibilità delle prestazioni, soprattutto del \textit{frame stuttering},
+difetti critici nell'ambito della Realtà Virtuale, dove la latenza \textit{motion-to-photon} deve rimanere strettamente
 inferiore ai 20 millisecondi.
 
 \textbf{\texttt{\gls{OpenVR}}}\footnote{\url{https://github.com/ValveSoftware/openvr}}, sviluppato da Valve come SDK per
@@ -548,7 +548,7 @@ Vi sono due fattori critici che rendono queste API problematiche per la didattic
         manualmente la memoria, gestire i descriptor set, configurare le pipeline memory barrier e orchestrare le code
         di comandi. Realizzare il rendering di un singolo triangolo colorato utilizzando \gls{Vulkan} richiede la
         stesura di 1000-1500 righe di codice, che a confronto delle 50-100 di OpenGL risultano eccessive per un corso di
-        dieci settimane. Inoltre, un corso accademico focalizzato sulla Realtà Virtuale forzare gli studenti ad
+        dieci settimane. Inoltre, in un corso accademico focalizzato sulla Realtà Virtuale che forzare gli studenti ad
         apprendere quest'API significherebbe consumare l'intero semestre solo per inizializzare l'ambiente grafico.
         \begin{quote}
         \itshape
@@ -637,7 +637,7 @@ vengono concepite le applicazioni immersive. Di seguito le principali divergenze
         passarle al Runtime, il quale si occupa di mapparle sull'hardware utilizzato correntemente dall'utente in base a
         profili di interazione.
     \item \textbf{Gestione Spazi/Tracking}: \texttt{\gls{OpenVR}} restituisce le matrici di posizionamento (\textit{Poses})
-        basate su un sistema di coordinate cablato. \texttt{\gls{OpenXR}} invece introduce il concetto id
+        basate su un sistema di coordinate cablato. \texttt{\gls{OpenXR}} invece introduce il concetto di
         \texttt{XrSpace}\footnote{\url{https://registry.khronos.org/OpenXR/specs/1.1/man/html/XrSpace.html}}, dove ogni
         elemento, che si tratti del visore, del controller o della zona di gioco, è codificato come "Spazio".
         Al suo interno, la posizione di un oggetto viene calcolata interrogando il runtime, chiedendogli di localizzare
@@ -659,7 +659,7 @@ da \textit{Piazza, Lorenzo}, il quale ha analizzato e sviluppato un "bridge" che
 
 \begin{quote}
 \itshape
-L’obiettivo di XrBridge è quello di permettere a studenti e ricercatori di accedere ai benefici di OpenXR attraverso uno
+L’obbiettivo di XrBridge è quello di permettere a studenti e ricercatori di accedere ai benefici di OpenXR attraverso uno
 strumento che ne astrae significativamente le funzionalità, riducendo la curva di apprendimento e lo sforzo richiesto a
 livelli compatibili con i percorsi formativi SUPSI. \cite{Piazza_2024}
 \end{quote}
@@ -732,7 +732,7 @@ considerare le piattaforme e il livello di confidenza nell'apprendere un'API del
 A differenza di \texttt{OpenGL}, il quale mantiene uno stato globale e gestisce la sincronizzazione della memoria in
 background, la nuova architettura richiede definizioni esplicite per ogni singola fase della pipeline. Per mantenere
 una minima leggibilità e separare qualche responsabilità, pur lasciando la struttura simile a quella del tutorial del
-corso per facilitarne la comparazione; per questo, seguendo l'architettura di corso, sono state modularizzate le classi:
+corso per facilitarne la comparazione; per questo, seguendo l'architettura del corso, sono state modularizzate le classi:
 
 \begin{itemize}
     \item \textbf{\texttt{Shader}}: Gestisce il caricamento, la compilazione ed il ciclo di vita degli Shader Modules
@@ -837,7 +837,7 @@ richiederebbe l'uso di sorgenti \texttt{.mm}, l'implementazione sfrutta l'iniezi
 Il processo, consultabile nel listing \ref{listing:macwinctx}, si occupa di estrarre dapprima l'oggetto
 \texttt{NSWindow}, ne recupera poi la vista principale \texttt{contentView} e vi aggancia dinamicamente un livello di
 rendering dedicato, chiamato \texttt{CAMetalLayer}.
-Inoltre, durante questa fase, viene esplicitamenet disabilitata la proprietà \texttt{displaySyncEnabled} del layer
+Inoltre, durante questa fase, viene esplicitamente disabilitata la proprietà \texttt{displaySyncEnabled} del layer
 \gls{Metal}; questo è un passaggio fondamentale per aggirare la sincronizzazione verticale forzata in modo aggressivo
 dal \textit{Window Server} di macOS, permettendo all'applicazione di sbloccare il \gls{framerate} per una migliore
 profilazione delle performance.
@@ -886,7 +886,7 @@ return wgpuInstanceCreateSurface(instance, &surfaceDesc);
 
 Il passaggio dal \texttt{glTexImage2D} di \texttt{OpenGL} al sistema adottato da \texttt{WebGPU} richiede il calcolo
 manuale degli \textit{stride} di memoria. La libreria \texttt{stb\_image} è stata integrata per caricare gli assets
-direttamente in un formato \textit{top-down}, corrisponendo nativamenta al sistema di coordinate delle texture
+direttamente in un formato \textit{top-down}, corrispondendo nativamente al sistema di coordinate delle texture
 \texttt{WebGPU} ed eliminando la necessità di invertire l'asse $y$ durante il caricamento.
 
 L'API impone un vincolo sui caricamenti delle texture tramite \texttt{wgpuQueueWriteTexture}: il parametro
@@ -944,7 +944,7 @@ pipelineDesc.layout = nullptr;
 \end{minted}
 
 Questo istruisce il backend \texttt{WebGPU} a inferire dinamicamente il layout del Bind Group, direttamente dalle
-annotazioni del linguaggio di shading (\texttt{@group} e \texttt{@binding}), riducento significativamente la verbosità
+annotazioni del linguaggio di shading (\texttt{@group} e \texttt{@binding}), riducendo significativamente la verbosità
 del \texttt{C++}.
 
 Le risorse da fornire al programma shader sono divise in due distinti Bind Group in base alla loro frequenza di
@@ -1066,7 +1066,7 @@ pub unsafe extern "C" fn wgpuTextureGetVulkanImage(
 
 \subsubsection{Giustificazione architetturale}
 
-Inizialmente si era valutata l'ipotesi di istanziatre un oggetto \texttt{WGPUTexture} direttamente sopra la memoria
+Inizialmente si era valutata l'ipotesi di istanziare un oggetto \texttt{WGPUTexture} direttamente sopra la memoria
 allocata da \texttt{\gls{OpenXR}}, tecnica detta \textit{Memory Aliasing}.
 Questo approccio è stato tuttavia scartato, in favore dell'estrazione diretta della \texttt{VKImage} descritta nel
 Listing \ref{listing:vkimagepunning}, per due ragioni fondamentali legate alla sicurezza del ciclo di vita della
@@ -1111,7 +1111,7 @@ estensioni richieste.
 Riprendendo il flusso di lavoro descritto nel punto precedente, l'aggiunta delle estensioni richiede la modifica di
 ulteriore codice sorgente di \texttt{WebGPU}, in questo caso direttamente nella repository dell'API.
 
-Sebbene solitamente l'attivazione di estensioni nel contesto di \texttt{\gls{Vulkan}} sia complicato e tedioso, sembra
+Sebbene solitamente l'attivazione di estensioni nel contesto di \texttt{\gls{Vulkan}} sia complicata e tediosa, sembra
 che il W3C metta a disposizione un meccanismo di abilitazione di queste molto semplice da manipolare, anche se non è
 accessibile dall'API direttamente; esiste infatti una funzione, all'interno del file sorgente
 \texttt{adapter.rs}\footnote{\url{https://github.com/lucamazzza/wgpu/blob/v29h/wgpu-hal/src/vulkan/adapter.rs}}, che
@@ -1187,10 +1187,10 @@ Counting (conteggio dei riferimenti), regolato dai metodi dell'interfaccia \text
 incrementa il contatore, mentre \texttt{Release()} lo decrementa. Quando il contatore raggiunge lo zero, l'oggetto viene
 deallocato autonomamente dalla memoria video.
 
-La violazione di accesso è dovuta proprio a questa necessità di contare i riferimenti e la necessità di introdurre la
-clonazione esplicita dell'interfaccia in Rust (\texttt{iface.clone()}) prima di esportare il puntatore grezzo deriva
-dal conflitto tra la gestione dell'ownership in C++ tramite \texttt{Microsoft::WRL::ComPtr} e quella del backend Rust
-di \texttt{wgpu-native}.
+La violazione di accesso è dovuta proprio a questa necessità di contare i riferimenti, da cui deriva la necessità di
+introdurre la clonazione esplicita dell'interfaccia in Rust (\texttt{iface.clone()}) prima di esportare il puntatore
+grezzo per risolvere il conflitto tra la gestione dell'ownership in C++ tramite \texttt{Microsoft::WRL::ComPtr} e quella
+del backend Rust di \texttt{wgpu-native}.
 
 \begin{listing}[!ht]
 \begin{minted}{rust}
@@ -1260,7 +1260,7 @@ sincronizzazione temporale al trasferimento dei dati in memoria video.
 
 \subsubsection{Ciclo di vita del frame}
 
-OpenXR impone un rigoroso \textit{frame pacing} per garantire che le immagini vengano presentate all'Head Mounte
+OpenXR impone un rigoroso \textit{frame pacing} per garantire che le immagini vengano presentate all'Head Mounted
 Display minimizzando la latenza \textit{motion-to-photon}. Il ciclo di vita di un singolo fotogramma stereoscopico si
 articola attraverso tre chiamate fondamentali dettate dal runtime:
 
@@ -1561,9 +1561,9 @@ supportato, bloccando di fatto la condivisione Zero-Copy.
 
 \begin{quote}
 \itshape
-Si nota che è molto evidente l'intenzione dei designer e sviluppatori dell'API di \texttt{WebGPU} di proibire o rendere 
-molto complesso ciò che si sta provando a compiere. È evidente che le limitazioni vengono direttamente dalla specifica e
-dalla filosofia di \texttt{WebGPU}.
+Si nota che è evidente l'intenzione dei designer e sviluppatori dell'API di \texttt{WebGPU} di proibire o rendere molto
+complesso ciò che si sta provando a compiere. È evidente che le limitazioni vengono direttamente dalla specifica e dalla
+filosofia di \texttt{WebGPU}.
 \end{quote}
 
 \subsubsection{Valutazione del debito tecnico}
@@ -1592,7 +1592,7 @@ Questa soluzione di ripiego modifica l'architettura del sistema come segue:
     \item Tramite la funzione \texttt{MapAsync}, il buffer viene mappato nella memoria della CPU. Questo passaggio
         forza la sincronizzazione tra CPU e GPU, consentendo all'applicazione di leggere l'array di byte crudi dei pixel
         in formato \textit{RGBA}.
-    \item I dati, ora residenti nella \texttt{RAM}, vengono presi in carico dai comanvi \texttt{\gls{Vulkan}} nativi,
+    \item I dati, ora residenti nella \texttt{RAM}, vengono presi in carico dai comandi \texttt{\gls{Vulkan}} nativi,
         indipendenti da \texttt{WebGPU}. Tramite uno staging buffer, questo viene caricato in memoria GPU come
         \texttt{VkImage}.
 \end{itemize}
@@ -1618,7 +1618,7 @@ architetturale.
 
 Rispetto alle architetture didattiche precedentemente impiegate nel corso, basate sull'accoppiata \texttt{OpenGL} e
 \texttt{\gls{OpenVR}}, il nuovo motore grafico impone un cambio di paradigma.
-Si abbandona il tradizionale stile di programmazione unico ad \texttt{OpenGL}, per passare ad uno più conforme al
+Si abbandona il tradizionale stile di programmazione tipico di \texttt{OpenGL}, per passare ad uno più conforme al
 moderno \texttt{\gls{Vulkan}}, come d'altronde da intenzione dei creatori.
 L'overhead di questo cambiamento è però relativo, in quanto anche se le risorse da istanziare sono molteplici e va
 ricordata ogni loro specifica, lo stile di creazione di ognuna è praticamente lo stesso, rendendo la stesura del
@@ -1642,7 +1642,7 @@ dell'eventuale overhead e quanto le performance finali lo giustifichino.
 \chapter{Test e validazione}
 
 Questo capitolo presenta l'analisi empirica e la valutazione delle prestazioni dell'architettura \texttt{WebGPU-OpenXR}
-sviluppata nel corso del progetto. L'obiettivo primario di questa fase è verificare se l'elevata complessità di sviluppo
+sviluppata nel corso del progetto. L'obbiettivo primario di questa fase è verificare se l'elevata complessità di sviluppo
 e la rigorosa gestione esplicita delle risorse introdotta dalla nuova API portino a vantaggi misurabili o se, al
 contrario, evidenzino colli di bottiglia architetturali.
 
@@ -1792,7 +1792,7 @@ cali di prestazione anomali.
 
 \begin{table}[h]
 \centering
-\caption{Test FPS (\textit{VRRidge})}
+\caption{Test FPS (\textit{VRidge})}
 \begin{tabular}{lp{5cm}lp{5cm}lp{5cm}}
 \toprule
 \textbf{FPS} &
@@ -1808,7 +1808,7 @@ cali di prestazione anomali.
 
 Questi risultati sono presentati solamente per completezza, in quanto nell'ambiente corrente di test i frame al secondo
 sono limitati a $60$ da sistema, in quanto proiettati su schermi di cellulari i quali sono solitamente limitati a
-$60$Hz.
+$60$ Hz.
 
 Ciononostante, si può notare che la soluzione \textcolor{violet!75}{\textbf{\texttt{WebGPU+OpenXR}}}, soprattutto
 durante la fase di inizializzazione, vede un calo di frame al secondo più elevato rispetto alla soluzione già presente.
@@ -1966,7 +1966,7 @@ causi la perdita di solamente due frames su tutto l'arco del test dimostra che l
 
 Questa sezione propone una sintesi olistica di tutte le metriche raccolte durante la profilazione tramite
 \texttt{VRidge}. Aggregando i dati relativi a \gls{framerate}, tempi di esecuzione, consumo di risorse e stabilità del
-fotogramma, si delineerà un quadro prestazionale completo. L'obiettivo di questo confronto finale è stabilire
+fotogramma, si delineerà un quadro prestazionale completo. L'obbiettivo di questo confronto finale è stabilire
 oggettivamente se il debito tecnico e la complessità architetturale introdotti da WebGPU siano giustificati da un
 miglioramento misurabile delle performance, determinando così la validità tecnica della sua potenziale adozione come
 standard didattico.
@@ -2109,7 +2109,7 @@ pressoché invariata, addirittura diminuendo leggermente. Questo risultato è di
 preoccupazioni riguardanti la complessità del codice, la quale sarebbe potuta aumentare a dismisura.
 La stima di sforzo temporale infatti risulta di $3.42$ mesi, molto vicini a quelli della soluzione originale, quindi
 altresì azzeccati. Le risorse umane richieste sono $0.67$, ancora una volta vicini.
-La soluzione di partenza mostra una complessità di $89$, che risulta addirittura minore dell'originale,
+La soluzione sviluppata mostra una complessità di $89$, che risulta addirittura minore dell'originale,
 anche se poco vista la differenza dei concetti per lo studente.
 
 \section{Complessità di comprensione per lo studente}
@@ -2135,10 +2135,10 @@ l'apprendimento meccanico ed efficiente.
 
 Gli aspetti che invece aumentano o peggiorano la complessità della soluzione sono altresì divisi su due argomenti;
 in primis, l'implementazione nativa di riferimento porta con sé un'infrastruttura profondamente legata al linguaggio
-Rust. Questo introduce notevoli frizioni per quanto riguarda la toolchain e la gestione delle librerie necessarie per
+Rust. Questa introduce notevoli frizioni per quanto riguarda la toolchain e la gestione delle librerie necessarie per
 lo sviluppo, soprattutto per studenti abituati allo sviluppo C++. È inoltre da notare che errori, warning e altre
 notifiche a livello API sono presentate direttamente dal runtime Rust, e risultano quindi poco comprensibili per chi
-del linguaggio non ne sa nulla.
+non sa nulla del linguaggio.
 
 Il secondo punto riguarda sempre il linguaggio Rust, il quale ha ispirato pesantemente il linguaggio WGSL (WebGPU
 Shading Language), unico linguaggio di shading compatibile con la soluzione. Nemmeno la compatibilità con SPIR-V
@@ -2281,7 +2281,7 @@ Si consolidano i seguenti punti salienti:
         per garantire il supporto su architetture Linux.
     \item Il manuale d'utilizzo e la struttura del codice dimostrano che l'API può essere utilizzata con successo dallo
         studente. Come già dimostrato con i metodi adottati nel corso, fornendo un modulo \textit{black-box} che
-        gestisca autonomamente l'inizializzazione del device e la negiziazione della swapchain, lo sviluppatore può
+        gestisca autonomamente l'inizializzazione del device e la negoziazione della swapchain, lo sviluppatore può
         concentrarsi interamente sulla logica 3D e di interazione con il VR.
 \end{itemize}
 
@@ -2300,7 +2300,7 @@ di problemi o incertezze sulla natura del codice (\ref{annex:guide}).
 Il presente progetto ha quindi adempito al suo scopo di valutare la fattibilità di adottare \texttt{WebGPU} in
 combinazione con \texttt{\gls{OpenXR}}, in ambiente nativo, per lo sviluppo di applicazioni di Realtà Virtuale.
 L'obbiettivo ultimo di determinare se questo stack tecnologico potesse sostituire in modo efficace l'approccio
-tradizionale basato su \texttt{OpenGL} e \texttt{OpenGL} all'interno del corso accademico si considera raggiunto con
+tradizionale basato su \texttt{OpenGL} e \texttt{OpenVR} all'interno del corso accademico si considera raggiunto con
 successo.
 
 I risultati ottenuti confermano che l'integrazione è tecnicamente fattibile e rappresenta un salto generazionale in
