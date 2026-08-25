@@ -167,6 +167,18 @@ fontsize=\small,
  \clearpage
 }
 
+\newenvironment{disclaimer}
+{%\clearpage
+  \thispagestyle{empty}
+  \vspace*{\stretch{2}}
+  \itshape
+  \raggedleft
+}
+{\par
+ \vspace{\stretch{3}}
+ \clearpage
+}
+
 % Symbols fontawesome
 \usepackage{fontawesome5}
 
@@ -275,7 +287,14 @@ fontsize=\small,
 \renewcommand\listoflistingscaption{Elenco dei codici sorgente}
 \listoflistings
 \newpage
-\blankpage
+
+\showlogofalse
+\begin{disclaimer}
+    Durante la fase finale della presente tesi è stata utilizzata Intelligenza Artificiale Generetativa come motore di
+    ricerca, analisi della correttezza grammaticale di ciò che è scritto in questo report e per aggiungere commenti
+    documentativi nel codice.
+\end{disclaimer}
+
 
 \pagenumbering{arabic}
 \chapter{Abstract}
