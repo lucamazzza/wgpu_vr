@@ -75,6 +75,9 @@ Visual Studio 2026, using MSVC and managing dependencies and build in a differen
 If you whish to use the final demo through windows and this build system, just double click on the `.slnx` file and
 follow the IDE's instructions (ideally usable with Visual Studio 2022 and later)
 
+>[!NOTE]
+> This is addressed mainly to the students of the *Virtual Reality* SUPSI course.
+
 # License
 
 This project is developed for SUPSI and therefore licensed to the istitution.
