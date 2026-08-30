@@ -7,7 +7,7 @@
 
 </p>
 
-This repository contains a C++ prototype demonstrating interoperability between **WebGPU** (via `wgpu_native`) and **OpenXR**.
+This repository contains a C++ prototype demonstrating interoperability between **WebGPU** (via custom `wgpu_native`) and **OpenXR**.
 The goal of this project is to provide a modern, cross-platform, and explicit graphics stack for Virtual Reality
 applications, replacing legacy OpenGL and OpenVR workflows.
 
